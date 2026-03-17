@@ -1,0 +1,86 @@
+name = "terminal"
+mode = "light"
+description = "Built-in terminal-oriented light theme with bright backgrounds and crisp signal colors."
+
+[tokens.bg]
+family = "neutral"
+tone = 0.96
+chroma = 0.004
+
+[tokens.bg_secondary]
+family = "neutral"
+tone = 0.92
+chroma = 0.006
+
+[tokens.surface]
+family = "neutral_variant"
+tone = 0.88
+chroma = 0.010
+
+[tokens.surface_elevated]
+family = "neutral_variant"
+tone = 0.84
+chroma = 0.014
+
+[tokens.text]
+family = "neutral"
+tone = 0.12
+
+[tokens.text_muted]
+family = "neutral_variant"
+tone = 0.34
+chroma_scale = 0.60
+
+[tokens.border]
+family = "neutral_variant"
+tone = 0.74
+chroma_scale = 0.66
+
+[tokens.border_strong]
+family = "neutral_variant"
+tone = 0.62
+chroma_scale = 0.78
+
+[tokens.accent]
+family = "primary"
+tone = 0.42
+chroma_scale = 0.98
+
+[tokens.accent_hover]
+family = "primary"
+tone = 0.50
+chroma_scale = 1.02
+
+[tokens.accent_active]
+family = "primary"
+tone = 0.34
+chroma_scale = 0.94
+
+[tokens.accent_fg]
+family = "neutral"
+tone = 0.98
+
+[tokens.selection]
+family = "primary"
+tone = 0.84
+chroma_scale = 0.26
+
+[tokens.link]
+family = "info"
+tone = 0.44
+chroma_scale = 0.88
+
+[tokens.success]
+family = "success"
+tone = 0.44
+chroma_scale = 0.94
+
+[tokens.warning]
+family = "warning"
+tone = 0.50
+chroma_scale = 0.92
+
+[tokens.error]
+family = "error"
+tone = 0.46
+chroma_scale = 0.94

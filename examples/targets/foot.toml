@@ -1,0 +1,31 @@
+name = "foot"
+description = "Example user-defined Foot target."
+
+[[artifacts]]
+file_name = "foot.ini"
+template = """
+[colors]
+foreground={{tokens.text | hex_no_hash}}
+background={{tokens.bg | hex_no_hash}}
+selection-foreground={{tokens.text | hex_no_hash}}
+selection-background={{tokens.selection | hex_no_hash}}
+urls={{tokens.link | hex_no_hash}}
+flash={{tokens.accent | hex_no_hash}}
+flash-text={{tokens.accent_fg | hex_no_hash}}
+regular0={{tokens.bg_secondary | hex_no_hash}}
+regular1={{tokens.error | hex_no_hash}}
+regular2={{tokens.success | hex_no_hash}}
+regular3={{tokens.warning | hex_no_hash}}
+regular4={{tokens.link | hex_no_hash}}
+regular5={{tokens.accent | hex_no_hash}}
+regular6={{tokens.selection | hex_no_hash}}
+regular7={{tokens.text_muted | hex_no_hash}}
+bright0={{tokens.surface_elevated | hex_no_hash}}
+bright1={{tokens.error | hex_no_hash}}
+bright2={{tokens.success | hex_no_hash}}
+bright3={{tokens.warning | hex_no_hash}}
+bright4={{tokens.accent_hover | hex_no_hash}}
+bright5={{tokens.accent_active | hex_no_hash}}
+bright6={{tokens.border_strong | hex_no_hash}}
+bright7={{tokens.text | hex_no_hash}}
+"""

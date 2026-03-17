@@ -1,0 +1,69 @@
+name = "gtk"
+description = "Example user-defined GTK target."
+
+[[artifacts]]
+file_name = "gtk.css"
+template = """
+@define-color window_bg_color {{tokens.bg}};
+@define-color window_fg_color {{tokens.text}};
+@define-color view_bg_color {{tokens.surface}};
+@define-color view_fg_color {{tokens.text}};
+@define-color headerbar_bg_color {{tokens.surface_elevated}};
+@define-color headerbar_fg_color {{tokens.text}};
+@define-color accent_bg_color {{tokens.accent}};
+@define-color accent_fg_color {{tokens.accent_fg}};
+@define-color selection_bg_color {{tokens.selection}};
+@define-color selection_fg_color {{tokens.text}};
+@define-color border_color {{tokens.border}};
+@define-color border_strong_color {{tokens.border_strong}};
+@define-color link_color {{tokens.link}};
+@define-color success_color {{tokens.success}};
+@define-color warning_color {{tokens.warning}};
+@define-color error_color {{tokens.error}};
+
+window,
+dialog,
+popover {
+  background-color: @window_bg_color;
+  color: @window_fg_color;
+}
+
+headerbar {
+  background-color: @headerbar_bg_color;
+  color: @headerbar_fg_color;
+  border-color: @border_strong_color;
+}
+
+entry,
+textview,
+treeview,
+.view {
+  background-color: @view_bg_color;
+  color: @view_fg_color;
+  border-color: @border_color;
+}
+
+button,
+frame,
+separator {
+  border-color: @border_color;
+}
+
+button.suggested-action,
+button:checked,
+switch:checked slider {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+  border-color: @accent_bg_color;
+}
+
+selection {
+  background-color: @selection_bg_color;
+  color: @selection_fg_color;
+}
+
+a,
+link {
+  color: @link_color;
+}
+"""

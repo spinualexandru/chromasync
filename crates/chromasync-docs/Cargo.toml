@@ -1,0 +1,17 @@
+[package]
+name = "chromasync-docs"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "chromasync-docs"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+chromasync-cli = { path = "../chromasync-cli" }
+chromasync-core = { path = "../chromasync-core" }
+chromasync-renderers = { path = "../chromasync-renderers" }
+chromasync-template = { path = "../chromasync-template" }
+chromasync-types = { path = "../chromasync-types" }
+clap.workspace = true

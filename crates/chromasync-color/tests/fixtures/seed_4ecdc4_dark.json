@@ -1,0 +1,672 @@
+{
+  "seed": "#4ECDC4",
+  "mode": "dark",
+  "families": {
+    "primary": {
+      "name": "primary",
+      "hue": 188.53632,
+      "base_chroma": 0.111598276,
+      "tones": [
+        {
+          "tone": 0,
+          "hex": "#000000"
+        },
+        {
+          "tone": 6,
+          "hex": "#000101"
+        },
+        {
+          "tone": 10,
+          "hex": "#000404"
+        },
+        {
+          "tone": 14,
+          "hex": "#000C0B"
+        },
+        {
+          "tone": 20,
+          "hex": "#001B19"
+        },
+        {
+          "tone": 30,
+          "hex": "#003633"
+        },
+        {
+          "tone": 40,
+          "hex": "#00534F"
+        },
+        {
+          "tone": 45,
+          "hex": "#00635E"
+        },
+        {
+          "tone": 50,
+          "hex": "#00736D"
+        },
+        {
+          "tone": 60,
+          "hex": "#00948C"
+        },
+        {
+          "tone": 70,
+          "hex": "#49B2AA"
+        },
+        {
+          "tone": 80,
+          "hex": "#80CEC7"
+        },
+        {
+          "tone": 90,
+          "hex": "#B7EAE5"
+        },
+        {
+          "tone": 94,
+          "hex": "#CDF5F0"
+        },
+        {
+          "tone": 98,
+          "hex": "#E5FFFC"
+        },
+        {
+          "tone": 100,
+          "hex": "#FFFFFF"
+        }
+      ],
+      "dominance": null,
+      "source_region": null,
+      "seed_index": 0
+    },
+    "secondary": {
+      "name": "secondary",
+      "hue": 216.53632,
+      "base_chroma": 0.080350764,
+      "tones": [
+        {
+          "tone": 0,
+          "hex": "#000000"
+        },
+        {
+          "tone": 6,
+          "hex": "#000101"
+        },
+        {
+          "tone": 10,
+          "hex": "#000406"
+        },
+        {
+          "tone": 14,
+          "hex": "#000B10"
+        },
+        {
+          "tone": 20,
+          "hex": "#001A20"
+        },
+        {
+          "tone": 30,
+          "hex": "#00343F"
+        },
+        {
+          "tone": 40,
+          "hex": "#005160"
+        },
+        {
+          "tone": 45,
+          "hex": "#026072"
+        },
+        {
+          "tone": 50,
+          "hex": "#1B6E81"
+        },
+        {
+          "tone": 60,
+          "hex": "#428C9E"
+        },
+        {
+          "tone": 70,
+          "hex": "#6AAABB"
+        },
+        {
+          "tone": 80,
+          "hex": "#94C7D5"
+        },
+        {
+          "tone": 90,
+          "hex": "#C3E5EF"
+        },
+        {
+          "tone": 94,
+          "hex": "#D6F1F8"
+        },
+        {
+          "tone": 98,
+          "hex": "#EEFBFF"
+        },
+        {
+          "tone": 100,
+          "hex": "#FFFFFF"
+        }
+      ],
+      "dominance": null,
+      "source_region": null,
+      "seed_index": 0
+    },
+    "tertiary": {
+      "name": "tertiary",
+      "hue": 260.53632,
+      "base_chroma": 0.09151059,
+      "tones": [
+        {
+          "tone": 0,
+          "hex": "#000000"
+        },
+        {
+          "tone": 6,
+          "hex": "#000104"
+        },
+        {
+          "tone": 10,
+          "hex": "#000311"
+        },
+        {
+          "tone": 14,
+          "hex": "#01071E"
+        },
+        {
+          "tone": 20,
+          "hex": "#041433"
+        },
+        {
+          "tone": 30,
+          "hex": "#152C55"
+        },
+        {
+          "tone": 40,
+          "hex": "#2B4777"
+        },
+        {
+          "tone": 45,
+          "hex": "#375587"
+        },
+        {
+          "tone": 50,
+          "hex": "#446397"
+        },
+        {
+          "tone": 60,
+          "hex": "#6181B5"
+        },
+        {
+          "tone": 70,
+          "hex": "#829FD0"
+        },
+        {
+          "tone": 80,
+          "hex": "#A6BFE8"
+        },
+        {
+          "tone": 90,
+          "hex": "#CEDFFC"
+        },
+        {
+          "tone": 94,
+          "hex": "#E0ECFF"
+        },
+        {
+          "tone": 98,
+          "hex": "#F5F9FF"
+        },
+        {
+          "tone": 100,
+          "hex": "#FFFFFF"
+        }
+      ],
+      "dominance": null,
+      "source_region": null,
+      "seed_index": 0
+    },
+    "neutral": {
+      "name": "neutral",
+      "hue": 188.53632,
+      "base_chroma": 0.013391793,
+      "tones": [
+        {
+          "tone": 0,
+          "hex": "#000000"
+        },
+        {
+          "tone": 6,
+          "hex": "#000101"
+        },
+        {
+          "tone": 10,
+          "hex": "#020404"
+        },
+        {
+          "tone": 14,
+          "hex": "#060A0A"
+        },
+        {
+          "tone": 20,
+          "hex": "#111717"
+        },
+        {
+          "tone": 30,
+          "hex": "#27302F"
+        },
+        {
+          "tone": 40,
+          "hex": "#404A49"
+        },
+        {
+          "tone": 45,
+          "hex": "#4D5857"
+        },
+        {
+          "tone": 50,
+          "hex": "#5B6665"
+        },
+        {
+          "tone": 60,
+          "hex": "#788382"
+        },
+        {
+          "tone": 70,
+          "hex": "#97A1A0"
+        },
+        {
+          "tone": 80,
+          "hex": "#B7C0BF"
+        },
+        {
+          "tone": 90,
+          "hex": "#DADFDF"
+        },
+        {
+          "tone": 94,
+          "hex": "#E8ECEC"
+        },
+        {
+          "tone": 98,
+          "hex": "#F6F9F9"
+        },
+        {
+          "tone": 100,
+          "hex": "#FFFFFF"
+        }
+      ],
+      "dominance": null,
+      "source_region": null,
+      "seed_index": 0
+    },
+    "neutral_variant": {
+      "name": "neutral_variant",
+      "hue": 200.53632,
+      "base_chroma": 0.02455162,
+      "tones": [
+        {
+          "tone": 0,
+          "hex": "#000000"
+        },
+        {
+          "tone": 6,
+          "hex": "#000101"
+        },
+        {
+          "tone": 10,
+          "hex": "#010404"
+        },
+        {
+          "tone": 14,
+          "hex": "#040B0B"
+        },
+        {
+          "tone": 20,
+          "hex": "#0C1819"
+        },
+        {
+          "tone": 30,
+          "hex": "#213132"
+        },
+        {
+          "tone": 40,
+          "hex": "#394C4D"
+        },
+        {
+          "tone": 45,
+          "hex": "#465A5B"
+        },
+        {
+          "tone": 50,
+          "hex": "#536869"
+        },
+        {
+          "tone": 60,
+          "hex": "#708586"
+        },
+        {
+          "tone": 70,
+          "hex": "#90A3A4"
+        },
+        {
+          "tone": 80,
+          "hex": "#B2C1C2"
+        },
+        {
+          "tone": 90,
+          "hex": "#D6E0E1"
+        },
+        {
+          "tone": 94,
+          "hex": "#E5EDED"
+        },
+        {
+          "tone": 98,
+          "hex": "#F4FAFA"
+        },
+        {
+          "tone": 100,
+          "hex": "#FFFFFF"
+        }
+      ],
+      "dominance": null,
+      "source_region": null,
+      "seed_index": 0
+    },
+    "error": {
+      "name": "error",
+      "hue": 49.53044,
+      "base_chroma": 0.14,
+      "tones": [
+        {
+          "tone": 0,
+          "hex": "#000000"
+        },
+        {
+          "tone": 6,
+          "hex": "#020000"
+        },
+        {
+          "tone": 10,
+          "hex": "#090200"
+        },
+        {
+          "tone": 14,
+          "hex": "#150500"
+        },
+        {
+          "tone": 20,
+          "hex": "#280D00"
+        },
+        {
+          "tone": 30,
+          "hex": "#4C1F00"
+        },
+        {
+          "tone": 40,
+          "hex": "#733200"
+        },
+        {
+          "tone": 45,
+          "hex": "#883C00"
+        },
+        {
+          "tone": 50,
+          "hex": "#9D4700"
+        },
+        {
+          "tone": 60,
+          "hex": "#BF642B"
+        },
+        {
+          "tone": 70,
+          "hex": "#DB8656"
+        },
+        {
+          "tone": 80,
+          "hex": "#F2AB84"
+        },
+        {
+          "tone": 90,
+          "hex": "#FFD4BD"
+        },
+        {
+          "tone": 94,
+          "hex": "#FFE5D8"
+        },
+        {
+          "tone": 98,
+          "hex": "#FFF6F2"
+        },
+        {
+          "tone": 100,
+          "hex": "#FFFFFF"
+        }
+      ],
+      "dominance": null,
+      "source_region": null,
+      "seed_index": 0
+    },
+    "success": {
+      "name": "success",
+      "hue": 151.53044,
+      "base_chroma": 0.12,
+      "tones": [
+        {
+          "tone": 0,
+          "hex": "#000000"
+        },
+        {
+          "tone": 6,
+          "hex": "#000100"
+        },
+        {
+          "tone": 10,
+          "hex": "#000501"
+        },
+        {
+          "tone": 14,
+          "hex": "#000D03"
+        },
+        {
+          "tone": 20,
+          "hex": "#001C09"
+        },
+        {
+          "tone": 30,
+          "hex": "#003918"
+        },
+        {
+          "tone": 40,
+          "hex": "#005728"
+        },
+        {
+          "tone": 45,
+          "hex": "#016731"
+        },
+        {
+          "tone": 50,
+          "hex": "#1C763E"
+        },
+        {
+          "tone": 60,
+          "hex": "#43945C"
+        },
+        {
+          "tone": 70,
+          "hex": "#6BB17D"
+        },
+        {
+          "tone": 80,
+          "hex": "#95CEA3"
+        },
+        {
+          "tone": 90,
+          "hex": "#C3E9CB"
+        },
+        {
+          "tone": 94,
+          "hex": "#D7F4DD"
+        },
+        {
+          "tone": 98,
+          "hex": "#EBFFEF"
+        },
+        {
+          "tone": 100,
+          "hex": "#FFFFFF"
+        }
+      ],
+      "dominance": null,
+      "source_region": null,
+      "seed_index": 0
+    },
+    "warning": {
+      "name": "warning",
+      "hue": 109.03045,
+      "base_chroma": 0.16,
+      "tones": [
+        {
+          "tone": 0,
+          "hex": "#000000"
+        },
+        {
+          "tone": 6,
+          "hex": "#010100"
+        },
+        {
+          "tone": 10,
+          "hex": "#040400"
+        },
+        {
+          "tone": 14,
+          "hex": "#0A0A00"
+        },
+        {
+          "tone": 20,
+          "hex": "#181700"
+        },
+        {
+          "tone": 30,
+          "hex": "#313000"
+        },
+        {
+          "tone": 40,
+          "hex": "#4C4B00"
+        },
+        {
+          "tone": 45,
+          "hex": "#5A5900"
+        },
+        {
+          "tone": 50,
+          "hex": "#696700"
+        },
+        {
+          "tone": 60,
+          "hex": "#878600"
+        },
+        {
+          "tone": 70,
+          "hex": "#A6A528"
+        },
+        {
+          "tone": 80,
+          "hex": "#C3C46A"
+        },
+        {
+          "tone": 90,
+          "hex": "#E1E3A8"
+        },
+        {
+          "tone": 94,
+          "hex": "#EEEFC2"
+        },
+        {
+          "tone": 98,
+          "hex": "#FAFBDD"
+        },
+        {
+          "tone": 100,
+          "hex": "#FFFFFF"
+        }
+      ],
+      "dominance": null,
+      "source_region": null,
+      "seed_index": 0
+    },
+    "info": {
+      "name": "info",
+      "hue": 223.78046,
+      "base_chroma": 0.1,
+      "tones": [
+        {
+          "tone": 0,
+          "hex": "#000000"
+        },
+        {
+          "tone": 6,
+          "hex": "#000101"
+        },
+        {
+          "tone": 10,
+          "hex": "#000407"
+        },
+        {
+          "tone": 14,
+          "hex": "#000B11"
+        },
+        {
+          "tone": 20,
+          "hex": "#001922"
+        },
+        {
+          "tone": 30,
+          "hex": "#003342"
+        },
+        {
+          "tone": 40,
+          "hex": "#005065"
+        },
+        {
+          "tone": 45,
+          "hex": "#005F78"
+        },
+        {
+          "tone": 50,
+          "hex": "#006E8A"
+        },
+        {
+          "tone": 60,
+          "hex": "#2E8CAB"
+        },
+        {
+          "tone": 70,
+          "hex": "#5DAAC6"
+        },
+        {
+          "tone": 80,
+          "hex": "#8BC8DF"
+        },
+        {
+          "tone": 90,
+          "hex": "#BDE6F6"
+        },
+        {
+          "tone": 94,
+          "hex": "#D2F1FE"
+        },
+        {
+          "tone": 98,
+          "hex": "#F0FBFF"
+        },
+        {
+          "tone": 100,
+          "hex": "#FFFFFF"
+        }
+      ],
+      "dominance": null,
+      "source_region": null,
+      "seed_index": 0
+    }
+  }
+}

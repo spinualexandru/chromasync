@@ -1,0 +1,31 @@
+$background = rgba(0F1115FF)
+$surface = rgba(1D232CFF)
+$text = rgba(F5F7FAFF)
+$text_muted = rgba(B4BEC9FF)
+$accent = rgba(4ECDC4FF)
+$accent_hover = rgba(68D8D1FF)
+$border = rgba(2F3947FF)
+$border_strong = rgba(445264FF)
+$shadow = rgba(0F1115CC)
+
+general {
+    col.active_border = $accent $accent_hover 45deg
+    col.inactive_border = $border
+}
+
+decoration {
+    col.shadow = $shadow
+    shadow_range = 12
+    shadow_render_power = 3
+}
+
+group {
+    col.border_active = $accent
+    col.border_inactive = $border
+    col.group_border = $border_strong
+    col.group_border_active = $accent_hover
+}
+
+misc {
+    background_color = $background
+}

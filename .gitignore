@@ -1,0 +1,13 @@
+# Ignore IDE files
+.idea/
+.zed/
+
+# Build output
+/target
+**/target
+
+# Ignore test output files
+chromasync
+
+# mdBook output
+/book

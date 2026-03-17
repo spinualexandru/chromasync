@@ -1,0 +1,87 @@
+name = "editor"
+description = "Example user-defined editor theme target."
+
+[[artifacts]]
+file_name = "theme.json"
+template = """
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-defaults/schemas/color-theme.json",
+  "name": "Chromasync {{ctx.mode}}",
+  "type": "{{ctx.mode}}",
+  "colors": {
+    "editor.background": "{{tokens.bg}}",
+    "editor.foreground": "{{tokens.text}}",
+    "editor.selectionBackground": "{{tokens.selection}}",
+    "editor.lineHighlightBackground": "{{tokens.surface}}",
+    "editorCursor.foreground": "{{tokens.accent}}",
+    "editorWhitespace.foreground": "{{tokens.border}}",
+    "activityBar.background": "{{tokens.bg_secondary}}",
+    "activityBar.foreground": "{{tokens.text}}",
+    "activityBarBadge.background": "{{tokens.accent}}",
+    "activityBarBadge.foreground": "{{tokens.accent_fg}}",
+    "sideBar.background": "{{tokens.surface}}",
+    "sideBar.foreground": "{{tokens.text}}",
+    "sideBar.border": "{{tokens.border}}",
+    "statusBar.background": "{{tokens.surface_elevated}}",
+    "statusBar.foreground": "{{tokens.text}}",
+    "statusBar.debuggingBackground": "{{tokens.warning}}",
+    "statusBar.debuggingForeground": "{{tokens.accent_fg}}",
+    "tab.activeBackground": "{{tokens.surface_elevated}}",
+    "tab.activeForeground": "{{tokens.text}}",
+    "tab.inactiveBackground": "{{tokens.surface}}",
+    "tab.inactiveForeground": "{{tokens.text_muted}}",
+    "panel.background": "{{tokens.bg}}",
+    "panel.border": "{{tokens.border_strong}}",
+    "input.background": "{{tokens.surface}}",
+    "input.foreground": "{{tokens.text}}",
+    "input.border": "{{tokens.border}}",
+    "button.background": "{{tokens.accent}}",
+    "button.foreground": "{{tokens.accent_fg}}",
+    "button.hoverBackground": "{{tokens.accent_hover}}",
+    "textLink.foreground": "{{tokens.link}}",
+    "textLink.activeForeground": "{{tokens.accent_active}}",
+    "notificationsErrorIcon.foreground": "{{tokens.error}}",
+    "notificationsWarningIcon.foreground": "{{tokens.warning}}",
+    "notificationsInfoIcon.foreground": "{{tokens.success}}"
+  },
+  "tokenColors": [
+    {
+      "scope": ["comment", "punctuation.definition.comment"],
+      "settings": {
+        "foreground": "{{tokens.text_muted}}"
+      }
+    },
+    {
+      "scope": ["string"],
+      "settings": {
+        "foreground": "{{tokens.success}}"
+      }
+    },
+    {
+      "scope": ["keyword", "storage.type"],
+      "settings": {
+        "foreground": "{{tokens.accent}}"
+      }
+    },
+    {
+      "scope": ["entity.name.function", "support.function"],
+      "settings": {
+        "foreground": "{{tokens.link}}"
+      }
+    },
+    {
+      "scope": ["variable", "meta.definition.variable"],
+      "settings": {
+        "foreground": "{{tokens.text}}"
+      }
+    },
+    {
+      "scope": ["invalid", "invalid.illegal"],
+      "settings": {
+        "foreground": "{{tokens.accent_fg}}",
+        "background": "{{tokens.error}}"
+      }
+    }
+  ]
+}
+"""

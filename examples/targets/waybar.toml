@@ -1,0 +1,113 @@
+name = "waybar"
+description = "Example user-defined Waybar target."
+
+[[artifacts]]
+file_name = "style.css"
+template = """
+@define-color bg {{tokens.bg}};
+@define-color bg_secondary {{tokens.bg_secondary}};
+@define-color surface {{tokens.surface}};
+@define-color surface_elevated {{tokens.surface_elevated}};
+@define-color text {{tokens.text}};
+@define-color text_muted {{tokens.text_muted}};
+@define-color border {{tokens.border}};
+@define-color border_strong {{tokens.border_strong}};
+@define-color accent {{tokens.accent}};
+@define-color accent_hover {{tokens.accent_hover}};
+@define-color accent_active {{tokens.accent_active}};
+@define-color selection {{tokens.selection}};
+@define-color link {{tokens.link}};
+@define-color success {{tokens.success}};
+@define-color warning {{tokens.warning}};
+@define-color error {{tokens.error}};
+
+* {
+  border: none;
+  border-radius: 0;
+  font-family: monospace;
+  font-size: 13px;
+  min-height: 0;
+}
+
+window#waybar {
+  background: @bg;
+  color: @text;
+}
+
+tooltip {
+  background: @surface_elevated;
+  color: @text;
+  border: 1px solid @border_strong;
+}
+
+#workspaces {
+  background: @bg_secondary;
+  margin: 4px 6px;
+  padding: 0 4px;
+  border: 1px solid @border;
+  border-radius: 8px;
+}
+
+#workspaces button {
+  padding: 0 10px;
+  color: @text_muted;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+}
+
+#workspaces button:hover {
+  background: @surface;
+  color: @text;
+  box-shadow: inset 0 -2px @accent_hover;
+}
+
+#workspaces button.active {
+  background: @surface;
+  color: @accent;
+  border-bottom-color: @accent;
+}
+
+#workspaces button.urgent {
+  background: @accent_active;
+  color: @text;
+}
+
+#clock,
+#window,
+#tray,
+#cpu,
+#memory,
+#network,
+#pulseaudio,
+#battery,
+#backlight,
+#temperature {
+  margin: 4px 6px;
+  padding: 0 10px;
+  background: @surface;
+  color: @text;
+  border: 1px solid @border;
+  border-radius: 8px;
+}
+
+#window {
+  color: @link;
+}
+
+#battery.charging,
+#battery.plugged {
+  color: @success;
+  border-color: @success;
+}
+
+#battery.warning:not(.charging) {
+  color: @warning;
+  border-color: @warning;
+}
+
+#battery.critical:not(.charging) {
+  color: @error;
+  border-color: @error;
+  background: @selection;
+}
+"""

@@ -1,0 +1,106 @@
+@define-color bg #0F1115;
+@define-color bg_secondary #161B22;
+@define-color surface #1D232C;
+@define-color surface_elevated #252D38;
+@define-color text #F5F7FA;
+@define-color text_muted #B4BEC9;
+@define-color border #2F3947;
+@define-color border_strong #445264;
+@define-color accent #4ECDC4;
+@define-color accent_hover #68D8D1;
+@define-color accent_active #2FB6AE;
+@define-color selection #1F5F66;
+@define-color link #7CC6FF;
+@define-color success #57CC99;
+@define-color warning #F4A261;
+@define-color error #E76F51;
+
+* {
+  border: none;
+  border-radius: 0;
+  font-family: monospace;
+  font-size: 13px;
+  min-height: 0;
+}
+
+window#waybar {
+  background: @bg;
+  color: @text;
+}
+
+tooltip {
+  background: @surface_elevated;
+  color: @text;
+  border: 1px solid @border_strong;
+}
+
+#workspaces {
+  background: @bg_secondary;
+  margin: 4px 6px;
+  padding: 0 4px;
+  border: 1px solid @border;
+  border-radius: 8px;
+}
+
+#workspaces button {
+  padding: 0 10px;
+  color: @text_muted;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+}
+
+#workspaces button:hover {
+  background: @surface;
+  color: @text;
+  box-shadow: inset 0 -2px @accent_hover;
+}
+
+#workspaces button.active {
+  background: @surface;
+  color: @accent;
+  border-bottom-color: @accent;
+}
+
+#workspaces button.urgent {
+  background: @accent_active;
+  color: @text;
+}
+
+#clock,
+#window,
+#tray,
+#cpu,
+#memory,
+#network,
+#pulseaudio,
+#battery,
+#backlight,
+#temperature {
+  margin: 4px 6px;
+  padding: 0 10px;
+  background: @surface;
+  color: @text;
+  border: 1px solid @border;
+  border-radius: 8px;
+}
+
+#window {
+  color: @link;
+}
+
+#battery.charging,
+#battery.plugged {
+  color: @success;
+  border-color: @success;
+}
+
+#battery.warning:not(.charging) {
+  color: @warning;
+  border-color: @warning;
+}
+
+#battery.critical:not(.charging) {
+  color: @error;
+  border-color: @error;
+  background: @selection;
+}

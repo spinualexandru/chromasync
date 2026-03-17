@@ -1,0 +1,11 @@
+[package]
+name = "chromasync-renderers"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+chromasync-types = { path = "../chromasync-types" }
+directories.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+toml.workspace = true

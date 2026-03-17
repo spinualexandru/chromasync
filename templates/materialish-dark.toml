@@ -1,0 +1,86 @@
+name = "materialish"
+mode = "dark"
+description = "Built-in softer system-style dark theme with layered surfaces and calmer accents."
+
+[tokens.bg]
+family = "neutral"
+tone = 0.08
+chroma = 0.010
+
+[tokens.bg_secondary]
+family = "neutral"
+tone = 0.12
+chroma = 0.012
+
+[tokens.surface]
+family = "neutral_variant"
+tone = 0.16
+chroma = 0.016
+
+[tokens.surface_elevated]
+family = "neutral_variant"
+tone = 0.22
+chroma = 0.020
+
+[tokens.text]
+family = "neutral"
+tone = 0.94
+
+[tokens.text_muted]
+family = "neutral_variant"
+tone = 0.80
+chroma_scale = 0.78
+
+[tokens.border]
+family = "neutral_variant"
+tone = 0.26
+chroma_scale = 0.78
+
+[tokens.border_strong]
+family = "neutral_variant"
+tone = 0.34
+chroma_scale = 0.90
+
+[tokens.accent]
+family = "primary"
+tone = 0.66
+chroma_scale = 0.90
+
+[tokens.accent_hover]
+family = "primary"
+tone = 0.72
+chroma_scale = 0.94
+
+[tokens.accent_active]
+family = "primary"
+tone = 0.58
+chroma_scale = 0.88
+
+[tokens.accent_fg]
+family = "neutral"
+tone = 0.98
+
+[tokens.selection]
+family = "primary"
+tone = 0.38
+chroma_scale = 0.45
+
+[tokens.link]
+family = "info"
+tone = 0.76
+chroma_scale = 0.92
+
+[tokens.success]
+family = "success"
+tone = 0.72
+chroma_scale = 0.90
+
+[tokens.warning]
+family = "warning"
+tone = 0.76
+chroma_scale = 0.88
+
+[tokens.error]
+family = "error"
+tone = 0.74
+chroma_scale = 0.90

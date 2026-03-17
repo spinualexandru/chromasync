@@ -1,0 +1,26 @@
+name = "css"
+description = "Example user-defined CSS design token target."
+
+[[artifacts]]
+file_name = "theme.css"
+template = """
+:root {
+  --chromasync-bg: {{tokens.bg}};
+  --chromasync-bg-secondary: {{tokens.bg_secondary}};
+  --chromasync-surface: {{tokens.surface}};
+  --chromasync-surface-elevated: {{tokens.surface_elevated}};
+  --chromasync-text: {{tokens.text}};
+  --chromasync-text-muted: {{tokens.text_muted}};
+  --chromasync-border: {{tokens.border}};
+  --chromasync-border-strong: {{tokens.border_strong}};
+  --chromasync-accent: {{tokens.accent}};
+  --chromasync-accent-hover: {{tokens.accent_hover}};
+  --chromasync-accent-active: {{tokens.accent_active}};
+  --chromasync-accent-fg: {{tokens.accent_fg}};
+  --chromasync-selection: {{tokens.selection}};
+  --chromasync-link: {{tokens.link}};
+  --chromasync-success: {{tokens.success}};
+  --chromasync-warning: {{tokens.warning}};
+  --chromasync-error: {{tokens.error}};
+}
+"""

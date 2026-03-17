@@ -1,0 +1,38 @@
+name = "hyprland"
+description = "Example user-defined Hyprland target."
+
+[[artifacts]]
+file_name = "hyprland.conf"
+template = """
+$background = {{tokens.bg | rgba(FF)}}
+$surface = {{tokens.surface | rgba(FF)}}
+$text = {{tokens.text | rgba(FF)}}
+$text_muted = {{tokens.text_muted | rgba(FF)}}
+$accent = {{tokens.accent | rgba(FF)}}
+$accent_hover = {{tokens.accent_hover | rgba(FF)}}
+$border = {{tokens.border | rgba(FF)}}
+$border_strong = {{tokens.border_strong | rgba(FF)}}
+$shadow = {{tokens.bg | rgba(CC)}}
+
+general {
+    col.active_border = $accent $accent_hover 45deg
+    col.inactive_border = $border
+}
+
+decoration {
+    col.shadow = $shadow
+    shadow_range = 12
+    shadow_render_power = 3
+}
+
+group {
+    col.border_active = $accent
+    col.border_inactive = $border
+    col.group_border = $border_strong
+    col.group_border_active = $accent_hover
+}
+
+misc {
+    background_color = $background
+}
+"""

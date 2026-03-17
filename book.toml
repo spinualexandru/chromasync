@@ -1,0 +1,11 @@
+[book]
+authors = ["Chromasync contributors"]
+language = "en"
+src = "book/src"
+title = "Chromasync"
+
+[build]
+build-dir = "target/book"
+
+[output.html]
+default-theme = "light"

@@ -1,0 +1,19 @@
+:root {
+  --chromasync-bg: #0F1115;
+  --chromasync-bg-secondary: #161B22;
+  --chromasync-surface: #1D232C;
+  --chromasync-surface-elevated: #252D38;
+  --chromasync-text: #F5F7FA;
+  --chromasync-text-muted: #B4BEC9;
+  --chromasync-border: #2F3947;
+  --chromasync-border-strong: #445264;
+  --chromasync-accent: #4ECDC4;
+  --chromasync-accent-hover: #68D8D1;
+  --chromasync-accent-active: #2FB6AE;
+  --chromasync-accent-fg: #081411;
+  --chromasync-selection: #1F5F66;
+  --chromasync-link: #7CC6FF;
+  --chromasync-success: #57CC99;
+  --chromasync-warning: #F4A261;
+  --chromasync-error: #E76F51;
+}

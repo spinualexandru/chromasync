@@ -1,0 +1,62 @@
+@define-color window_bg_color #0F1115;
+@define-color window_fg_color #F5F7FA;
+@define-color view_bg_color #1D232C;
+@define-color view_fg_color #F5F7FA;
+@define-color headerbar_bg_color #252D38;
+@define-color headerbar_fg_color #F5F7FA;
+@define-color accent_bg_color #4ECDC4;
+@define-color accent_fg_color #081411;
+@define-color selection_bg_color #1F5F66;
+@define-color selection_fg_color #F5F7FA;
+@define-color border_color #2F3947;
+@define-color border_strong_color #445264;
+@define-color link_color #7CC6FF;
+@define-color success_color #57CC99;
+@define-color warning_color #F4A261;
+@define-color error_color #E76F51;
+
+window,
+dialog,
+popover {
+  background-color: @window_bg_color;
+  color: @window_fg_color;
+}
+
+headerbar {
+  background-color: @headerbar_bg_color;
+  color: @headerbar_fg_color;
+  border-color: @border_strong_color;
+}
+
+entry,
+textview,
+treeview,
+.view {
+  background-color: @view_bg_color;
+  color: @view_fg_color;
+  border-color: @border_color;
+}
+
+button,
+frame,
+separator {
+  border-color: @border_color;
+}
+
+button.suggested-action,
+button:checked,
+switch:checked slider {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+  border-color: @accent_bg_color;
+}
+
+selection {
+  background-color: @selection_bg_color;
+  color: @selection_fg_color;
+}
+
+a,
+link {
+  color: @link_color;
+}

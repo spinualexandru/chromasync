@@ -1,0 +1,86 @@
+name = "brutalist"
+mode = "dark"
+description = "Built-in high-contrast dark theme with louder borders and harder accent separation."
+
+[tokens.bg]
+family = "neutral"
+tone = 0.06
+chroma = 0.010
+
+[tokens.bg_secondary]
+family = "neutral_variant"
+tone = 0.10
+chroma = 0.014
+
+[tokens.surface]
+family = "neutral_variant"
+tone = 0.14
+chroma = 0.018
+
+[tokens.surface_elevated]
+family = "neutral_variant"
+tone = 0.18
+chroma = 0.022
+
+[tokens.text]
+family = "neutral"
+tone = 0.98
+
+[tokens.text_muted]
+family = "neutral_variant"
+tone = 0.84
+chroma_scale = 0.80
+
+[tokens.border]
+family = "primary"
+tone = 0.45
+chroma_scale = 0.35
+
+[tokens.border_strong]
+family = "primary"
+tone = 0.58
+chroma_scale = 0.55
+
+[tokens.accent]
+family = "primary"
+tone = 0.78
+chroma_scale = 1.15
+
+[tokens.accent_hover]
+family = "primary"
+tone = 0.84
+chroma_scale = 1.20
+
+[tokens.accent_active]
+family = "primary"
+tone = 0.70
+chroma_scale = 1.10
+
+[tokens.accent_fg]
+family = "neutral"
+tone = 0.04
+
+[tokens.selection]
+family = "secondary"
+tone = 0.34
+chroma_scale = 0.78
+
+[tokens.link]
+family = "tertiary"
+tone = 0.80
+chroma_scale = 1.08
+
+[tokens.success]
+family = "success"
+tone = 0.76
+chroma_scale = 1.00
+
+[tokens.warning]
+family = "warning"
+tone = 0.80
+chroma_scale = 1.05
+
+[tokens.error]
+family = "error"
+tone = 0.78
+chroma_scale = 1.02

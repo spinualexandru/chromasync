@@ -1,0 +1,80 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vscode/main/extensions/theme-defaults/schemas/color-theme.json",
+  "name": "Chromasync dark",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#0F1115",
+    "editor.foreground": "#F5F7FA",
+    "editor.selectionBackground": "#1F5F66",
+    "editor.lineHighlightBackground": "#1D232C",
+    "editorCursor.foreground": "#4ECDC4",
+    "editorWhitespace.foreground": "#2F3947",
+    "activityBar.background": "#161B22",
+    "activityBar.foreground": "#F5F7FA",
+    "activityBarBadge.background": "#4ECDC4",
+    "activityBarBadge.foreground": "#081411",
+    "sideBar.background": "#1D232C",
+    "sideBar.foreground": "#F5F7FA",
+    "sideBar.border": "#2F3947",
+    "statusBar.background": "#252D38",
+    "statusBar.foreground": "#F5F7FA",
+    "statusBar.debuggingBackground": "#F4A261",
+    "statusBar.debuggingForeground": "#081411",
+    "tab.activeBackground": "#252D38",
+    "tab.activeForeground": "#F5F7FA",
+    "tab.inactiveBackground": "#1D232C",
+    "tab.inactiveForeground": "#B4BEC9",
+    "panel.background": "#0F1115",
+    "panel.border": "#445264",
+    "input.background": "#1D232C",
+    "input.foreground": "#F5F7FA",
+    "input.border": "#2F3947",
+    "button.background": "#4ECDC4",
+    "button.foreground": "#081411",
+    "button.hoverBackground": "#68D8D1",
+    "textLink.foreground": "#7CC6FF",
+    "textLink.activeForeground": "#2FB6AE",
+    "notificationsErrorIcon.foreground": "#E76F51",
+    "notificationsWarningIcon.foreground": "#F4A261",
+    "notificationsInfoIcon.foreground": "#57CC99"
+  },
+  "tokenColors": [
+    {
+      "scope": ["comment", "punctuation.definition.comment"],
+      "settings": {
+        "foreground": "#B4BEC9"
+      }
+    },
+    {
+      "scope": ["string"],
+      "settings": {
+        "foreground": "#57CC99"
+      }
+    },
+    {
+      "scope": ["keyword", "storage.type"],
+      "settings": {
+        "foreground": "#4ECDC4"
+      }
+    },
+    {
+      "scope": ["entity.name.function", "support.function"],
+      "settings": {
+        "foreground": "#7CC6FF"
+      }
+    },
+    {
+      "scope": ["variable", "meta.definition.variable"],
+      "settings": {
+        "foreground": "#F5F7FA"
+      }
+    },
+    {
+      "scope": ["invalid", "invalid.illegal"],
+      "settings": {
+        "foreground": "#081411",
+        "background": "#E76F51"
+      }
+    }
+  ]
+}

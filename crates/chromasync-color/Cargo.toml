@@ -1,0 +1,12 @@
+[package]
+name = "chromasync-color"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+chromasync-types = { path = "../chromasync-types" }
+palette.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

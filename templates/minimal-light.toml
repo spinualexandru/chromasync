@@ -1,0 +1,86 @@
+name = "minimal"
+mode = "light"
+description = "Built-in restrained light theme with paper surfaces and a single clean accent."
+
+[tokens.bg]
+family = "neutral"
+tone = 0.98
+chroma = 0.006
+
+[tokens.bg_secondary]
+family = "neutral"
+tone = 0.95
+chroma = 0.008
+
+[tokens.surface]
+family = "neutral"
+tone = 0.92
+chroma = 0.010
+
+[tokens.surface_elevated]
+family = "neutral_variant"
+tone = 0.88
+chroma = 0.014
+
+[tokens.text]
+family = "neutral"
+tone = 0.14
+
+[tokens.text_muted]
+family = "neutral_variant"
+tone = 0.38
+chroma_scale = 0.68
+
+[tokens.border]
+family = "neutral_variant"
+tone = 0.78
+chroma_scale = 0.55
+
+[tokens.border_strong]
+family = "neutral_variant"
+tone = 0.66
+chroma_scale = 0.70
+
+[tokens.accent]
+family = "primary"
+tone = 0.46
+chroma_scale = 0.92
+
+[tokens.accent_hover]
+family = "primary"
+tone = 0.52
+chroma_scale = 0.96
+
+[tokens.accent_active]
+family = "primary"
+tone = 0.38
+chroma_scale = 0.90
+
+[tokens.accent_fg]
+family = "neutral"
+tone = 0.98
+
+[tokens.selection]
+family = "primary"
+tone = 0.86
+chroma_scale = 0.30
+
+[tokens.link]
+family = "info"
+tone = 0.46
+chroma_scale = 0.92
+
+[tokens.success]
+family = "success"
+tone = 0.48
+chroma_scale = 0.88
+
+[tokens.warning]
+family = "warning"
+tone = 0.54
+chroma_scale = 0.86
+
+[tokens.error]
+family = "error"
+tone = 0.50
+chroma_scale = 0.90

@@ -1,0 +1,15 @@
+[package]
+name = "chromasync-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+chromasync-color = { path = "../chromasync-color" }
+chromasync-extract = { path = "../chromasync-extract" }
+chromasync-renderers = { path = "../chromasync-renderers" }
+chromasync-template = { path = "../chromasync-template" }
+chromasync-types = { path = "../chromasync-types" }
+directories.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+toml.workspace = true
