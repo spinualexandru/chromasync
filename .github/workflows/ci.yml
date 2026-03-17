@@ -34,7 +34,34 @@ jobs:
         run: cargo install mdbook --version 0.5.2 --locked
 
       - name: Verify generated docs are up to date
+        id: docs-check
+        continue-on-error: true
         run: cargo run -p chromasync-docs -- generate --check
+
+      - name: Create issue if docs are out of date
+        if: steps.docs-check.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'CHORE | mdBook generated docs require an update';
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'docs',
+            });
+            if (issues.some(i => i.title === title)) {
+              core.warning('Issue already exists, skipping creation');
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: 'The generated mdBook docs are out of date. Run:\n\n```bash\ncargo run -p chromasync-docs -- generate\n```\n\nThen commit the updated files.',
+                labels: ['docs'],
+              });
+            }
+            core.warning('Generated docs are out of date — run `cargo run -p chromasync-docs -- generate`');
 
       - name: Build mdBook
         run: mdbook build
