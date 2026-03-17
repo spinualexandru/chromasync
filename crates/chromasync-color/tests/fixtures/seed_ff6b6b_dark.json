@@ -1,6 +1,7 @@
 {
   "seed": "#FF6B6B",
   "mode": "dark",
+  "chroma": "normal",
   "families": {
     "primary": {
       "name": "primary",
@@ -37,7 +38,7 @@
         },
         {
           "tone": 45,
-          "hex": "#A20420"
+          "hex": "#A20320"
         },
         {
           "tone": 50,
@@ -45,11 +46,11 @@
         },
         {
           "tone": 60,
-          "hex": "#D5494C"
+          "hex": "#D5484C"
         },
         {
           "tone": 70,
-          "hex": "#F0716F"
+          "hex": "#F46E6D"
         },
         {
           "tone": 80,
@@ -119,15 +120,15 @@
         },
         {
           "tone": 60,
-          "hex": "#BA6731"
+          "hex": "#BB6730"
         },
         {
           "tone": 70,
-          "hex": "#D6895B"
+          "hex": "#D98756"
         },
         {
           "tone": 80,
-          "hex": "#EEAD87"
+          "hex": "#F4AA7F"
         },
         {
           "tone": 90,
@@ -197,19 +198,19 @@
         },
         {
           "tone": 70,
-          "hex": "#B89D2C"
+          "hex": "#B99C20"
         },
         {
           "tone": 80,
-          "hex": "#D3BD6C"
+          "hex": "#D6BD5D"
         },
         {
           "tone": 90,
-          "hex": "#EDDEA9"
+          "hex": "#F2DE93"
         },
         {
           "tone": 94,
-          "hex": "#F6ECC3"
+          "hex": "#FDEBAA"
         },
         {
           "tone": 98,
@@ -227,7 +228,7 @@
     "neutral": {
       "name": "neutral",
       "hue": 22.838896,
-      "base_chroma": 0.021746546,
+      "base_chroma": 0.039868668,
       "tones": [
         {
           "tone": 0,
@@ -235,59 +236,59 @@
         },
         {
           "tone": 6,
-          "hex": "#010100"
+          "hex": "#030000"
         },
         {
           "tone": 10,
-          "hex": "#060302"
+          "hex": "#090101"
         },
         {
           "tone": 14,
-          "hex": "#0E0707"
+          "hex": "#130505"
         },
         {
           "tone": 20,
-          "hex": "#1D1313"
+          "hex": "#23100F"
         },
         {
           "tone": 30,
-          "hex": "#372A29"
+          "hex": "#3E2725"
         },
         {
           "tone": 40,
-          "hex": "#534342"
+          "hex": "#5B403E"
         },
         {
           "tone": 45,
-          "hex": "#615150"
+          "hex": "#6A4D4B"
         },
         {
           "tone": 50,
-          "hex": "#6F5F5D"
+          "hex": "#795B59"
         },
         {
           "tone": 60,
-          "hex": "#8D7C7A"
+          "hex": "#967775"
         },
         {
           "tone": 70,
-          "hex": "#AA9A99"
+          "hex": "#B49694"
         },
         {
           "tone": 80,
-          "hex": "#C7BAB9"
+          "hex": "#D2B6B4"
         },
         {
           "tone": 90,
-          "hex": "#E5DBDB"
+          "hex": "#EFD8D6"
         },
         {
           "tone": 94,
-          "hex": "#F0E9E9"
+          "hex": "#FAE6E4"
         },
         {
           "tone": 98,
-          "hex": "#FCF7F7"
+          "hex": "#FFF6F5"
         },
         {
           "tone": 100,
@@ -301,7 +302,7 @@
     "neutral_variant": {
       "name": "neutral_variant",
       "hue": 34.838898,
-      "base_chroma": 0.039868668,
+      "base_chroma": 0.05799079,
       "tones": [
         {
           "tone": 0,
@@ -309,55 +310,55 @@
         },
         {
           "tone": 6,
-          "hex": "#020000"
+          "hex": "#030000"
         },
         {
           "tone": 10,
-          "hex": "#070201"
+          "hex": "#0C0100"
         },
         {
           "tone": 14,
-          "hex": "#110604"
+          "hex": "#170301"
         },
         {
           "tone": 20,
-          "hex": "#21110D"
+          "hex": "#270D07"
         },
         {
           "tone": 30,
-          "hex": "#3D2822"
+          "hex": "#44231B"
         },
         {
           "tone": 40,
-          "hex": "#5B403A"
+          "hex": "#623C33"
         },
         {
           "tone": 45,
-          "hex": "#694E47"
+          "hex": "#724A3F"
         },
         {
           "tone": 50,
-          "hex": "#785B54"
+          "hex": "#81574D"
         },
         {
           "tone": 60,
-          "hex": "#967871"
+          "hex": "#9F7469"
         },
         {
           "tone": 70,
-          "hex": "#B39790"
+          "hex": "#BD9389"
         },
         {
           "tone": 80,
-          "hex": "#CFB8B2"
+          "hex": "#DAB4AA"
         },
         {
           "tone": 90,
-          "hex": "#EADAD6"
+          "hex": "#F6D6CE"
         },
         {
           "tone": 94,
-          "hex": "#F5E8E5"
+          "hex": "#FFE4DE"
         },
         {
           "tone": 98,
@@ -407,7 +408,7 @@
         },
         {
           "tone": 45,
-          "hex": "#9F131F"
+          "hex": "#9F131E"
         },
         {
           "tone": 50,
@@ -415,11 +416,11 @@
         },
         {
           "tone": 60,
-          "hex": "#D14E4B"
+          "hex": "#D24D4B"
         },
         {
           "tone": 70,
-          "hex": "#ED756F"
+          "hex": "#F0726C"
         },
         {
           "tone": 80,
@@ -489,27 +490,27 @@
         },
         {
           "tone": 60,
-          "hex": "#698F10"
+          "hex": "#688F0C"
         },
         {
           "tone": 70,
-          "hex": "#88AD4B"
+          "hex": "#87AE45"
         },
         {
           "tone": 80,
-          "hex": "#ABCB7D"
+          "hex": "#A9CC72"
         },
         {
           "tone": 90,
-          "hex": "#D1E8B3"
+          "hex": "#CDEBA2"
         },
         {
           "tone": 94,
-          "hex": "#E1F3CA"
+          "hex": "#DCF7B7"
         },
         {
           "tone": 98,
-          "hex": "#F2FEE3"
+          "hex": "#F0FFDD"
         },
         {
           "tone": 100,
@@ -571,11 +572,11 @@
         },
         {
           "tone": 80,
-          "hex": "#E4B653"
+          "hex": "#E9B53B"
         },
         {
           "tone": 90,
-          "hex": "#F9DA9C"
+          "hex": "#FFD98B"
         },
         {
           "tone": 94,
@@ -637,15 +638,15 @@
         },
         {
           "tone": 60,
-          "hex": "#3D82CF"
+          "hex": "#3C82D0"
         },
         {
           "tone": 70,
-          "hex": "#64A2E9"
+          "hex": "#61A2EC"
         },
         {
           "tone": 80,
-          "hex": "#8FC2FD"
+          "hex": "#8DC2FF"
         },
         {
           "tone": 90,

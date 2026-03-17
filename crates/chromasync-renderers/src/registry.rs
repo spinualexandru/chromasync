@@ -7,7 +7,8 @@ use std::{
 };
 
 use chromasync_types::{
-    GeneratedArtifact, GenerationContext, SemanticTokenName, SemanticTokens, ThemePack,
+    ChromaStrategy, GeneratedArtifact, GenerationContext, SemanticTokenName, SemanticTokens,
+    ThemePack,
 };
 use directories::ProjectDirs;
 use serde::Deserialize;
@@ -64,6 +65,8 @@ impl TargetSource {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListedTarget {
     pub name: String,
+    pub preferred_template: Option<String>,
+    pub chroma: Option<ChromaStrategy>,
     pub source: TargetSource,
 }
 
@@ -78,12 +81,16 @@ pub struct TargetSpec {
     pub name: String,
     pub description: Option<String>,
     pub extends: Option<String>,
+    pub preferred_template: Option<String>,
+    pub chroma: Option<ChromaStrategy>,
     pub artifacts: Vec<ArtifactSpec>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompiledTarget {
     pub name: String,
+    pub preferred_template: Option<String>,
+    pub chroma: Option<ChromaStrategy>,
     pub artifacts: Vec<CompiledArtifactSpec>,
     pub source: TargetSource,
 }
@@ -127,6 +134,7 @@ enum PlaceholderTransform {
 enum ContextField {
     Mode,
     TemplateName,
+    Chroma,
     OutputDir,
     Seed,
 }
@@ -143,6 +151,8 @@ struct RawTargetSpec {
     name: String,
     description: Option<String>,
     extends: Option<String>,
+    preferred_template: Option<String>,
+    chroma: Option<ChromaStrategy>,
     #[serde(default)]
     artifacts: Vec<RawArtifactSpec>,
 }
@@ -203,6 +213,8 @@ impl RendererRegistry {
             .filter_map(|target| {
                 self.renderers.get(target.as_str()).map(|_| ListedTarget {
                     name: target.as_str().to_owned(),
+                    preferred_template: None,
+                    chroma: None,
                     source: TargetSource::BuiltIn(target.as_str()),
                 })
             })
@@ -284,6 +296,8 @@ impl TargetRegistry {
             .values()
             .map(|target| ListedTarget {
                 name: target.name.clone(),
+                preferred_template: target.preferred_template.clone(),
+                chroma: target.chroma,
                 source: target.source.clone(),
             })
             .collect::<Vec<_>>();
@@ -345,6 +359,30 @@ impl OutputRegistry {
                 .then(left.source.location().cmp(&right.source.location()))
         });
         targets
+    }
+
+    pub fn resolve_preferred_template(&self, target: &str) -> Option<String> {
+        if let Some(compiled) = self.user_defined.get(target) {
+            return compiled.preferred_template.clone();
+        }
+
+        if looks_like_path(target) && let Ok(compiled) = self.load_path_target(Path::new(target)) {
+            return compiled.preferred_template;
+        }
+
+        None
+    }
+
+    pub fn resolve_chroma_strategy(&self, target: &str) -> Option<ChromaStrategy> {
+        if let Some(compiled) = self.user_defined.get(target) {
+            return compiled.chroma;
+        }
+
+        if looks_like_path(target) && let Ok(compiled) = self.load_path_target(Path::new(target)) {
+            return compiled.chroma;
+        }
+
+        None
     }
 
     pub fn generate(
@@ -411,6 +449,8 @@ impl OutputRegistry {
             })?,
             None => CompiledTarget {
                 name: loaded.spec.name.clone(),
+                preferred_template: None,
+                chroma: None,
                 artifacts: Vec::new(),
                 source: loaded.source.clone(),
             },
@@ -605,6 +645,8 @@ fn validate_target(raw: RawTargetSpec) -> Result<TargetSpec, RendererError> {
         name: raw.name,
         description: raw.description,
         extends: raw.extends,
+        preferred_template: raw.preferred_template,
+        chroma: raw.chroma,
         artifacts,
     })
 }
@@ -740,6 +782,8 @@ impl<'a> TargetCompiler<'a> {
             Some(base) => self.compile(base)?,
             None => CompiledTarget {
                 name: loaded.spec.name.clone(),
+                preferred_template: None,
+                chroma: None,
                 artifacts: Vec::new(),
                 source: loaded.source.clone(),
             },
@@ -781,8 +825,18 @@ fn compile_loaded_target(
         });
     }
 
+    let preferred_template = loaded
+        .spec
+        .preferred_template
+        .clone()
+        .or_else(|| base.preferred_template.clone());
+
+    let chroma = loaded.spec.chroma.or(base.chroma);
+
     Ok(CompiledTarget {
         name: loaded.spec.name.clone(),
+        preferred_template,
+        chroma,
         artifacts,
         source: loaded.source.clone(),
     })
@@ -858,6 +912,7 @@ fn compile_placeholder(
         let field = match field {
             "mode" => ContextField::Mode,
             "template_name" => ContextField::TemplateName,
+            "chroma" => ContextField::Chroma,
             "output_dir" => ContextField::OutputDir,
             "seed" => ContextField::Seed,
             _ => {
@@ -984,6 +1039,7 @@ fn resolve_placeholder(
         PlaceholderValue::Context(field) => match field {
             ContextField::Mode => ctx.mode.to_string(),
             ContextField::TemplateName => ctx.template_name.clone(),
+            ContextField::Chroma => ctx.chroma.to_string(),
             ContextField::OutputDir => ctx.output_dir.display().to_string(),
             ContextField::Seed => ctx.seed.clone().unwrap_or_default(),
         },

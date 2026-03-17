@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use chromasync_types::{
-    ContrastStrategy, GeneratedPalette, HexColor, PaletteFamily, PaletteFamilyName, ThemeMode,
-    ToneSample,
+    ChromaStrategy, ContrastStrategy, GeneratedPalette, HexColor, PaletteFamily, PaletteFamilyName,
+    ThemeMode, ToneSample,
 };
 use palette::{FromColor, LinSrgb, OklabHue, Oklch, Srgb, convert::FromColorUnclamped};
 use thiserror::Error;
@@ -43,6 +43,51 @@ pub enum ColorError {
 }
 
 #[derive(Debug, Clone, Copy)]
+struct ChromaModifier {
+    primary_scale: f32,
+    neutral_scale: f32,
+    signal_scale: f32,
+    min_primary: f32,
+}
+
+impl ChromaModifier {
+    fn from_strategy(strategy: ChromaStrategy) -> Self {
+        match strategy {
+            ChromaStrategy::Subtle => Self {
+                primary_scale: 0.6,
+                neutral_scale: 0.5,
+                signal_scale: 0.7,
+                min_primary: 0.04,
+            },
+            ChromaStrategy::Normal => Self {
+                primary_scale: 1.0,
+                neutral_scale: 1.0,
+                signal_scale: 1.0,
+                min_primary: 0.08,
+            },
+            ChromaStrategy::Vibrant => Self {
+                primary_scale: 1.3,
+                neutral_scale: 1.8,
+                signal_scale: 1.2,
+                min_primary: 0.12,
+            },
+            ChromaStrategy::Muted => Self {
+                primary_scale: 0.7,
+                neutral_scale: 0.8,
+                signal_scale: 0.6,
+                min_primary: 0.02,
+            },
+            ChromaStrategy::Industrial => Self {
+                primary_scale: 1.0,
+                neutral_scale: 0.0,
+                signal_scale: 0.8,
+                min_primary: 0.08,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 struct FamilySpec {
     name: PaletteFamilyName,
     hue: f32,
@@ -62,11 +107,15 @@ pub fn parse_seed_color(seed: &str) -> Result<ParsedSeedColor, ColorError> {
     })
 }
 
-pub fn generate_palette(seed: &str, mode: ThemeMode) -> Result<GeneratedPalette, ColorError> {
+pub fn generate_palette(
+    seed: &str,
+    mode: ThemeMode,
+    chroma: ChromaStrategy,
+) -> Result<GeneratedPalette, ColorError> {
     let parsed_seed = parse_seed_color(seed)?;
     let mut families = BTreeMap::new();
 
-    for spec in derive_family_specs(&parsed_seed) {
+    for spec in derive_family_specs(&parsed_seed, chroma) {
         let mut tones = Vec::with_capacity(SAMPLE_TONES.len());
 
         for tone in SAMPLE_TONES {
@@ -93,6 +142,7 @@ pub fn generate_palette(seed: &str, mode: ThemeMode) -> Result<GeneratedPalette,
     Ok(GeneratedPalette {
         seed: parsed_seed.hex,
         mode,
+        chroma,
         families,
     })
 }
@@ -115,7 +165,9 @@ pub fn chroma_curve(tone: f32) -> Result<f32, ColorError> {
     let centered = (tone * 2.0) - 1.0;
     let bell = (1.0 - centered * centered).max(0.0);
 
-    Ok(0.18 + (bell * 0.82))
+    // Previously: 0.18 + (bell * 0.82)
+    // New: 0.45 + (bell * 0.55) - allows 45% of base chroma even at extreme tones.
+    Ok(0.45 + (bell * 0.55))
 }
 
 pub fn contrast_ratio(foreground: &str, background: &str) -> Result<f32, ColorError> {
@@ -237,8 +289,13 @@ pub fn gamut_map(color: Oklch) -> Oklch {
     Oklch::new(lightness, low, OklabHue::from_degrees(hue))
 }
 
-fn derive_family_specs(seed: &ParsedSeedColor) -> [FamilySpec; 9] {
-    let primary_chroma = clamp(seed.chroma, 0.06, 0.24);
+fn derive_family_specs(seed: &ParsedSeedColor, strategy: ChromaStrategy) -> [FamilySpec; 9] {
+    let modifier = ChromaModifier::from_strategy(strategy);
+    let primary_chroma = clamp(
+        seed.chroma * modifier.primary_scale,
+        modifier.min_primary,
+        0.32,
+    );
     let seed_hue = seed.hue;
 
     [
@@ -250,42 +307,58 @@ fn derive_family_specs(seed: &ParsedSeedColor) -> [FamilySpec; 9] {
         FamilySpec {
             name: PaletteFamilyName::Secondary,
             hue: shift_hue(seed_hue, 28.0),
-            base_chroma: clamp(primary_chroma * 0.72, 0.045, 0.18),
+            base_chroma: clamp(primary_chroma * 0.72, 0.045, 0.24),
         },
         FamilySpec {
             name: PaletteFamilyName::Tertiary,
             hue: shift_hue(seed_hue, 72.0),
-            base_chroma: clamp(primary_chroma * 0.82, 0.055, 0.2),
+            base_chroma: clamp(primary_chroma * 0.82, 0.055, 0.26),
         },
         FamilySpec {
             name: PaletteFamilyName::Neutral,
             hue: seed_hue,
-            base_chroma: clamp(primary_chroma * 0.12, 0.008, 0.03),
+            base_chroma: clamp(primary_chroma * 0.22 * modifier.neutral_scale, 0.0, 0.12),
         },
         FamilySpec {
             name: PaletteFamilyName::NeutralVariant,
             hue: shift_hue(seed_hue, 12.0),
-            base_chroma: clamp(primary_chroma * 0.22, 0.014, 0.05),
+            base_chroma: clamp(primary_chroma * 0.32 * modifier.neutral_scale, 0.0, 0.16),
         },
         FamilySpec {
             name: PaletteFamilyName::Error,
             hue: mix_hue(seed_hue, 25.0, 0.85),
-            base_chroma: clamp(primary_chroma * 0.95, 0.14, 0.22),
+            base_chroma: clamp(
+                primary_chroma * 0.95 * modifier.signal_scale,
+                0.16 * modifier.signal_scale,
+                0.32,
+            ),
         },
         FamilySpec {
             name: PaletteFamilyName::Success,
             hue: mix_hue(seed_hue, 145.0, 0.85),
-            base_chroma: clamp(primary_chroma * 0.85, 0.12, 0.2),
+            base_chroma: clamp(
+                primary_chroma * 0.85 * modifier.signal_scale,
+                0.14 * modifier.signal_scale,
+                0.30,
+            ),
         },
         FamilySpec {
             name: PaletteFamilyName::Warning,
             hue: mix_hue(seed_hue, 95.0, 0.85),
-            base_chroma: clamp(primary_chroma, 0.16, 0.24),
+            base_chroma: clamp(
+                primary_chroma * modifier.signal_scale,
+                0.18 * modifier.signal_scale,
+                0.32,
+            ),
         },
         FamilySpec {
             name: PaletteFamilyName::Info,
             hue: mix_hue(seed_hue, 230.0, 0.85),
-            base_chroma: clamp(primary_chroma * 0.78, 0.1, 0.18),
+            base_chroma: clamp(
+                primary_chroma * 0.78 * modifier.signal_scale,
+                0.12 * modifier.signal_scale,
+                0.28,
+            ),
         },
     ]
 }
@@ -445,9 +518,9 @@ mod tests {
     use chromasync_types::{ContrastStrategy, PaletteFamilyName};
 
     use super::{
-        ColorError, MIN_APCA_SCORE, MIN_CONTRAST_RATIO, OklabHue, Oklch, SAMPLE_TONES, ThemeMode,
-        apca_contrast_score, chroma_curve, contrast_ratio, gamut_map, generate_palette,
-        parse_seed_color, resolve_family_color, select_readable_color,
+        ChromaStrategy, ColorError, MIN_APCA_SCORE, MIN_CONTRAST_RATIO, OklabHue, Oklch,
+        SAMPLE_TONES, ThemeMode, apca_contrast_score, chroma_curve, contrast_ratio, gamut_map,
+        generate_palette, parse_seed_color, resolve_family_color, select_readable_color,
         select_readable_color_with_strategy,
     };
 
@@ -527,7 +600,8 @@ mod tests {
     #[test]
     fn generated_palette_contains_all_families_and_sample_tones() {
         let palette =
-            generate_palette("#ff6b6b", ThemeMode::Dark).expect("palette should generate");
+            generate_palette("#ff6b6b", ThemeMode::Dark, ChromaStrategy::Normal)
+.expect("palette should generate");
 
         assert_eq!(palette.families.len(), PaletteFamilyName::ALL.len());
 
@@ -542,8 +616,10 @@ mod tests {
 
     #[test]
     fn palette_generation_is_deterministic() {
-        let left = generate_palette("#ff6b6b", ThemeMode::Dark).expect("palette should generate");
-        let right = generate_palette("#ff6b6b", ThemeMode::Dark).expect("palette should generate");
+        let left = generate_palette("#ff6b6b", ThemeMode::Dark, ChromaStrategy::Normal)
+            .expect("palette should generate");
+        let right = generate_palette("#ff6b6b", ThemeMode::Dark, ChromaStrategy::Normal)
+            .expect("palette should generate");
 
         assert_eq!(left, right);
     }
@@ -551,7 +627,8 @@ mod tests {
     #[test]
     fn default_text_candidates_meet_contrast_heuristic_for_both_modes() {
         for mode in [ThemeMode::Dark, ThemeMode::Light] {
-            let palette = generate_palette("#4ecdc4", mode).expect("palette should generate");
+            let palette = generate_palette("#4ecdc4", mode, ChromaStrategy::Normal)
+                .expect("palette should generate");
             let neutral = palette
                 .families
                 .get(&PaletteFamilyName::Neutral)
@@ -595,7 +672,8 @@ mod tests {
     #[test]
     fn resolves_primary_sample_to_valid_hex() {
         let palette =
-            generate_palette("#ff6b6b", ThemeMode::Dark).expect("palette should generate");
+            generate_palette("#ff6b6b", ThemeMode::Dark, ChromaStrategy::Normal)
+.expect("palette should generate");
         let primary = palette
             .families
             .get(&PaletteFamilyName::Primary)
@@ -625,7 +703,8 @@ mod tests {
     }
 
     fn assert_regression_fixture(seed: &str, mode: ThemeMode, expected: &str) {
-        let palette = generate_palette(seed, mode).expect("palette should generate");
+        let palette =
+            generate_palette(seed, mode, ChromaStrategy::Normal).expect("palette should generate");
         let actual = serde_json::to_string_pretty(&palette).expect("palette should serialize");
 
         assert_eq!(actual, expected.trim());

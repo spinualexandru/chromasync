@@ -1,6 +1,7 @@
 #:schema ../../schemas/target.json
 name = "ghostty"
 description = "Example user-defined Ghostty target."
+chroma = "vibrant"
 
 [[artifacts]]
 file_name = "colors.txt"
@@ -18,8 +19,8 @@ palette = 3={{tokens.warning}}
 palette = 4={{tokens.link}}
 palette = 5={{tokens.accent}}
 palette = 6={{tokens.selection}}
-palette = 7={{tokens.text_muted}}
-palette = 8={{tokens.surface_elevated}}
+palette = 7={{tokens.border_strong}}
+palette = 8={{tokens.text_muted}}
 palette = 9={{tokens.error}}
 palette = 10={{tokens.success}}
 palette = 11={{tokens.warning}}

@@ -1,6 +1,7 @@
 #:schema ../../schemas/target.json
 name = "css"
 description = "Example user-defined CSS design token target."
+chroma = "vibrant"
 
 [[artifacts]]
 file_name = "theme.css"

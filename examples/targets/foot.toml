@@ -1,6 +1,7 @@
 #:schema ../../schemas/target.json
 name = "foot"
 description = "Example user-defined Foot target."
+chroma = "vibrant"
 
 [[artifacts]]
 file_name = "foot.ini"
@@ -20,8 +21,8 @@ regular3={{tokens.warning | hex_no_hash}}
 regular4={{tokens.link | hex_no_hash}}
 regular5={{tokens.accent | hex_no_hash}}
 regular6={{tokens.selection | hex_no_hash}}
-regular7={{tokens.text_muted | hex_no_hash}}
-bright0={{tokens.surface_elevated | hex_no_hash}}
+regular7={{tokens.border_strong | hex_no_hash}}
+bright0={{tokens.text_muted | hex_no_hash}}
 bright1={{tokens.error | hex_no_hash}}
 bright2={{tokens.success | hex_no_hash}}
 bright3={{tokens.warning | hex_no_hash}}

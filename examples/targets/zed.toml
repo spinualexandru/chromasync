@@ -1,6 +1,8 @@
 #:schema ../../schemas/target.json
 name = "zed"
 description = "Example user-defined Zed Editor theme target."
+preferred_template = "editor"
+chroma = "normal"
 
 [[artifacts]]
 file_name = "chromasync.json"

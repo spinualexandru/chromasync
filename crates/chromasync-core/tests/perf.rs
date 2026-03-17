@@ -4,7 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use chromasync_types::{ContrastStrategy, GenerationRequest, ThemeMode};
+use chromasync_types::{ChromaStrategy, ContrastStrategy, GenerationRequest, ThemeMode};
 
 #[test]
 #[ignore = "profiling harness for Phase 6 hot paths"]
@@ -12,9 +12,10 @@ fn profile_seed_generation_hot_path() {
     let request = GenerationRequest {
         seed: Some("#4ecdc4".to_owned()),
         wallpaper: None,
-        template: "terminal".to_owned(),
+        template: Some("terminal".to_owned()),
         mode: ThemeMode::Dark,
         contrast: ContrastStrategy::RelativeLuminance,
+        chroma: ChromaStrategy::Normal,
         targets: vec![
             example_target_path("gtk.toml"),
             example_target_path("hyprland.toml"),
@@ -52,9 +53,10 @@ fn profile_wallpaper_generation_hot_path() {
     let request = GenerationRequest {
         seed: None,
         wallpaper: Some(wallpaper_fixture("wallpaper-blocks.png")),
-        template: "terminal".to_owned(),
+        template: Some("terminal".to_owned()),
         mode: ThemeMode::Dark,
         contrast: ContrastStrategy::ApcaExperimental,
+        chroma: ChromaStrategy::Normal,
         targets: vec![
             example_target_path("css.toml"),
             example_target_path("waybar.toml"),

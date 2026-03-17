@@ -5,22 +5,22 @@ description = "Built-in restrained light theme with paper surfaces and a single 
 [tokens.bg]
 family = "neutral"
 tone = 0.98
-chroma = 0.006
+chroma_scale = 0.85
 
 [tokens.bg_secondary]
 family = "neutral"
 tone = 0.95
-chroma = 0.008
+chroma_scale = 0.90
 
 [tokens.surface]
 family = "neutral"
 tone = 0.92
-chroma = 0.010
+chroma_scale = 0.95
 
 [tokens.surface_elevated]
 family = "neutral_variant"
 tone = 0.88
-chroma = 0.014
+chroma_scale = 1.0
 
 [tokens.text]
 family = "neutral"
@@ -63,7 +63,7 @@ tone = 0.98
 [tokens.selection]
 family = "primary"
 tone = 0.86
-chroma_scale = 0.30
+chroma_scale = 0.45
 
 [tokens.link]
 family = "info"

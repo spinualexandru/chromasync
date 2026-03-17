@@ -5,22 +5,22 @@ description = "Built-in terminal-oriented dark theme with deep backgrounds and c
 [tokens.bg]
 family = "neutral"
 tone = 0.04
-chroma = 0.006
+chroma_scale = 0.70
 
 [tokens.bg_secondary]
 family = "neutral"
 tone = 0.07
-chroma = 0.008
+chroma_scale = 0.75
 
 [tokens.surface]
 family = "neutral_variant"
 tone = 0.10
-chroma = 0.012
+chroma_scale = 0.80
 
 [tokens.surface_elevated]
 family = "neutral_variant"
-tone = 0.14
-chroma = 0.016
+tone = 0.18
+chroma_scale = 0.85
 
 [tokens.text]
 family = "neutral"
@@ -63,7 +63,7 @@ tone = 0.02
 [tokens.selection]
 family = "primary"
 tone = 0.24
-chroma_scale = 0.48
+chroma_scale = 0.65
 
 [tokens.link]
 family = "info"

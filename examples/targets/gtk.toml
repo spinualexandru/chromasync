@@ -1,6 +1,7 @@
 #:schema ../../schemas/target.json
 name = "gtk"
 description = "Example user-defined GTK target."
+chroma = "subtle"
 
 [[artifacts]]
 file_name = "gtk.css"

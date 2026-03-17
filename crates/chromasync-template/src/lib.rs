@@ -472,12 +472,25 @@ pub fn resolve_tokens_with_strategy(
         &[light_fallback.clone(), dark_fallback.clone()],
         contrast_strategy,
     )?;
+
+    let mut accent_fg_fallbacks = vec![text.clone()];
+    if let Some(primary) = palette.families.get(&PaletteFamilyName::Primary) {
+        if let Ok(primary_light) = resolve_family_color(primary, 0.95) {
+            accent_fg_fallbacks.push(primary_light);
+        }
+        if let Ok(primary_dark) = resolve_family_color(primary, 0.10) {
+            accent_fg_fallbacks.push(primary_dark);
+        }
+    }
+    accent_fg_fallbacks.push(light_fallback);
+    accent_fg_fallbacks.push(dark_fallback);
+
     let accent_fg = ensure_preferred_readable(
         resolved
             .get(&SemanticTokenName::AccentFg)
             .expect("accent_fg token should be present"),
         &accent,
-        &[text.clone(), light_fallback, dark_fallback],
+        &accent_fg_fallbacks,
         contrast_strategy,
     )?;
 
@@ -685,7 +698,7 @@ mod tests {
         TemplateError, TemplateSource, built_in_templates, load_template, parse_template,
         resolve_tokens,
     };
-    use chromasync_types::{PaletteFamilyName, SemanticTokenName, ThemeMode};
+    use chromasync_types::{ChromaStrategy, PaletteFamilyName, SemanticTokenName, ThemeMode};
 
     #[test]
     fn built_in_templates_parse_and_define_all_canonical_tokens() {
@@ -748,7 +761,8 @@ mod tests {
 
     #[test]
     fn built_in_templates_resolve_to_semantic_tokens() {
-        let palette = generate_palette("#4ecdc4", ThemeMode::Light).expect("palette should build");
+        let palette = generate_palette("#4ecdc4", ThemeMode::Light, ChromaStrategy::Normal)
+            .expect("palette should build");
         let template =
             load_template("materialish", ThemeMode::Light).expect("template should load");
 
@@ -872,7 +886,8 @@ tone = 0.72
 
     #[test]
     fn resolved_templates_stay_bound_to_palette_families() {
-        let palette = generate_palette("#ff6b6b", ThemeMode::Light).expect("palette should build");
+        let palette = generate_palette("#ff6b6b", ThemeMode::Light, ChromaStrategy::Normal)
+            .expect("palette should build");
         let template = load_template("minimal", ThemeMode::Light).expect("template should load");
 
         let tokens = resolve_tokens(&palette, &template.definition)

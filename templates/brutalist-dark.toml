@@ -5,22 +5,22 @@ description = "Built-in high-contrast dark theme with louder borders and harder 
 [tokens.bg]
 family = "neutral"
 tone = 0.06
-chroma = 0.010
+chroma_scale = 0.55
 
 [tokens.bg_secondary]
 family = "neutral_variant"
 tone = 0.10
-chroma = 0.014
+chroma_scale = 0.60
 
 [tokens.surface]
 family = "neutral_variant"
 tone = 0.14
-chroma = 0.018
+chroma_scale = 0.65
 
 [tokens.surface_elevated]
 family = "neutral_variant"
 tone = 0.18
-chroma = 0.022
+chroma_scale = 0.70
 
 [tokens.text]
 family = "neutral"
@@ -63,7 +63,7 @@ tone = 0.04
 [tokens.selection]
 family = "secondary"
 tone = 0.34
-chroma_scale = 0.78
+chroma_scale = 0.85
 
 [tokens.link]
 family = "tertiary"

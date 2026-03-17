@@ -5,7 +5,7 @@ use std::{
 };
 
 use chromasync_renderers::{ArtifactGenerator, RendererError, RendererRegistry, TargetRegistry};
-use chromasync_types::{GenerationContext, SemanticTokens, ThemeMode};
+use chromasync_types::{ChromaStrategy, GenerationContext, SemanticTokens, ThemeMode};
 
 #[test]
 fn target_registry_compiles_inherited_targets() {
@@ -158,6 +158,7 @@ fn sample_context() -> GenerationContext {
     GenerationContext {
         mode: ThemeMode::Dark,
         template_name: "minimal".to_owned(),
+        chroma: ChromaStrategy::Normal,
         output_dir: PathBuf::from("/tmp/chromasync-test-output"),
         seed: Some("#4ecdc4".to_owned()),
     }

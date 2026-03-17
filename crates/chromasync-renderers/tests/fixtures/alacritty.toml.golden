@@ -42,10 +42,10 @@ yellow = "#F4A261"
 blue = "#7CC6FF"
 magenta = "#4ECDC4"
 cyan = "#1F5F66"
-white = "#B4BEC9"
+white = "#445264"
 
 [colors.bright]
-black = "#252D38"
+black = "#B4BEC9"
 red = "#E76F51"
 green = "#57CC99"
 yellow = "#F4A261"

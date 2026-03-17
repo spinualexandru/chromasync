@@ -31,6 +31,7 @@ impl ChromasyncServer {
             params.template,
             params.mode,
             params.contrast,
+            params.chroma,
             params.targets,
             params.output_dir.clone(),
         )
@@ -55,6 +56,7 @@ impl ChromasyncServer {
             params.template,
             params.mode,
             params.contrast,
+            params.chroma,
             params.targets,
             params.output_dir.clone(),
         )
@@ -158,9 +160,10 @@ impl ChromasyncServer {
         let request = build_generation_request(
             Some(params.seed),
             None,
-            params.template,
+            Some(params.template),
             params.mode,
             params.contrast,
+            params.chroma,
             Vec::new(),
             "chromasync".to_owned(),
         )
@@ -179,9 +182,10 @@ impl ChromasyncServer {
         let request = build_generation_request(
             Some(params.seed),
             None,
-            params.template,
+            Some(params.template),
             params.mode,
             params.contrast,
+            params.chroma,
             Vec::new(),
             "chromasync".to_owned(),
         )
@@ -202,8 +206,9 @@ impl ChromasyncServer {
         Parameters(params): Parameters<GeneratePaletteParams>,
     ) -> Result<CallToolResult, McpError> {
         let mode = crate::convert::parse_mode(&params.mode).map_err(string_error_to_mcp)?;
-        let palette =
-            chromasync_core::generate_palette(&params.seed, mode).map_err(core_error_to_mcp)?;
+        let chroma = crate::convert::parse_chroma(&params.chroma).map_err(string_error_to_mcp)?;
+        let palette = chromasync_core::generate_palette(&params.seed, mode, chroma)
+            .map_err(core_error_to_mcp)?;
         let json = serde_json::to_string_pretty(&palette)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
@@ -338,11 +343,13 @@ struct BatchJob {
     name: Option<String>,
     seed: Option<String>,
     image: Option<PathBuf>,
-    template: String,
+    template: Option<String>,
     #[serde(default)]
     mode: chromasync_types::ThemeMode,
     #[serde(default)]
     contrast: chromasync_types::ContrastStrategy,
+    #[serde(default)]
+    chroma: chromasync_types::ChromaStrategy,
     #[serde(default)]
     targets: Vec<String>,
     output: PathBuf,
@@ -369,9 +376,12 @@ fn batch_job_into_request(
     Ok(chromasync_types::GenerationRequest {
         seed: job.seed,
         wallpaper: job.image.map(|p| resolve_path(base_dir, &p)),
-        template: resolve_reference(base_dir, &job.template),
+        template: job
+            .template
+            .map(|t| resolve_reference(base_dir, &t)),
         mode: job.mode,
         contrast: job.contrast,
+        chroma: job.chroma,
         targets,
         output_dir: resolve_path(base_dir, &job.output),
     })

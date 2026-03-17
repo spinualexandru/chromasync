@@ -11,6 +11,7 @@ edition = "2024"
 anyhow = "1.0.102"
 assert_cmd = "2.2.0"
 clap = { version = "4.6.0", default-features = false, features = ["derive", "help", "std", "usage"] }
+clap_complete = "4"
 directories = "6.0.0"
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
 owo-colors = "4.3.0"

@@ -63,6 +63,35 @@ pub enum ContrastStrategy {
     ApcaExperimental,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum ChromaStrategy {
+    Subtle,
+    #[default]
+    Normal,
+    Vibrant,
+    Muted,
+    Industrial,
+}
+
+impl ChromaStrategy {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Subtle => "subtle",
+            Self::Normal => "normal",
+            Self::Vibrant => "vibrant",
+            Self::Muted => "muted",
+            Self::Industrial => "industrial",
+        }
+    }
+}
+
+impl fmt::Display for ChromaStrategy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 impl ContrastStrategy {
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -327,6 +356,7 @@ pub struct PaletteFamily {
 pub struct GeneratedPalette {
     pub seed: HexColor,
     pub mode: ThemeMode,
+    pub chroma: ChromaStrategy,
     pub families: BTreeMap<PaletteFamilyName, PaletteFamily>,
 }
 
@@ -334,10 +364,12 @@ pub struct GeneratedPalette {
 pub struct GenerationRequest {
     pub seed: Option<String>,
     pub wallpaper: Option<PathBuf>,
-    pub template: String,
+    pub template: Option<String>,
     pub mode: ThemeMode,
     #[serde(default)]
     pub contrast: ContrastStrategy,
+    #[serde(default)]
+    pub chroma: ChromaStrategy,
     #[serde(default)]
     pub targets: Vec<String>,
     pub output_dir: PathBuf,
@@ -354,6 +386,7 @@ pub struct GeneratedArtifact {
 pub struct GenerationContext {
     pub mode: ThemeMode,
     pub template_name: String,
+    pub chroma: ChromaStrategy,
     pub output_dir: PathBuf,
     pub seed: Option<String>,
 }

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use chromasync_renderers::{OutputRegistry, built_in_targets, render_target, render_targets};
-use chromasync_types::{GenerationContext, RenderTarget, SemanticTokens, ThemeMode};
+use chromasync_types::{ChromaStrategy, GenerationContext, RenderTarget, SemanticTokens, ThemeMode};
 
 #[test]
 fn gtk_example_target_matches_golden_file() {
@@ -151,6 +151,7 @@ fn sample_context() -> GenerationContext {
     GenerationContext {
         mode: ThemeMode::Dark,
         template_name: "minimal".to_owned(),
+        chroma: ChromaStrategy::Normal,
         output_dir: PathBuf::from("/tmp/chromasync-test-output"),
         seed: Some("#4ecdc4".to_owned()),
     }

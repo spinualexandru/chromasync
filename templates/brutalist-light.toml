@@ -5,22 +5,22 @@ description = "Built-in high-contrast light theme with louder borders and harder
 [tokens.bg]
 family = "neutral"
 tone = 0.99
-chroma = 0.008
+chroma_scale = 0.45
 
 [tokens.bg_secondary]
 family = "neutral_variant"
 tone = 0.95
-chroma = 0.012
+chroma_scale = 0.50
 
 [tokens.surface]
 family = "neutral_variant"
 tone = 0.91
-chroma = 0.016
+chroma_scale = 0.55
 
 [tokens.surface_elevated]
 family = "neutral_variant"
 tone = 0.86
-chroma = 0.020
+chroma_scale = 0.60
 
 [tokens.text]
 family = "neutral"
@@ -63,7 +63,7 @@ tone = 0.98
 [tokens.selection]
 family = "secondary"
 tone = 0.82
-chroma_scale = 0.55
+chroma_scale = 0.65
 
 [tokens.link]
 family = "tertiary"

@@ -41,14 +41,13 @@ fn low_color_images_return_a_single_seed() {
 }
 
 #[test]
-fn noisy_images_fallback_to_average_seed() {
+fn noisy_images_extract_individual_seeds_above_threshold() {
     let result = extract_seed_candidates(&fixture("wallpaper-noisy.png"))
         .expect("noisy extraction should succeed");
 
-    assert_eq!(result.seeds.len(), 1);
-    assert_eq!(result.seeds[0].hex, "#787878");
-    assert_eq!(result.seeds[0].source_region.as_deref(), Some("center"));
-    assert_close(result.seeds[0].dominance, 1.0);
+    assert_eq!(result.seeds.len(), 3);
+    assert!(result.seeds[0].dominance > 0.0);
+    assert!(result.seeds[0].source_region.is_some());
 }
 
 fn fixture(name: &str) -> PathBuf {

@@ -7,8 +7,8 @@ use chromasync_extract::{ExtractError, ExtractedSeed};
 use chromasync_renderers::{RendererError, RendererRegistry, TargetRegistry};
 use chromasync_template::{ListedTemplate, TemplateError, resolve_tokens_with_strategy};
 use chromasync_types::{
-    ContrastStrategy, GeneratedArtifact, GeneratedPalette, GenerationContext, GenerationRequest,
-    PaletteFamilyName, SemanticTokens, ThemeMode, ThemePack,
+    ChromaStrategy, ContrastStrategy, GeneratedArtifact, GeneratedPalette, GenerationContext,
+    GenerationRequest, PaletteFamilyName, SemanticTokens, ThemeMode, ThemePack,
 };
 use thiserror::Error;
 
@@ -30,6 +30,11 @@ pub enum CoreError {
     MissingSeed { operation: &'static str },
     #[error("{operation} requires an image path via --image")]
     MissingWallpaper { operation: &'static str },
+    #[error("{operation} requires a template via --template (target '{target}' does not specify a preferred_template)")]
+    MissingTemplate {
+        operation: &'static str,
+        target: String,
+    },
     #[error(transparent)]
     Pack(#[from] PackError),
     #[error(transparent)]
@@ -86,8 +91,12 @@ pub fn pack_info(name: &str) -> Result<PackInfo, CoreError> {
     })
 }
 
-pub fn generate_palette(seed: &str, mode: ThemeMode) -> Result<GeneratedPalette, CoreError> {
-    chromasync_color::generate_palette(seed, mode).map_err(CoreError::from)
+pub fn generate_palette(
+    seed: &str,
+    mode: ThemeMode,
+    chroma: ChromaStrategy,
+) -> Result<GeneratedPalette, CoreError> {
+    chromasync_color::generate_palette(seed, mode, chroma).map_err(CoreError::from)
 }
 
 pub fn generate(request: &GenerationRequest) -> Result<Vec<GeneratedArtifact>, CoreError> {
@@ -98,7 +107,10 @@ pub fn generate(request: &GenerationRequest) -> Result<Vec<GeneratedArtifact>, C
 
 pub fn preview(request: &GenerationRequest) -> Result<String, CoreError> {
     let palette = palette_from_request(request, "preview")?;
-    let template = load_template(&request.template, request.mode)?;
+    let template_name = request.template.as_deref().ok_or(CoreError::MissingSeed {
+        operation: "preview requires a template via --template",
+    })?;
+    let template = load_template(template_name, request.mode)?;
     let tokens = resolve_tokens_with_strategy(&palette, &template.definition, request.contrast)?;
 
     Ok(render_preview(
@@ -111,7 +123,10 @@ pub fn preview(request: &GenerationRequest) -> Result<String, CoreError> {
 
 pub fn export_tokens(request: &GenerationRequest) -> Result<SemanticTokens, CoreError> {
     let palette = palette_from_request(request, "token export")?;
-    let template = load_template(&request.template, request.mode)?;
+    let template_name = request.template.as_deref().ok_or(CoreError::MissingSeed {
+        operation: "token export requires a template via --template",
+    })?;
+    let template = load_template(template_name, request.mode)?;
 
     resolve_tokens_with_strategy(&palette, &template.definition, request.contrast)
         .map_err(CoreError::from)
@@ -129,18 +144,14 @@ pub fn generate_with_output_registry(
     request: &GenerationRequest,
     output_registry: &OutputRegistry,
 ) -> Result<Vec<GeneratedArtifact>, CoreError> {
-    let palette = palette_from_request(request, "theme generation")?;
-
-    render_from_palette(request, &palette, output_registry)
+    render_from_palette(request, output_registry)
 }
 
 pub fn generate_from_wallpaper_with_output_registry(
     request: &GenerationRequest,
     output_registry: &OutputRegistry,
 ) -> Result<Vec<GeneratedArtifact>, CoreError> {
-    let palette = palette_from_wallpaper_request(request)?;
-
-    render_from_palette(request, &palette, output_registry)
+    render_from_palette_with_wallpaper(request, output_registry)
 }
 
 fn palette_from_request(
@@ -152,7 +163,7 @@ fn palette_from_request(
         .as_deref()
         .ok_or(CoreError::MissingSeed { operation })?;
 
-    generate_palette(seed, request.mode)
+    generate_palette(seed, request.mode, request.chroma)
 }
 
 fn palette_from_wallpaper_request(
@@ -166,26 +177,41 @@ fn palette_from_wallpaper_request(
         })?;
     let extraction = chromasync_extract::extract_seed_candidates(wallpaper)?;
 
-    palette_from_extracted_seeds(&extraction.seeds, request.mode)
+    palette_from_extracted_seeds(&extraction.seeds, request.mode, request.chroma)
 }
 
 fn palette_from_extracted_seeds(
     seeds: &[ExtractedSeed],
     mode: ThemeMode,
+    chroma: ChromaStrategy,
 ) -> Result<GeneratedPalette, CoreError> {
     let primary_seed = seeds.first().ok_or(CoreError::NotYetImplemented {
         feature: "wallpaper extraction returned no seed candidates",
     })?;
-    let mut palette = generate_palette(&primary_seed.hex, mode)?;
+    let mut palette = generate_palette(&primary_seed.hex, mode, chroma)?;
 
     apply_seed_metadata(&mut palette, primary_seed, 0);
 
     if let Some(seed) = seeds.get(1) {
-        replace_family_from_seed(&mut palette, PaletteFamilyName::Secondary, seed, 1, mode)?;
+        replace_family_from_seed(
+            &mut palette,
+            PaletteFamilyName::Secondary,
+            seed,
+            1,
+            mode,
+            chroma,
+        )?;
     }
 
     if let Some(seed) = seeds.get(2) {
-        replace_family_from_seed(&mut palette, PaletteFamilyName::Tertiary, seed, 2, mode)?;
+        replace_family_from_seed(
+            &mut palette,
+            PaletteFamilyName::Tertiary,
+            seed,
+            2,
+            mode,
+            chroma,
+        )?;
     }
 
     Ok(palette)
@@ -197,8 +223,9 @@ fn replace_family_from_seed(
     seed: &ExtractedSeed,
     seed_index: usize,
     mode: ThemeMode,
+    chroma: ChromaStrategy,
 ) -> Result<(), CoreError> {
-    let source_palette = generate_palette(&seed.hex, mode)?;
+    let source_palette = generate_palette(&seed.hex, mode, chroma)?;
     let mut family = source_palette
         .families
         .get(&PaletteFamilyName::Primary)
@@ -226,21 +253,120 @@ fn apply_seed_metadata(palette: &mut GeneratedPalette, seed: &ExtractedSeed, see
 
 fn render_from_palette(
     request: &GenerationRequest,
-    palette: &GeneratedPalette,
     output_registry: &OutputRegistry,
 ) -> Result<Vec<GeneratedArtifact>, CoreError> {
-    let template = load_template(&request.template, request.mode)?;
-    let tokens = resolve_tokens_with_strategy(palette, &template.definition, request.contrast)?;
-    let context = GenerationContext {
-        mode: request.mode,
-        template_name: template.definition.name.clone(),
-        output_dir: request.output_dir.clone(),
-        seed: request.seed.clone(),
-    };
+    use std::collections::BTreeMap;
 
-    output_registry
-        .generate(&request.targets, &tokens, &context)
-        .map_err(CoreError::from)
+    // Grouping by (template, chroma) to handle overrides
+    let mut groups: BTreeMap<(String, ChromaStrategy), Vec<String>> = BTreeMap::new();
+
+    for target in &request.targets {
+        let template_name = output_registry
+            .resolve_preferred_template(target)
+            .or_else(|| request.template.clone())
+            .ok_or_else(|| CoreError::MissingTemplate {
+                operation: "theme generation",
+                target: target.clone(),
+            })?;
+        let chroma = output_registry
+            .resolve_chroma_strategy(target)
+            .unwrap_or(request.chroma);
+
+        groups
+            .entry((template_name, chroma))
+            .or_default()
+            .push(target.clone());
+    }
+
+    let mut artifacts = Vec::new();
+
+    for ((template_name, chroma), targets) in &groups {
+        let template = load_template(template_name, request.mode)?;
+        let palette = if *chroma == request.chroma {
+            palette_from_request(request, "theme generation")?
+        } else {
+            let mut req = request.clone();
+            req.chroma = *chroma;
+            palette_from_request(&req, "theme generation (chroma override)")?
+        };
+
+        let tokens =
+            resolve_tokens_with_strategy(&palette, &template.definition, request.contrast)?;
+        let context = GenerationContext {
+            mode: request.mode,
+            template_name: template.definition.name.clone(),
+            chroma: *chroma,
+            output_dir: request.output_dir.clone(),
+            seed: request.seed.clone(),
+        };
+
+        artifacts.extend(
+            output_registry
+                .generate(targets, &tokens, &context)
+                .map_err(CoreError::from)?,
+        );
+    }
+
+    Ok(artifacts)
+}
+
+fn render_from_palette_with_wallpaper(
+    request: &GenerationRequest,
+    output_registry: &OutputRegistry,
+) -> Result<Vec<GeneratedArtifact>, CoreError> {
+    use std::collections::BTreeMap;
+
+    // Grouping by (template, chroma) to handle overrides
+    let mut groups: BTreeMap<(String, ChromaStrategy), Vec<String>> = BTreeMap::new();
+
+    for target in &request.targets {
+        let template_name = output_registry
+            .resolve_preferred_template(target)
+            .or_else(|| request.template.clone())
+            .ok_or_else(|| CoreError::MissingTemplate {
+                operation: "theme generation",
+                target: target.clone(),
+            })?;
+        let chroma = output_registry
+            .resolve_chroma_strategy(target)
+            .unwrap_or(request.chroma);
+
+        groups
+            .entry((template_name, chroma))
+            .or_default()
+            .push(target.clone());
+    }
+
+    let mut artifacts = Vec::new();
+
+    for ((template_name, chroma), targets) in &groups {
+        let template = load_template(template_name, request.mode)?;
+        let palette = if *chroma == request.chroma {
+            palette_from_wallpaper_request(request)?
+        } else {
+            let mut req = request.clone();
+            req.chroma = *chroma;
+            palette_from_wallpaper_request(&req)?
+        };
+
+        let tokens =
+            resolve_tokens_with_strategy(&palette, &template.definition, request.contrast)?;
+        let context = GenerationContext {
+            mode: request.mode,
+            template_name: template.definition.name.clone(),
+            chroma: *chroma,
+            output_dir: request.output_dir.clone(),
+            seed: request.seed.clone(),
+        };
+
+        artifacts.extend(
+            output_registry
+                .generate(targets, &tokens, &context)
+                .map_err(CoreError::from)?,
+        );
+    }
+
+    Ok(artifacts)
 }
 
 fn load_template(requested: &str, mode: ThemeMode) -> Result<ListedTemplate, CoreError> {
@@ -329,14 +455,16 @@ mod tests {
     use std::path::PathBuf;
 
     use chromasync_color::contrast_ratio;
-    use chromasync_types::{ContrastStrategy, GenerationRequest, PaletteFamilyName, ThemeMode};
+    use chromasync_types::{
+        ChromaStrategy, ContrastStrategy, GenerationRequest, PaletteFamilyName, ThemeMode,
+    };
 
     use super::{export_tokens, generate_palette, palette_from_wallpaper_request, preview};
 
     #[test]
     fn palette_generation_is_available_without_renderer_code() {
-        let palette =
-            generate_palette("#ff6b6b", ThemeMode::Dark).expect("palette generation should work");
+        let palette = generate_palette("#ff6b6b", ThemeMode::Dark, ChromaStrategy::Normal)
+            .expect("palette generation should work");
 
         assert!(palette.families.contains_key(&PaletteFamilyName::Primary));
         assert!(palette.families.contains_key(&PaletteFamilyName::Neutral));
@@ -347,8 +475,9 @@ mod tests {
         let request = GenerationRequest {
             seed: Some("#4ecdc4".to_owned()),
             wallpaper: None,
-            template: "minimal".to_owned(),
+            template: Some("minimal".to_owned()),
             mode: ThemeMode::Dark,
+            chroma: ChromaStrategy::Normal,
             contrast: ContrastStrategy::RelativeLuminance,
             targets: Vec::new(),
             output_dir: "chromasync".into(),
@@ -369,8 +498,9 @@ mod tests {
         let request = GenerationRequest {
             seed: Some("#ff6b6b".to_owned()),
             wallpaper: None,
-            template: "brutalist".to_owned(),
+            template: Some("brutalist".to_owned()),
             mode: ThemeMode::Dark,
+            chroma: ChromaStrategy::Normal,
             contrast: ContrastStrategy::RelativeLuminance,
             targets: Vec::new(),
             output_dir: "chromasync".into(),
@@ -389,8 +519,9 @@ mod tests {
         let request = GenerationRequest {
             seed: Some("#4ecdc4".to_owned()),
             wallpaper: None,
-            template: "terminal".to_owned(),
+            template: Some("terminal".to_owned()),
             mode: ThemeMode::Dark,
+            chroma: ChromaStrategy::Normal,
             contrast: ContrastStrategy::RelativeLuminance,
             targets: vec![
                 example_target_path("gtk.toml"),
@@ -435,8 +566,9 @@ mod tests {
         let request = GenerationRequest {
             seed: None,
             wallpaper: Some(wallpaper_fixture("wallpaper-blocks.png")),
-            template: "minimal".to_owned(),
+            template: Some("minimal".to_owned()),
             mode: ThemeMode::Dark,
+            chroma: ChromaStrategy::Normal,
             contrast: ContrastStrategy::RelativeLuminance,
             targets: vec![example_target_path("css.toml")],
             output_dir: "chromasync".into(),

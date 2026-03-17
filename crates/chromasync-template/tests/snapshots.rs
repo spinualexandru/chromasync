@@ -1,6 +1,6 @@
 use chromasync_color::generate_palette;
 use chromasync_template::{built_in_templates, resolve_tokens_with_strategy};
-use chromasync_types::{ContrastStrategy, SemanticTokens, ThemeMode};
+use chromasync_types::{ChromaStrategy, ContrastStrategy, SemanticTokens, ThemeMode};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -17,8 +17,8 @@ fn built_in_template_tokens_match_snapshot() {
     let mut snapshots = Vec::with_capacity(templates.len() * 2);
 
     for template in &templates {
-        let palette =
-            generate_palette("#4ecdc4", template.definition.mode).expect("palette should build");
+        let palette = generate_palette("#4ecdc4", template.definition.mode, ChromaStrategy::Normal)
+            .expect("palette should build");
 
         for contrast in [
             ContrastStrategy::RelativeLuminance,

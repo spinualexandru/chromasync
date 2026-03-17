@@ -5,22 +5,22 @@ description = "Built-in restrained dark theme with subdued surfaces and a single
 [tokens.bg]
 family = "neutral"
 tone = 0.10
-chroma = 0.008
+chroma_scale = 0.80
 
 [tokens.bg_secondary]
 family = "neutral"
 tone = 0.13
-chroma = 0.010
+chroma_scale = 0.85
 
 [tokens.surface]
 family = "neutral"
 tone = 0.15
-chroma = 0.012
+chroma_scale = 0.90
 
 [tokens.surface_elevated]
 family = "neutral_variant"
 tone = 0.20
-chroma = 0.015
+chroma_scale = 0.95
 
 [tokens.text]
 family = "neutral"
@@ -63,7 +63,7 @@ tone = 0.98
 [tokens.selection]
 family = "primary"
 tone = 0.30
-chroma_scale = 0.55
+chroma_scale = 0.72
 
 [tokens.link]
 family = "info"

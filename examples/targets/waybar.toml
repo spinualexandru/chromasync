@@ -1,6 +1,7 @@
 #:schema ../../schemas/target.json
 name = "waybar"
 description = "Example user-defined Waybar target."
+chroma = "normal"
 
 [[artifacts]]
 file_name = "style.css"

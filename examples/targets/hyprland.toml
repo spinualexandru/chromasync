@@ -1,6 +1,7 @@
 #:schema ../../schemas/target.json
 name = "hyprland"
 description = "Example user-defined Hyprland target."
+chroma = "normal"
 
 [[artifacts]]
 file_name = "hyprland.conf"

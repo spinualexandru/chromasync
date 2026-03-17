@@ -6,8 +6,11 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use chromasync_types::{ContrastStrategy, GeneratedArtifact, GenerationRequest, ThemeMode};
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use chromasync_types::{
+    ChromaStrategy, ContrastStrategy, GeneratedArtifact, GenerationRequest, ThemeMode,
+};
+use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
+use clap_complete::{Shell, generate};
 use serde::Deserialize;
 
 #[derive(Debug, Parser)]
@@ -44,6 +47,12 @@ enum Command {
     Preview(PreviewArgs),
     /// Export resolved semantic tokens.
     Tokens(TokensArgs),
+    /// Generate shell completion scripts.
+    Completions {
+        /// Shell to generate completions for.
+        #[arg(value_enum)]
+        shell: Shell,
+    },
 }
 
 #[derive(Debug, Clone, Subcommand)]
@@ -63,15 +72,18 @@ struct GenerateArgs {
     /// Seed color in #RRGGBB format.
     #[arg(long)]
     seed: String,
-    /// Template name or path to a template TOML file.
+    /// Template name or path to a template TOML file. Optional if targets specify preferred_template.
     #[arg(long)]
-    template: String,
+    template: Option<String>,
     /// Theme mode to generate.
     #[arg(long, value_enum, default_value_t = CliMode::Dark)]
     mode: CliMode,
     /// Contrast selection heuristic used when resolving readable foregrounds.
     #[arg(long, value_enum, default_value_t = CliContrast::RelativeLuminance)]
     contrast: CliContrast,
+    /// Chroma strategy used when generating palette families.
+    #[arg(long, value_enum, default_value_t = CliChroma::Normal)]
+    chroma: CliChroma,
     /// Comma-separated list of target names or target TOML paths to generate.
     #[arg(long, value_delimiter = ',', required = true)]
     targets: Vec<String>,
@@ -85,15 +97,18 @@ struct WallpaperArgs {
     /// Wallpaper image path.
     #[arg(long)]
     image: PathBuf,
-    /// Template name or path to a template TOML file.
+    /// Template name or path to a template TOML file. Optional if targets specify preferred_template.
     #[arg(long)]
-    template: String,
+    template: Option<String>,
     /// Theme mode to generate.
     #[arg(long, value_enum, default_value_t = CliMode::Dark)]
     mode: CliMode,
     /// Contrast selection heuristic used when resolving readable foregrounds.
     #[arg(long, value_enum, default_value_t = CliContrast::RelativeLuminance)]
     contrast: CliContrast,
+    /// Chroma strategy used when generating palette families.
+    #[arg(long, value_enum, default_value_t = CliChroma::Normal)]
+    chroma: CliChroma,
     /// Comma-separated list of target names or target TOML paths to generate.
     #[arg(long, value_delimiter = ',', required = true)]
     targets: Vec<String>,
@@ -116,6 +131,9 @@ struct PreviewArgs {
     /// Contrast selection heuristic used when resolving readable foregrounds.
     #[arg(long, value_enum, default_value_t = CliContrast::RelativeLuminance)]
     contrast: CliContrast,
+    /// Chroma strategy used when generating palette families.
+    #[arg(long, value_enum, default_value_t = CliChroma::Normal)]
+    chroma: CliChroma,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -132,6 +150,9 @@ struct TokensArgs {
     /// Contrast selection heuristic used when resolving readable foregrounds.
     #[arg(long, value_enum, default_value_t = CliContrast::RelativeLuminance)]
     contrast: CliContrast,
+    /// Chroma strategy used when generating palette families.
+    #[arg(long, value_enum, default_value_t = CliChroma::Normal)]
+    chroma: CliChroma,
     /// Serialization format for token export.
     #[arg(long, value_enum, default_value_t = CliFormat::Json)]
     format: CliFormat,
@@ -161,6 +182,15 @@ enum CliContrast {
     ApcaExperimental,
 }
 
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum CliChroma {
+    Subtle,
+    Normal,
+    Vibrant,
+    Muted,
+    Industrial,
+}
+
 #[derive(Debug, Deserialize)]
 struct BatchManifest {
     #[serde(default, alias = "job")]
@@ -172,11 +202,13 @@ struct BatchJob {
     name: Option<String>,
     seed: Option<String>,
     image: Option<PathBuf>,
-    template: String,
+    template: Option<String>,
     #[serde(default)]
     mode: ThemeMode,
     #[serde(default)]
     contrast: ContrastStrategy,
+    #[serde(default)]
+    chroma: ChromaStrategy,
     #[serde(default)]
     targets: Vec<String>,
     output: PathBuf,
@@ -200,6 +232,18 @@ impl From<CliContrast> for ContrastStrategy {
     }
 }
 
+impl From<CliChroma> for ChromaStrategy {
+    fn from(value: CliChroma) -> Self {
+        match value {
+            CliChroma::Subtle => Self::Subtle,
+            CliChroma::Normal => Self::Normal,
+            CliChroma::Vibrant => Self::Vibrant,
+            CliChroma::Muted => Self::Muted,
+            CliChroma::Industrial => Self::Industrial,
+        }
+    }
+}
+
 impl GenerateArgs {
     fn into_request(self) -> Result<GenerationRequest> {
         Ok(GenerationRequest {
@@ -208,6 +252,7 @@ impl GenerateArgs {
             template: self.template,
             mode: self.mode.into(),
             contrast: self.contrast.into(),
+            chroma: self.chroma.into(),
             targets: normalize_targets(self.targets)?,
             output_dir: self.output,
         })
@@ -222,6 +267,7 @@ impl WallpaperArgs {
             template: self.template,
             mode: self.mode.into(),
             contrast: self.contrast.into(),
+            chroma: self.chroma.into(),
             targets: normalize_targets(self.targets)?,
             output_dir: self.output,
         })
@@ -233,9 +279,10 @@ impl PreviewArgs {
         GenerationRequest {
             seed: Some(self.seed),
             wallpaper: None,
-            template: self.template,
+            template: Some(self.template),
             mode: self.mode.into(),
             contrast: self.contrast.into(),
+            chroma: self.chroma.into(),
             targets: Vec::new(),
             output_dir: PathBuf::from("chromasync"),
         }
@@ -247,9 +294,10 @@ impl TokensArgs {
         GenerationRequest {
             seed: Some(self.seed),
             wallpaper: None,
-            template: self.template,
+            template: Some(self.template),
             mode: self.mode.into(),
             contrast: self.contrast.into(),
+            chroma: self.chroma.into(),
             targets: Vec::new(),
             output_dir: PathBuf::from("chromasync"),
         }
@@ -269,7 +317,8 @@ pub fn run_with(cli: Cli) -> Result<()> {
         | Command::Packs
         | Command::Pack { .. }
         | Command::Preview(_)
-        | Command::Tokens(_) => None,
+        | Command::Tokens(_)
+        | Command::Completions { .. } => None,
     };
 
     match cli.command {
@@ -328,6 +377,11 @@ pub fn run_with(cli: Cli) -> Result<()> {
                 }
             }
 
+            Ok(())
+        }
+        Command::Completions { shell } => {
+            let mut cmd = Cli::command();
+            generate(shell, &mut cmd, "chromasync", &mut std::io::stdout());
             Ok(())
         }
     }
@@ -397,9 +451,12 @@ fn batch_job_into_request(job: BatchJob, base_dir: &Path) -> Result<GenerationRe
     Ok(GenerationRequest {
         seed: job.seed,
         wallpaper: job.image.map(|path| resolve_relative_path(base_dir, &path)),
-        template: resolve_template_reference(base_dir, &job.template),
+        template: job
+            .template
+            .map(|t| resolve_template_reference(base_dir, &t)),
         mode: job.mode,
         contrast: job.contrast,
+        chroma: job.chroma,
         targets: normalize_targets_relative_to(base_dir, job.targets)?,
         output_dir: resolve_relative_path(base_dir, &job.output),
     })

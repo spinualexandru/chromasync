@@ -20,6 +20,15 @@
       "type": "string",
       "description": "Name of another target to inherit artifacts from. Derived artifacts with the same file_name override base artifacts."
     },
+    "preferred_template": {
+      "type": "string",
+      "description": "Default template name to use for token resolution when --template is not specified on the CLI. Inherited from the base target if not set."
+    },
+    "chroma": {
+      "type": "string",
+      "enum": ["subtle", "normal", "vibrant", "muted", "industrial"],
+      "description": "Chroma strategy override for this target. Inherited from the base target if not set."
+    },
     "artifacts": {
       "type": "array",
       "description": "Output file definitions. Required if 'extends' is not set.",
@@ -41,7 +50,7 @@
         },
         "template": {
           "type": "string",
-          "description": "File content template with placeholders.\n\nToken placeholders:\n  {{tokens.<NAME>}}                — hex value (#rrggbb)\n  {{tokens.<NAME> | hex_no_hash}}  — without # prefix\n  {{tokens.<NAME> | rgba(FF)}}     — RGBA hex with alpha\n\nContext placeholders:\n  {{ctx.mode}}           — dark/light\n  {{ctx.template_name}}  — template name\n  {{ctx.output_dir}}     — output directory\n  {{ctx.seed}}           — seed color\n\nAvailable tokens: bg, bg_secondary, surface, surface_elevated, text, text_muted, border, border_strong, accent, accent_hover, accent_active, accent_fg, selection, link, success, warning, error"
+          "description": "File content template with placeholders.\n\nToken placeholders:\n  {{tokens.<NAME>}}                — hex value (#rrggbb)\n  {{tokens.<NAME> | hex_no_hash}}  — without # prefix\n  {{tokens.<NAME> | rgba(FF)}}     — RGBA hex with alpha\n\nContext placeholders:\n  {{ctx.mode}}           — dark/light\n  {{ctx.template_name}}  — template name\n  {{ctx.chroma}}         — chroma strategy\n  {{ctx.output_dir}}     — output directory\n  {{ctx.seed}}           — seed color\n\nAvailable tokens: bg, bg_secondary, surface, surface_elevated, text, text_muted, border, border_strong, accent, accent_hover, accent_active, accent_fg, selection, link, success, warning, error"
         }
       }
     }

@@ -8,14 +8,17 @@ use serde::Deserialize;
 pub struct GenerateParams {
     /// Seed color in #RRGGBB hex format.
     pub seed: String,
-    /// Template name (e.g. "minimal", "brutalist", "terminal") or path to a TOML template file.
-    pub template: String,
+    /// Template name (e.g. "minimal", "brutalist", "terminal") or path to a TOML template file. Optional if targets specify preferred_template.
+    pub template: Option<String>,
     /// Theme mode: "dark" or "light". Defaults to "dark".
     #[serde(default = "default_mode")]
     pub mode: String,
     /// Contrast strategy: "relative-luminance" or "apca-experimental". Defaults to "relative-luminance".
     #[serde(default = "default_contrast")]
     pub contrast: String,
+    /// Chroma strategy: "subtle", "normal", "vibrant", "muted", or "industrial". Defaults to "normal".
+    #[serde(default = "default_chroma")]
+    pub chroma: String,
     /// List of target names (e.g. "gtk", "kitty", "css") or paths to target TOML files.
     pub targets: Vec<String>,
     /// Output directory for generated artifact files.
@@ -27,14 +30,17 @@ pub struct GenerateParams {
 pub struct WallpaperParams {
     /// Path to the wallpaper image file (JPEG, PNG, or WebP).
     pub image: String,
-    /// Template name (e.g. "minimal", "brutalist", "terminal") or path to a TOML template file.
-    pub template: String,
+    /// Template name (e.g. "minimal", "brutalist", "terminal") or path to a TOML template file. Optional if targets specify preferred_template.
+    pub template: Option<String>,
     /// Theme mode: "dark" or "light". Defaults to "dark".
     #[serde(default = "default_mode")]
     pub mode: String,
     /// Contrast strategy: "relative-luminance" or "apca-experimental". Defaults to "relative-luminance".
     #[serde(default = "default_contrast")]
     pub contrast: String,
+    /// Chroma strategy: "subtle", "normal", "vibrant", "muted", or "industrial". Defaults to "normal".
+    #[serde(default = "default_chroma")]
+    pub chroma: String,
     /// List of target names (e.g. "gtk", "kitty", "css") or paths to target TOML files.
     pub targets: Vec<String>,
     /// Output directory for generated artifact files.
@@ -61,6 +67,9 @@ pub struct PreviewParams {
     /// Contrast strategy: "relative-luminance" or "apca-experimental". Defaults to "relative-luminance".
     #[serde(default = "default_contrast")]
     pub contrast: String,
+    /// Chroma strategy: "subtle", "normal", "vibrant", "muted", or "industrial". Defaults to "normal".
+    #[serde(default = "default_chroma")]
+    pub chroma: String,
 }
 
 /// Parameters for exporting resolved semantic tokens as JSON.
@@ -76,6 +85,9 @@ pub struct ExportTokensParams {
     /// Contrast strategy: "relative-luminance" or "apca-experimental". Defaults to "relative-luminance".
     #[serde(default = "default_contrast")]
     pub contrast: String,
+    /// Chroma strategy: "subtle", "normal", "vibrant", "muted", or "industrial". Defaults to "normal".
+    #[serde(default = "default_chroma")]
+    pub chroma: String,
 }
 
 /// Parameters for generating the full OKLCH palette from a seed color.
@@ -86,6 +98,9 @@ pub struct GeneratePaletteParams {
     /// Theme mode: "dark" or "light". Defaults to "dark".
     #[serde(default = "default_mode")]
     pub mode: String,
+    /// Chroma strategy: "subtle", "normal", "vibrant", "muted", or "industrial". Defaults to "normal".
+    #[serde(default = "default_chroma")]
+    pub chroma: String,
 }
 
 /// Parameters for inspecting a theme pack.
@@ -98,9 +113,10 @@ pub struct PackInfoParams {
 pub fn build_generation_request(
     seed: Option<String>,
     wallpaper: Option<PathBuf>,
-    template: String,
+    template: Option<String>,
     mode: String,
     contrast: String,
+    chroma: String,
     targets: Vec<String>,
     output_dir: String,
 ) -> Result<chromasync_types::GenerationRequest, String> {
@@ -110,6 +126,7 @@ pub fn build_generation_request(
         template,
         mode: crate::convert::parse_mode(&mode)?,
         contrast: crate::convert::parse_contrast(&contrast)?,
+        chroma: crate::convert::parse_chroma(&chroma)?,
         targets,
         output_dir: PathBuf::from(output_dir),
     })
@@ -121,4 +138,8 @@ fn default_mode() -> String {
 
 fn default_contrast() -> String {
     "relative-luminance".to_owned()
+}
+
+fn default_chroma() -> String {
+    "normal".to_owned()
 }

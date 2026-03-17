@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use chromasync_core::CoreError;
-use chromasync_types::{ContrastStrategy, GeneratedArtifact, ThemeMode};
+use chromasync_types::{ChromaStrategy, ContrastStrategy, GeneratedArtifact, ThemeMode};
 use rmcp::ErrorData as McpError;
 use serde_json::Value;
 
@@ -23,6 +23,19 @@ pub fn parse_contrast(s: &str) -> Result<ContrastStrategy, String> {
         "apca-experimental" => Ok(ContrastStrategy::ApcaExperimental),
         other => Err(format!(
             "invalid contrast strategy '{other}': expected \"relative-luminance\" or \"apca-experimental\""
+        )),
+    }
+}
+
+pub fn parse_chroma(s: &str) -> Result<ChromaStrategy, String> {
+    match s {
+        "subtle" => Ok(ChromaStrategy::Subtle),
+        "normal" => Ok(ChromaStrategy::Normal),
+        "vibrant" => Ok(ChromaStrategy::Vibrant),
+        "muted" => Ok(ChromaStrategy::Muted),
+        "industrial" => Ok(ChromaStrategy::Industrial),
+        other => Err(format!(
+            "invalid chroma strategy '{other}': expected \"subtle\", \"normal\", \"vibrant\", \"muted\", or \"industrial\""
         )),
     }
 }

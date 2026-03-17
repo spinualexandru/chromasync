@@ -10,7 +10,7 @@ pub const MAX_PROCESSING_DIMENSION: u32 = 128;
 const MAX_SEEDS: usize = 3;
 const QUANTIZATION_SHIFT: u8 = 4;
 const MIN_VISIBLE_ALPHA: u8 = 16;
-const NOISY_IMAGE_THRESHOLD: f32 = 0.10;
+const NOISY_IMAGE_THRESHOLD: f32 = 0.04;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExtractedSeed {
@@ -45,6 +45,7 @@ struct BucketAccumulator {
 struct BucketSummary {
     key: BucketKey,
     count: u32,
+    weight: f32,
     average_rgb: [u8; 3],
     average_x: f32,
     average_y: f32,
@@ -126,19 +127,33 @@ fn cluster_image(image: &RgbaImage, path: &Path) -> Result<Vec<ExtractedSeed>, E
 
     let mut summaries = buckets
         .into_iter()
-        .map(|(key, bucket)| BucketSummary {
-            key,
-            count: bucket.count,
-            average_rgb: bucket.average_rgb(),
-            average_x: bucket.average_x(),
-            average_y: bucket.average_y(),
+        .map(|(key, bucket)| {
+            let rgb = bucket.average_rgb();
+            let colorfulness = (rgb[0].max(rgb[1]).max(rgb[2]) as f32
+                - rgb[0].min(rgb[1]).min(rgb[2]) as f32)
+                / 255.0;
+            // Boost buckets that have more color, but don't ignore count.
+            // A bucket with 1% of pixels but 100% colorfulness should compete with
+            // a bucket with 5% of pixels but 0% colorfulness.
+            let weight = bucket.count as f32 * (1.0 + colorfulness * 4.0);
+
+            BucketSummary {
+                key,
+                count: bucket.count,
+                weight,
+                average_rgb: rgb,
+                average_x: bucket.average_x(),
+                average_y: bucket.average_y(),
+            }
         })
         .collect::<Vec<_>>();
 
     summaries.sort_by(|left, right| {
         right
-            .count
-            .cmp(&left.count)
+            .weight
+            .partial_cmp(&left.weight)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| right.count.cmp(&left.count))
             .then_with(|| left.key.cmp(&right.key))
     });
 
