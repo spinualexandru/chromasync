@@ -30,7 +30,9 @@ pub enum CoreError {
     MissingSeed { operation: &'static str },
     #[error("{operation} requires an image path via --image")]
     MissingWallpaper { operation: &'static str },
-    #[error("{operation} requires a template via --template (target '{target}' does not specify a preferred_template)")]
+    #[error(
+        "{operation} requires a template via --template (target '{target}' does not specify a preferred_template)"
+    )]
     MissingTemplate {
         operation: &'static str,
         target: String,

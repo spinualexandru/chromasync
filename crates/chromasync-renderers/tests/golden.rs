@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
 use chromasync_renderers::{OutputRegistry, built_in_targets, render_target, render_targets};
-use chromasync_types::{ChromaStrategy, GenerationContext, RenderTarget, SemanticTokens, ThemeMode};
+use chromasync_types::{
+    ChromaStrategy, GenerationContext, RenderTarget, SemanticTokens, ThemeMode,
+};
 
 #[test]
 fn gtk_example_target_matches_golden_file() {

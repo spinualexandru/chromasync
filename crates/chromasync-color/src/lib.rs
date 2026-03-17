@@ -599,9 +599,8 @@ mod tests {
 
     #[test]
     fn generated_palette_contains_all_families_and_sample_tones() {
-        let palette =
-            generate_palette("#ff6b6b", ThemeMode::Dark, ChromaStrategy::Normal)
-.expect("palette should generate");
+        let palette = generate_palette("#ff6b6b", ThemeMode::Dark, ChromaStrategy::Normal)
+            .expect("palette should generate");
 
         assert_eq!(palette.families.len(), PaletteFamilyName::ALL.len());
 
@@ -671,9 +670,8 @@ mod tests {
 
     #[test]
     fn resolves_primary_sample_to_valid_hex() {
-        let palette =
-            generate_palette("#ff6b6b", ThemeMode::Dark, ChromaStrategy::Normal)
-.expect("palette should generate");
+        let palette = generate_palette("#ff6b6b", ThemeMode::Dark, ChromaStrategy::Normal)
+            .expect("palette should generate");
         let primary = palette
             .families
             .get(&PaletteFamilyName::Primary)

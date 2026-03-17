@@ -366,7 +366,9 @@ impl OutputRegistry {
             return compiled.preferred_template.clone();
         }
 
-        if looks_like_path(target) && let Ok(compiled) = self.load_path_target(Path::new(target)) {
+        if looks_like_path(target)
+            && let Ok(compiled) = self.load_path_target(Path::new(target))
+        {
             return compiled.preferred_template;
         }
 
@@ -378,7 +380,9 @@ impl OutputRegistry {
             return compiled.chroma;
         }
 
-        if looks_like_path(target) && let Ok(compiled) = self.load_path_target(Path::new(target)) {
+        if looks_like_path(target)
+            && let Ok(compiled) = self.load_path_target(Path::new(target))
+        {
             return compiled.chroma;
         }
 

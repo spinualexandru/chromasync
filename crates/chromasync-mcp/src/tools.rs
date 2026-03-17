@@ -376,9 +376,7 @@ fn batch_job_into_request(
     Ok(chromasync_types::GenerationRequest {
         seed: job.seed,
         wallpaper: job.image.map(|p| resolve_path(base_dir, &p)),
-        template: job
-            .template
-            .map(|t| resolve_reference(base_dir, &t)),
+        template: job.template.map(|t| resolve_reference(base_dir, &t)),
         mode: job.mode,
         contrast: job.contrast,
         chroma: job.chroma,
