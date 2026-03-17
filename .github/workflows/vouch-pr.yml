@@ -1,0 +1,26 @@
+name: Vouch PR Gate
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check contributor vouch status
+        uses: mitchellh/vouch/action/check-pr@v1
+        with:
+          auto-close: true
+          pr-number: ${{ github.event.pull_request.number }}
+          vouched-file: .github/VOUCHED.td
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
