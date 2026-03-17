@@ -8,8 +8,8 @@ use rmcp::{
 use crate::ChromasyncServer;
 use crate::convert::{core_error_to_mcp, string_error_to_mcp, write_artifacts};
 use crate::params::{
-    BatchParams, ExportTokensParams, GeneratePaletteParams, GenerateParams, PackInfoParams,
-    PreviewParams, WallpaperParams, build_generation_request,
+    BatchParams, ExportTokensParams, GeneratePaletteParams, GenerateParams, GenerationOptions,
+    PackInfoParams, PreviewParams, WallpaperParams, build_generation_request,
 };
 
 #[tool_router]
@@ -28,12 +28,14 @@ impl ChromasyncServer {
         let request = build_generation_request(
             Some(params.seed),
             None,
-            params.template,
-            params.mode,
-            params.contrast,
-            params.chroma,
-            params.targets,
-            params.output_dir.clone(),
+            GenerationOptions {
+                template: params.template,
+                mode: params.mode,
+                contrast: params.contrast,
+                chroma: params.chroma,
+                targets: params.targets,
+                output_dir: params.output_dir.clone(),
+            },
         )
         .map_err(string_error_to_mcp)?;
 
@@ -53,12 +55,14 @@ impl ChromasyncServer {
         let request = build_generation_request(
             None,
             Some(PathBuf::from(&params.image)),
-            params.template,
-            params.mode,
-            params.contrast,
-            params.chroma,
-            params.targets,
-            params.output_dir.clone(),
+            GenerationOptions {
+                template: params.template,
+                mode: params.mode,
+                contrast: params.contrast,
+                chroma: params.chroma,
+                targets: params.targets,
+                output_dir: params.output_dir.clone(),
+            },
         )
         .map_err(string_error_to_mcp)?;
 
@@ -160,12 +164,14 @@ impl ChromasyncServer {
         let request = build_generation_request(
             Some(params.seed),
             None,
-            Some(params.template),
-            params.mode,
-            params.contrast,
-            params.chroma,
-            Vec::new(),
-            "chromasync".to_owned(),
+            GenerationOptions {
+                template: Some(params.template),
+                mode: params.mode,
+                contrast: params.contrast,
+                chroma: params.chroma,
+                targets: Vec::new(),
+                output_dir: "chromasync".to_owned(),
+            },
         )
         .map_err(string_error_to_mcp)?;
 
@@ -182,12 +188,14 @@ impl ChromasyncServer {
         let request = build_generation_request(
             Some(params.seed),
             None,
-            Some(params.template),
-            params.mode,
-            params.contrast,
-            params.chroma,
-            Vec::new(),
-            "chromasync".to_owned(),
+            GenerationOptions {
+                template: Some(params.template),
+                mode: params.mode,
+                contrast: params.contrast,
+                chroma: params.chroma,
+                targets: Vec::new(),
+                output_dir: "chromasync".to_owned(),
+            },
         )
         .map_err(string_error_to_mcp)?;
 

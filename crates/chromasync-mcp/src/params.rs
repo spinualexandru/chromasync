@@ -110,25 +110,29 @@ pub struct PackInfoParams {
     pub name: String,
 }
 
+pub struct GenerationOptions {
+    pub template: Option<String>,
+    pub mode: String,
+    pub contrast: String,
+    pub chroma: String,
+    pub targets: Vec<String>,
+    pub output_dir: String,
+}
+
 pub fn build_generation_request(
     seed: Option<String>,
     wallpaper: Option<PathBuf>,
-    template: Option<String>,
-    mode: String,
-    contrast: String,
-    chroma: String,
-    targets: Vec<String>,
-    output_dir: String,
+    opts: GenerationOptions,
 ) -> Result<chromasync_types::GenerationRequest, String> {
     Ok(chromasync_types::GenerationRequest {
         seed,
         wallpaper,
-        template,
-        mode: crate::convert::parse_mode(&mode)?,
-        contrast: crate::convert::parse_contrast(&contrast)?,
-        chroma: crate::convert::parse_chroma(&chroma)?,
-        targets,
-        output_dir: PathBuf::from(output_dir),
+        template: opts.template,
+        mode: crate::convert::parse_mode(&opts.mode)?,
+        contrast: crate::convert::parse_contrast(&opts.contrast)?,
+        chroma: crate::convert::parse_chroma(&opts.chroma)?,
+        targets: opts.targets,
+        output_dir: PathBuf::from(opts.output_dir),
     })
 }
 

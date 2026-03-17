@@ -12,16 +12,17 @@ Dynamic color engine and theme generator CLI
 Usage: chromasync <COMMAND>
 
 Commands:
-  generate   Generate theme artifacts from a seed color
-  wallpaper  Generate theme artifacts from a wallpaper image
-  batch      Execute a batch manifest with multiple generation jobs
-  templates  List the available templates and where they were loaded from
-  packs      List the discovered theme packs
-  pack       Inspect a discovered theme pack
-  targets    List available renderer targets and where they were loaded from
-  preview    Show palette families and resolved semantic tokens
-  tokens     Export resolved semantic tokens
-  help       Print this message or the help of the given subcommand(s)
+  generate     Generate theme artifacts from a seed color
+  wallpaper    Generate theme artifacts from a wallpaper image
+  batch        Execute a batch manifest with multiple generation jobs
+  templates    List the available templates and where they were loaded from
+  packs        List the discovered theme packs
+  pack         Inspect a discovered theme pack
+  targets      List available renderer targets and where they were loaded from
+  preview      Show palette families and resolved semantic tokens
+  tokens       Export resolved semantic tokens
+  completions  Generate shell completion scripts
+  help         Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help
@@ -36,14 +37,14 @@ Options:
 ```text
 Generate theme artifacts from a seed color
 
-Usage: generate [OPTIONS] --seed <SEED> --template <TEMPLATE> --targets <TARGETS>
+Usage: generate [OPTIONS] --seed <SEED> --targets <TARGETS>
 
 Options:
       --seed <SEED>
           Seed color in #RRGGBB format
 
       --template <TEMPLATE>
-          Template name or path to a template TOML file
+          Template name or path to a template TOML file. Optional if targets specify preferred_template
 
       --mode <MODE>
           Theme mode to generate
@@ -56,6 +57,12 @@ Options:
           
           [default: relative-luminance]
           [possible values: relative-luminance, apca-experimental]
+
+      --chroma <CHROMA>
+          Chroma strategy used when generating palette families
+          
+          [default: normal]
+          [possible values: subtle, normal, vibrant, muted, industrial]
 
       --targets <TARGETS>
           Comma-separated list of target names or target TOML paths to generate
@@ -74,14 +81,14 @@ Options:
 ```text
 Generate theme artifacts from a wallpaper image
 
-Usage: wallpaper [OPTIONS] --image <IMAGE> --template <TEMPLATE> --targets <TARGETS>
+Usage: wallpaper [OPTIONS] --image <IMAGE> --targets <TARGETS>
 
 Options:
       --image <IMAGE>
           Wallpaper image path
 
       --template <TEMPLATE>
-          Template name or path to a template TOML file
+          Template name or path to a template TOML file. Optional if targets specify preferred_template
 
       --mode <MODE>
           Theme mode to generate
@@ -94,6 +101,12 @@ Options:
           
           [default: relative-luminance]
           [possible values: relative-luminance, apca-experimental]
+
+      --chroma <CHROMA>
+          Chroma strategy used when generating palette families
+          
+          [default: normal]
+          [possible values: subtle, normal, vibrant, muted, industrial]
 
       --targets <TARGETS>
           Comma-separated list of target names or target TOML paths to generate
@@ -216,6 +229,12 @@ Options:
           [default: relative-luminance]
           [possible values: relative-luminance, apca-experimental]
 
+      --chroma <CHROMA>
+          Chroma strategy used when generating palette families
+          
+          [default: normal]
+          [possible values: subtle, normal, vibrant, muted, industrial]
+
   -h, --help
           Print help
 ```
@@ -246,12 +265,36 @@ Options:
           [default: relative-luminance]
           [possible values: relative-luminance, apca-experimental]
 
+      --chroma <CHROMA>
+          Chroma strategy used when generating palette families
+          
+          [default: normal]
+          [possible values: subtle, normal, vibrant, muted, industrial]
+
       --format <FORMAT>
           Serialization format for token export
           
           [default: json]
           [possible values: json]
 
+  -h, --help
+          Print help
+```
+
+### `chromasync completions`
+
+```text
+Generate shell completion scripts
+
+Usage: completions <SHELL>
+
+Arguments:
+  <SHELL>
+          Shell to generate completions for
+          
+          [possible values: bash, elvish, fish, powershell, zsh]
+
+Options:
   -h, --help
           Print help
 ```
