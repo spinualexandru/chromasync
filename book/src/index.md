@@ -77,4 +77,12 @@ cargo test --workspace
 cargo run -p chromasync-docs -- generate --check
 ```
 
+## Contributing
+
+Pull requests from first-time or otherwise unvouched contributors are automatically closed until a maintainer vouches for the author. This is in place to reduce spammy or low-signal PRs.
+
+If you want to contribute and are not yet vouched, open an issue describing the change you want to make or the area you want to work on. A maintainer can then comment `vouch`, `vouch @user`, `lgtm`, or `lgtm @user` on the issue or PR to add you to the trusted contributor list.
+
+Maintainers can also comment `unvouch` or `denounce` to remove trust or explicitly block an account when needed. The trust list lives in `.github/VOUCHED.td`.
+
 See the [Packaging guide](packaging.md) for release and packaging details.
