@@ -49,14 +49,6 @@ fn generate_book(check: bool) -> Result<()> {
         ("generated/cli.md", render_cli_reference()),
         ("generated/templates.md", render_templates_reference()?),
         ("generated/targets.md", render_targets_reference()),
-        (
-            "reference/product.md",
-            render_reference_doc(&root, "docs/PRODUCT.md")?,
-        ),
-        (
-            "reference/packaging.md",
-            render_reference_doc(&root, "docs/PACKAGING.md")?,
-        ),
     ];
 
     for (relative_path, content) in outputs {
@@ -110,9 +102,7 @@ fn render_summary() -> String {
          \n\
          - [CLI Reference](generated/cli.md)\n\
          - [Built-in Templates](generated/templates.md)\n\
-         - [Built-in Targets](generated/targets.md)\n\
-         - [Product](reference/product.md)\n\
-         - [Packaging](reference/packaging.md)\n",
+         - [Built-in Targets](generated/targets.md)\n",
         notice = GENERATED_NOTICE,
     )
 }
@@ -236,15 +226,6 @@ fn render_targets_reference() -> String {
     output
 }
 
-fn render_reference_doc(root: &Path, relative_path: &str) -> Result<String> {
-    let path = root.join(relative_path);
-    let content = fs::read_to_string(&path)
-        .with_context(|| format!("failed to read '{}'", path.display()))?;
-    let rewritten = rewrite_markdown_links(&content, root);
-
-    Ok(format!("{GENERATED_NOTICE}\n\n{rewritten}"))
-}
-
 fn rewrite_markdown_links(content: &str, root: &Path) -> String {
     let mut output = String::with_capacity(content.len());
     let mut index = 0;
@@ -292,10 +273,8 @@ fn rewrite_markdown_links(content: &str, root: &Path) -> String {
 
 fn rewrite_link(label: &str, target: &str, root_prefix: &str) -> Option<String> {
     let target = match target {
-        "./docs/PACKAGING.md" => "reference/packaging.md",
-        "./docs/PRODUCT.md" => "reference/product.md",
-        "./PACKAGING.md" => "packaging.md",
-        "./PRODUCT.md" => "product.md",
+        "./docs/PACKAGING.md" | "./PACKAGING.md" => "packaging.md",
+        "./docs/PRODUCT.md" | "./PRODUCT.md" => "product.md",
         _ => target,
     };
 
