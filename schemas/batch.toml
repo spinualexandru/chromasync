@@ -1,0 +1,65 @@
+# Chromasync Batch Manifest Schema
+#
+# A batch manifest defines one or more theme generation jobs.
+# Run with: chromasync batch --file <manifest.toml>
+#
+# Relative paths (image, targets, output) are resolved relative to
+# the manifest file's parent directory.
+#
+# The singular [[job]] form is also accepted as an alias for [[jobs]].
+
+# --- Job definition ---
+#
+# Each [[jobs]] entry has the following fields:
+#
+#   name      (string, optional)  — Label for log/error messages.
+#
+#   seed      (string, conditional) — Hex seed color (e.g. "#4ecdc4").
+#   image     (string, conditional) — Path to wallpaper image.
+#             Exactly one of seed or image must be set per job.
+#
+#   template  (string, required)  — Template name (built-in lookup) or
+#             path to a .toml template file.
+#
+#   mode      (string, optional, default: "dark") — "dark" | "light"
+#
+#   contrast  (string, optional, default: "relative-luminance")
+#             Contrast algorithm: "relative-luminance" | "apca-experimental"
+#
+#   targets   (array of strings, optional, default: [])
+#             Target names (built-in lookup) or paths to .toml target specs.
+#             A value is treated as a path if it contains "/", starts with
+#             an absolute path prefix, or ends with ".toml".
+#
+#   output    (string, required) — Output directory for generated artifacts.
+
+# --- Example: seed-based job ---
+
+[[jobs]]
+name = "dark-terminal"
+seed = "#4ecdc4"
+template = "minimal"
+mode = "dark"
+targets = ["kitty", "alacritty"]
+output = "dark-terminal"
+
+# --- Example: wallpaper-based job ---
+
+[[jobs]]
+name = "wallpaper-theme"
+image = "wallpapers/forest.jpg"
+template = "terminal"
+mode = "dark"
+contrast = "apca-experimental"
+targets = ["targets/waybar.toml", "targets/foot.toml"]
+output = "forest-output"
+
+# --- Example: light variant with custom target ---
+
+[[jobs]]
+name = "light-editor"
+seed = "#7c3aed"
+template = "materialish"
+mode = "light"
+targets = ["targets/editor.toml"]
+output = "light-editor"

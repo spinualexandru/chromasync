@@ -54,7 +54,7 @@ Targets can be built-in names (`kitty`, `alacritty`), paths to declarative targe
 --targets kitty,alacritty,examples/targets/gtk.toml,examples/targets/css.toml
 ```
 
-Declarative example targets for GTK, Hyprland, CSS, Waybar, Foot, and Editor ship under `examples/targets/`.
+Declarative example targets for GTK, Hyprland, CSS, Waybar, Foot, Ghostty, and Editor ship under `examples/targets/`.
 
 List available targets with:
 

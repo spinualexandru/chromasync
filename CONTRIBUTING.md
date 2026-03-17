@@ -31,7 +31,7 @@ cargo build --release -p chromasync-cli
 - `crates/chromasync-renderers`: built-in renderers and declarative target registry
 - `crates/chromasync-types`: shared data structures
 - `templates/`: built-in template TOML files
-- `examples/targets/`: declarative example targets such as GTK, Hyprland, CSS, Waybar, Foot, and editor outputs
+- `examples/targets/`: declarative example targets such as GTK, Hyprland, CSS, Waybar, Foot, Ghostty, and editor outputs
 - `docs/`: longer design and packaging notes
 - `book/`: mdBook source, including generated reference pages
 

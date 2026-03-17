@@ -45,7 +45,7 @@ Output is written to `./chromasync` by default.
 | -------------------------------------------------- | -------------------- |
 | `minimal`, `brutalist`, `terminal`, `materialish`  | `kitty`, `alacritty` |
 
-Additional targets (GTK, Hyprland, CSS, Waybar, Foot, Editor) are available as declarative TOML specs under [`examples/targets/`](examples/targets/). Custom targets can be added to `~/.config/chromasync/targets/`.
+Additional targets (GTK, Hyprland, CSS, Waybar, Foot, Ghostty, Editor) are available as declarative TOML specs under [`examples/targets/`](examples/targets/). Custom targets can be added to `~/.config/chromasync/targets/`.
 
 ```bash
 chromasync templates   # list available templates

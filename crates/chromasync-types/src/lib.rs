@@ -89,6 +89,7 @@ pub enum RenderTarget {
     Rofi,
     Alacritty,
     Foot,
+    Ghostty,
     Editor,
 }
 
@@ -105,6 +106,7 @@ impl RenderTarget {
             Self::Rofi => "rofi",
             Self::Alacritty => "alacritty",
             Self::Foot => "foot",
+            Self::Ghostty => "ghostty",
             Self::Editor => "editor",
         }
     }
@@ -119,6 +121,7 @@ impl RenderTarget {
             Self::Rofi => "config.rasi",
             Self::Alacritty => "alacritty.toml",
             Self::Foot => "foot.ini",
+            Self::Ghostty => "colors.txt",
             Self::Editor => "theme.json",
         }
     }

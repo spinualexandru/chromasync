@@ -66,6 +66,7 @@ fn targets_lists_only_current_built_in_renderers() {
         .stdout(predicate::str::contains("hyprland").not())
         .stdout(predicate::str::contains("css").not())
         .stdout(predicate::str::contains("foot").not())
+        .stdout(predicate::str::contains("ghostty").not())
         .stdout(predicate::str::contains("waybar").not())
         .stdout(predicate::str::contains("editor").not())
         .stdout(predicate::str::contains("rofi").not());
@@ -256,6 +257,38 @@ fn generate_writes_light_mode_editor_theme() {
     let content = fs::read_to_string(&theme_path).expect("editor theme should be readable");
     assert!(content.contains("\"name\": \"Chromasync light\""));
     assert!(content.contains("\"type\": \"light\""));
+
+    fs::remove_dir_all(output_dir).expect("output directory should be removed");
+}
+
+#[test]
+fn generate_writes_ghostty_example_target() {
+    let output_dir = temp_dir_path("generate-ghostty-output");
+    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+
+    command.args(["generate", "--seed", "#4ecdc4", "--template", "terminal"]);
+    command
+        .arg("--targets")
+        .arg(example_and_builtin_targets(&["ghostty.toml"]));
+    command.args([
+        "--output",
+        output_dir.to_str().expect("output path should be utf-8"),
+    ]);
+
+    let assert = command.assert().success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    let theme_path = output_dir.join("colors.txt");
+
+    assert!(
+        stdout.contains(theme_path.to_str().expect("theme path should be utf-8")),
+        "expected generate output to mention '{}', got:\n{stdout}",
+        theme_path.display()
+    );
+
+    let content = fs::read_to_string(&theme_path).expect("ghostty theme should be readable");
+    assert!(content.contains("background = #"));
+    assert!(content.contains("cursor-color = #"));
+    assert!(content.contains("palette = 15=#"));
 
     fs::remove_dir_all(output_dir).expect("output directory should be removed");
 }

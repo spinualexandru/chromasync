@@ -1,0 +1,111 @@
+# Chromasync Template Schema
+#
+# Templates define how palette families and tones map to semantic tokens.
+# All 17 tokens must be defined. Each token specifies a palette family,
+# a tone value, and optional chroma adjustments.
+#
+# Location:
+#   Built-in:  embedded in the chromasync-template crate
+#   User:      ~/.config/chromasync/templates/<name>.toml
+#   Pack:      <pack-root>/templates/<name>.toml
+#   Inline:    referenced by path in CLI or batch manifest
+
+# --- Required fields ---
+
+name = "my-template"          # Template name (string, required)
+mode = "dark"                 # Theme mode: "dark" | "light" (required)
+
+# --- Optional fields ---
+
+description = "A short human-readable description of this template."  # (string, optional)
+
+# --- Token definitions ---
+#
+# Each token is a [tokens.<name>] table with the following fields:
+#
+#   family       (string, required)  — Palette family name. One of:
+#                  primary, secondary, tertiary, neutral, neutral_variant,
+#                  error, success, warning, info
+#
+#   tone         (float, required)   — Lightness value in range [0.0, 1.0].
+#                  0.0 = darkest, 1.0 = lightest.
+#
+#   chroma       (float, optional)   — Absolute chroma override (>= 0.0).
+#                  Replaces the family's base chroma entirely.
+#
+#   chroma_scale (float, optional)   — Chroma multiplier (>= 0.0).
+#                  Scales the family's base chroma. 1.0 = no change.
+#
+# If both chroma and chroma_scale are set, chroma takes precedence.
+
+# --- All 17 required tokens ---
+
+[tokens.bg]
+family = "neutral"
+tone = 0.10
+chroma = 0.008                # absolute chroma override example
+
+[tokens.bg_secondary]
+family = "neutral"
+tone = 0.13
+
+[tokens.surface]
+family = "neutral"
+tone = 0.15
+
+[tokens.surface_elevated]
+family = "neutral_variant"
+tone = 0.20
+
+[tokens.text]
+family = "neutral"
+tone = 0.94
+
+[tokens.text_muted]
+family = "neutral_variant"
+tone = 0.78
+chroma_scale = 0.70           # chroma multiplier example
+
+[tokens.border]
+family = "neutral_variant"
+tone = 0.28
+
+[tokens.border_strong]
+family = "neutral_variant"
+tone = 0.38
+
+[tokens.accent]
+family = "primary"
+tone = 0.68
+
+[tokens.accent_hover]
+family = "primary"
+tone = 0.74
+
+[tokens.accent_active]
+family = "primary"
+tone = 0.60
+
+[tokens.accent_fg]
+family = "neutral"
+tone = 0.98
+
+[tokens.selection]
+family = "primary"
+tone = 0.30
+
+[tokens.link]
+family = "info"
+tone = 0.74
+
+[tokens.success]
+family = "success"
+tone = 0.70
+
+[tokens.warning]
+family = "warning"
+tone = 0.74
+
+[tokens.error]
+family = "error"
+tone = 0.72

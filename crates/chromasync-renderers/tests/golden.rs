@@ -60,6 +60,16 @@ fn foot_example_target_matches_golden_file() {
 }
 
 #[test]
+fn ghostty_example_target_matches_golden_file() {
+    assert_example_target_matches_golden(
+        "ghostty.toml",
+        "ghostty",
+        "colors.txt",
+        include_str!("fixtures/ghostty.colors.golden"),
+    );
+}
+
+#[test]
 fn waybar_example_target_matches_golden_file() {
     assert_example_target_matches_golden(
         "waybar.toml",

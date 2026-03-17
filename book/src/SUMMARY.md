@@ -14,6 +14,7 @@
 - [Targets](guides/targets.md)
 - [Preview](guides/preview.md)
 - [Tokens](guides/tokens.md)
+- [MCP Server](guides/mcp.md)
 
 # Reference
 

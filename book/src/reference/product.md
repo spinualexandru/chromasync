@@ -32,7 +32,7 @@ Primary targets include:
 
 * GTK themes via declarative example targets
 * Hyprland configuration via declarative example targets
-* terminal themes (Kitty, Alacritty, etc.)
+* terminal themes (Kitty, Alacritty, Ghostty, etc.)
 * Waybar / Rofi styling
 * CSS design tokens via declarative example targets
 * editor themes via declarative example targets
@@ -338,7 +338,7 @@ pub trait Renderer {
 # 10. Target Renderers
 
 The repository keeps `kitty` and `alacritty` as built-in renderers. The `gtk`,
-`hyprland`, `css`, `waybar`, `foot`, and `editor` outputs are now shipped as
+`hyprland`, `css`, `waybar`, `foot`, `ghostty`, and `editor` outputs are now shipped as
 declarative example targets under `examples/targets/`.
 
 ## 10.1 GTK Renderer
@@ -390,6 +390,7 @@ Targets may include:
 kitty.conf
 alacritty.toml
 foot.ini
+colors.txt
 ```
 
 Generated values:
@@ -512,6 +513,7 @@ examples/targets/hyprland.toml
 examples/targets/css.toml
 examples/targets/waybar.toml
 examples/targets/foot.toml
+examples/targets/ghostty.toml
 examples/targets/editor.toml
 ```
 

@@ -65,6 +65,7 @@ fn generate_book(check: bool) -> Result<()> {
         ("guides/targets.md", "Targets"),
         ("guides/preview.md", "Preview"),
         ("guides/tokens.md", "Tokens"),
+        ("guides/mcp.md", "MCP Server"),
     ];
 
     for (relative_path, title) in feature_guides {
@@ -97,6 +98,7 @@ fn render_summary() -> String {
          - [Targets](guides/targets.md)\n\
          - [Preview](guides/preview.md)\n\
          - [Tokens](guides/tokens.md)\n\
+         - [MCP Server](guides/mcp.md)\n\
          \n\
          # Reference\n\
          \n\
