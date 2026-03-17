@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chromasync.dev/schemas/pack.json",
+  "title": "Chromasync Pack Manifest",
+  "description": "Metadata for a theme pack that bundles templates and/or target specs. File must be named pack.toml at the pack root.",
+  "type": "object",
+  "required": ["name", "version"],
+  "additionalProperties": false,
+  "anyOf": [
+    { "required": ["templates"] },
+    { "required": ["targets"] }
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$",
+      "description": "Pack name. Lowercase letters, digits, '-', or '_'."
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version (e.g. \"0.1.0\")."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the pack."
+    },
+    "author": {
+      "type": "string",
+      "description": "Pack author."
+    },
+    "license": {
+      "type": "string",
+      "description": "License identifier (e.g. \"MIT\")."
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Project homepage URL."
+    },
+    "templates": {
+      "type": "object",
+      "description": "Template asset configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Directories containing template .toml files, relative to pack root. Defaults to [\"templates\"] if the directory exists."
+        }
+      }
+    },
+    "targets": {
+      "type": "object",
+      "description": "Target spec asset configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Directories containing target .toml files, relative to pack root. Defaults to [\"targets\"] if the directory exists."
+        }
+      }
+    }
+  }
+}

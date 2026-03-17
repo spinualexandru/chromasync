@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chromasync.dev/schemas/batch.json",
+  "title": "Chromasync Batch Manifest",
+  "description": "Defines one or more theme generation jobs. Run with: chromasync batch --file <manifest.toml>. The singular 'job' key is also accepted as an alias for 'jobs'.",
+  "type": "object",
+  "additionalProperties": false,
+  "anyOf": [
+    { "required": ["jobs"] },
+    { "required": ["job"] }
+  ],
+  "properties": {
+    "jobs": {
+      "type": "array",
+      "description": "Array of generation jobs.",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/job" }
+    },
+    "job": {
+      "type": "array",
+      "description": "Alias for 'jobs'.",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/job" }
+    }
+  },
+  "$defs": {
+    "job": {
+      "type": "object",
+      "description": "A single theme generation job. Exactly one of 'seed' or 'image' must be set.",
+      "required": ["template", "output"],
+      "additionalProperties": false,
+      "oneOf": [
+        { "required": ["seed"] },
+        { "required": ["image"] }
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Label for log and error messages."
+        },
+        "seed": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Hex seed color (e.g. \"#4ecdc4\"). Mutually exclusive with 'image'."
+        },
+        "image": {
+          "type": "string",
+          "description": "Path to a wallpaper image. Resolved relative to the manifest file. Mutually exclusive with 'seed'."
+        },
+        "template": {
+          "type": "string",
+          "description": "Template name (built-in lookup) or path to a .toml template file."
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["dark", "light"],
+          "default": "dark",
+          "description": "Theme mode."
+        },
+        "contrast": {
+          "type": "string",
+          "enum": ["relative-luminance", "apca-experimental"],
+          "default": "relative-luminance",
+          "description": "Contrast selection algorithm."
+        },
+        "targets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Target names (built-in) or paths to .toml target specs. A value is treated as a path if it contains '/', starts with an absolute prefix, or ends with '.toml'."
+        },
+        "output": {
+          "type": "string",
+          "description": "Output directory for generated artifacts. Resolved relative to the manifest file."
+        }
+      }
+    }
+  }
+}

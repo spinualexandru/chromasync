@@ -1,3 +1,4 @@
+#:schema ../../schemas/target.json
 name = "ghostty"
 description = "Example user-defined Ghostty target."
 

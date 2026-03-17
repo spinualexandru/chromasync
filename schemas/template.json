@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chromasync.dev/schemas/template.json",
+  "title": "Chromasync Template",
+  "description": "Defines how palette families and tones map to the 17 semantic tokens. All tokens must be present.",
+  "type": "object",
+  "required": ["name", "mode", "tokens"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Template name."
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["dark", "light"],
+      "description": "Theme mode."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the template."
+    },
+    "tokens": {
+      "type": "object",
+      "description": "Map of semantic token names to palette rules. All 17 tokens are required.",
+      "required": [
+        "bg", "bg_secondary", "surface", "surface_elevated",
+        "text", "text_muted",
+        "border", "border_strong",
+        "accent", "accent_hover", "accent_active", "accent_fg",
+        "selection", "link",
+        "success", "warning", "error"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "bg":               { "$ref": "#/$defs/token_rule" },
+        "bg_secondary":     { "$ref": "#/$defs/token_rule" },
+        "surface":          { "$ref": "#/$defs/token_rule" },
+        "surface_elevated": { "$ref": "#/$defs/token_rule" },
+        "text":             { "$ref": "#/$defs/token_rule" },
+        "text_muted":       { "$ref": "#/$defs/token_rule" },
+        "border":           { "$ref": "#/$defs/token_rule" },
+        "border_strong":    { "$ref": "#/$defs/token_rule" },
+        "accent":           { "$ref": "#/$defs/token_rule" },
+        "accent_hover":     { "$ref": "#/$defs/token_rule" },
+        "accent_active":    { "$ref": "#/$defs/token_rule" },
+        "accent_fg":        { "$ref": "#/$defs/token_rule" },
+        "selection":        { "$ref": "#/$defs/token_rule" },
+        "link":             { "$ref": "#/$defs/token_rule" },
+        "success":          { "$ref": "#/$defs/token_rule" },
+        "warning":          { "$ref": "#/$defs/token_rule" },
+        "error":            { "$ref": "#/$defs/token_rule" }
+      }
+    }
+  },
+  "$defs": {
+    "token_rule": {
+      "type": "object",
+      "description": "Maps a semantic token to a palette family tone with optional chroma adjustment.",
+      "required": ["family", "tone"],
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "type": "string",
+          "enum": [
+            "primary", "secondary", "tertiary",
+            "neutral", "neutral_variant",
+            "error", "success", "warning", "info"
+          ],
+          "description": "Palette family name."
+        },
+        "tone": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Lightness value. 0.0 = darkest, 1.0 = lightest."
+        },
+        "chroma": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Absolute chroma override. Replaces the family's base chroma. Takes precedence over chroma_scale."
+        },
+        "chroma_scale": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Chroma multiplier applied to the family's base chroma. 1.0 = no change."
+        }
+      }
+    }
+  }
+}

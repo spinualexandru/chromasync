@@ -1,3 +1,4 @@
+#:schema ../../schemas/target.json
 name = "css"
 description = "Example user-defined CSS design token target."
 

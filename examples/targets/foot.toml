@@ -1,3 +1,4 @@
+#:schema ../../schemas/target.json
 name = "foot"
 description = "Example user-defined Foot target."
 

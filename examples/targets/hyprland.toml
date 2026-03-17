@@ -1,3 +1,4 @@
+#:schema ../../schemas/target.json
 name = "hyprland"
 description = "Example user-defined Hyprland target."
 

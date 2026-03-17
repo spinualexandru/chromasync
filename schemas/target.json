@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chromasync.dev/schemas/target.json",
+  "title": "Chromasync Target Spec",
+  "description": "Defines how semantic tokens are rendered into output files for a specific application. Supports inheritance via 'extends'.",
+  "type": "object",
+  "required": ["name"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$",
+      "description": "Target name. Lowercase letters, digits, '-', or '_'."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the target."
+    },
+    "extends": {
+      "type": "string",
+      "description": "Name of another target to inherit artifacts from. Derived artifacts with the same file_name override base artifacts."
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "Output file definitions. Required if 'extends' is not set.",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/artifact" }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "description": "Defines one output file.",
+      "required": ["file_name", "template"],
+      "additionalProperties": false,
+      "properties": {
+        "file_name": {
+          "type": "string",
+          "description": "Output file name. No path separators, not '.' or '..'.",
+          "not": { "enum": [".", ".."] }
+        },
+        "template": {
+          "type": "string",
+          "description": "File content template with placeholders.\n\nToken placeholders:\n  {{tokens.<NAME>}}                — hex value (#rrggbb)\n  {{tokens.<NAME> | hex_no_hash}}  — without # prefix\n  {{tokens.<NAME> | rgba(FF)}}     — RGBA hex with alpha\n\nContext placeholders:\n  {{ctx.mode}}           — dark/light\n  {{ctx.template_name}}  — template name\n  {{ctx.output_dir}}     — output directory\n  {{ctx.seed}}           — seed color\n\nAvailable tokens: bg, bg_secondary, surface, surface_elevated, text, text_muted, border, border_strong, accent, accent_hover, accent_active, accent_fg, selection, link, success, warning, error"
+        }
+      }
+    }
+  }
+}

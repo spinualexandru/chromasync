@@ -1,0 +1,87 @@
+#:schema ../../schemas/template.json
+name = "editor"
+mode = "dark"
+description = "Example dark template tuned for code editors with rich syntax contrast."
+
+[tokens.bg]
+family = "neutral"
+tone = 0.12
+chroma = 0.006
+
+[tokens.bg_secondary]
+family = "neutral"
+tone = 0.16
+chroma = 0.008
+
+[tokens.surface]
+family = "neutral"
+tone = 0.14
+chroma = 0.010
+
+[tokens.surface_elevated]
+family = "neutral_variant"
+tone = 0.18
+chroma = 0.012
+
+[tokens.text]
+family = "neutral"
+tone = 0.92
+
+[tokens.text_muted]
+family = "neutral_variant"
+tone = 0.65
+chroma_scale = 0.60
+
+[tokens.border]
+family = "neutral_variant"
+tone = 0.25
+chroma_scale = 0.70
+
+[tokens.border_strong]
+family = "neutral_variant"
+tone = 0.35
+chroma_scale = 0.85
+
+[tokens.accent]
+family = "primary"
+tone = 0.70
+chroma = 0.14
+
+[tokens.accent_hover]
+family = "primary"
+tone = 0.76
+chroma = 0.16
+
+[tokens.accent_active]
+family = "secondary"
+tone = 0.65
+chroma = 0.12
+
+[tokens.accent_fg]
+family = "neutral"
+tone = 0.98
+
+[tokens.selection]
+family = "primary"
+tone = 0.28
+chroma_scale = 0.50
+
+[tokens.link]
+family = "info"
+tone = 0.72
+chroma = 0.14
+
+[tokens.success]
+family = "success"
+tone = 0.70
+chroma = 0.13
+
+[tokens.warning]
+family = "warning"
+tone = 0.74
+chroma = 0.14
+
+[tokens.error]
+family = "error"
+tone = 0.70
+chroma = 0.16

@@ -1,3 +1,4 @@
+#:schema ../../schemas/target.json
 name = "editor"
 description = "Example user-defined editor theme target."
 

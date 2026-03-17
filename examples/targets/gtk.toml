@@ -1,3 +1,4 @@
+#:schema ../../schemas/target.json
 name = "gtk"
 description = "Example user-defined GTK target."
 
