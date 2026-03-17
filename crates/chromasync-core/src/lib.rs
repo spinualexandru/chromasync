@@ -263,9 +263,10 @@ fn render_from_palette(
     let mut groups: BTreeMap<(String, ChromaStrategy), Vec<String>> = BTreeMap::new();
 
     for target in &request.targets {
-        let template_name = output_registry
-            .resolve_preferred_template(target)
-            .or_else(|| request.template.clone())
+        let template_name = request
+            .template
+            .clone()
+            .or_else(|| output_registry.resolve_preferred_template(target))
             .ok_or_else(|| CoreError::MissingTemplate {
                 operation: "theme generation",
                 target: target.clone(),
@@ -322,9 +323,10 @@ fn render_from_palette_with_wallpaper(
     let mut groups: BTreeMap<(String, ChromaStrategy), Vec<String>> = BTreeMap::new();
 
     for target in &request.targets {
-        let template_name = output_registry
-            .resolve_preferred_template(target)
-            .or_else(|| request.template.clone())
+        let template_name = request
+            .template
+            .clone()
+            .or_else(|| output_registry.resolve_preferred_template(target))
             .ok_or_else(|| CoreError::MissingTemplate {
                 operation: "theme generation",
                 target: target.clone(),
