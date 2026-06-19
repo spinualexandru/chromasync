@@ -17,6 +17,12 @@
       "default": [],
       "description": "Target output entries. Empty when no target has been configured yet.",
       "items": { "$ref": "#/$defs/target" }
+    },
+    "hooks": {
+      "type": "array",
+      "default": [],
+      "description": "Commands run after successful sync generation events.",
+      "items": { "$ref": "#/$defs/hook" }
     }
   },
   "$defs": {
@@ -111,6 +117,39 @@
           "type": "boolean",
           "default": false,
           "description": "When true, generation overwrites existing artifacts for this target (a per-target --force). A global --force or sync profile force=true overrides this regardless of the recorded value."
+        }
+      }
+    },
+    "hook": {
+      "type": "object",
+      "description": "One command hook under [[hooks]]. Hooks currently run after successful `chromasync sync` artifact writes.",
+      "required": ["name", "on", "command"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable hook name used in error messages."
+        },
+        "on": {
+          "description": "Event or events that trigger this hook. Supported events are `targets:done` and `target:<target-name>:done`.",
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            }
+          ]
+        },
+        "command": {
+          "type": "string",
+          "description": "Shell command run from the directory containing config.toml. A non-zero exit status fails the sync command after artifacts have been written."
+        },
+        "filters": {
+          "type": "array",
+          "default": [],
+          "items": { "type": "string" },
+          "description": "Optional filters. Currently supports `config:<profile-name>`; all filters must match."
         }
       }
     }

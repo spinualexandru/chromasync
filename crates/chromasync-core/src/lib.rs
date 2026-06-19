@@ -20,8 +20,8 @@ use thiserror::Error;
 
 pub use chromasync_renderers::{ListedTarget, OutputRegistry};
 pub use config::{
-    ChromasyncConfig, ConfigTarget, InstallSummary, SyncMode, SyncProfile, config_file_path,
-    expand_tilde, install_target,
+    ChromasyncConfig, ConfigHook, ConfigTarget, HookEvents, InstallSummary, SyncMode, SyncProfile,
+    config_file_path, expand_tilde, install_target,
 };
 pub use packs::{PackError, PackRegistry, pack_search_roots};
 

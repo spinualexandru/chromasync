@@ -40,6 +40,12 @@ overwrite = true
 name = "kitty"
 output_dir = "~/.config/kitty"
 overwrite = true
+
+[[hooks]]
+name = "reload-kitty"
+on = "target:kitty:done"
+filters = ["config:default"]
+command = "kitty @ load-config"
 ```
 
 Each profile must define exactly one color source:
@@ -89,3 +95,42 @@ the profile's `output_dir` fallback.
 Custom targets such as Ghostty must still be discoverable, usually by placing
 their TOML file under `~/.config/chromasync/targets/` or by installing them with
 `chromasync target install`.
+
+## Hooks
+
+Hooks live under top-level `[[hooks]]` entries in `config.toml` and run only for
+`chromasync sync`. They execute after all artifacts have been written
+successfully.
+
+```toml
+[[hooks]]
+name = "reload-all"
+on = "targets:done"
+command = "hyprctl reload"
+
+[[hooks]]
+name = "reload-hyprland-lua"
+on = "target:hyprland-lua:done"
+command = "hyprctl reload"
+
+[[hooks]]
+name = "reload-default-hyprland-lua"
+filters = ["config:default"]
+on = ["target:hyprland-lua:done"]
+command = "hyprctl reload"
+```
+
+Supported events are:
+
+- `targets:done` after the sync command writes all generated artifacts.
+- `target:<target-name>:done` after a specific target was generated, such as
+  `target:hyprland-lua:done`.
+
+`on` can be a single string or an array of strings. A hook runs at most once per
+sync command if any event matches and all filters match. The supported filter is
+`config:<profile-name>`, for example `config:default`.
+
+Hook commands run from the directory containing `config.toml`, using the same
+shell command behavior as `image_fetch_command`. If a hook exits non-zero,
+`chromasync sync` exits with an error after the artifacts have already been
+written.

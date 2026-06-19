@@ -70,6 +70,12 @@ chroma = "industrial"
 name = "kitty"
 output_dir = "~/.config/kitty"
 overwrite = true
+
+[[hooks]]
+name = "reload-kitty"
+on = "target:kitty:done"
+filters = ["config:default"]
+command = "kitty @ load-config"
 ```
 
 Run it with:
@@ -81,6 +87,11 @@ chromasync sync work     # uses the profile named "work"
 
 `mode = "auto"` follows the desktop color-scheme when it can be detected, and
 falls back to dark mode.
+
+Hooks run after a successful `chromasync sync` write. Use `targets:done` to run
+after every target is generated, or `target:<name>:done` for a specific target.
+Hook commands run from the directory containing `config.toml`; a failing hook
+makes `sync` exit with an error after artifacts have been written.
 
 ## Installing Targets
 

@@ -23,6 +23,8 @@ pub struct ChromasyncConfig {
     pub configs: Vec<SyncProfile>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub targets: Vec<ConfigTarget>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hooks: Vec<ConfigHook>,
 }
 
 /// One runnable generation profile under `[[configs]]`.
@@ -95,6 +97,40 @@ pub struct ConfigTarget {
     /// (acts like a per-target `--force`).
     #[serde(default)]
     pub overwrite: bool,
+}
+
+/// One command hook under `[[hooks]]`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ConfigHook {
+    /// Human-readable hook name used in error messages.
+    pub name: String,
+    /// Event or events that trigger this hook.
+    pub on: HookEvents,
+    /// Shell command to execute when this hook matches.
+    pub command: String,
+    /// Optional filters, such as `config:default`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub filters: Vec<String>,
+}
+
+/// Hook event list that accepts either `on = "event"` or `on = ["event"]`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum HookEvents {
+    One(String),
+    Many(Vec<String>),
+}
+
+impl HookEvents {
+    pub fn iter(&self) -> impl Iterator<Item = &str> + '_ {
+        match self {
+            Self::One(event) => std::slice::from_ref(event),
+            Self::Many(events) => events.as_slice(),
+        }
+        .iter()
+        .map(String::as_str)
+    }
 }
 
 /// Summary of a successful [`install_target`] call, for echoing back to the user.
@@ -303,6 +339,7 @@ mod tests {
                 source: Some("targets/gtk.toml".to_owned()),
                 overwrite: true,
             }],
+            hooks: Vec::new(),
         };
         let (dir, force) = config.resolve("gtk", Path::new("fallback"), false);
 
@@ -320,6 +357,7 @@ mod tests {
                 source: Some("targets/gtk.toml".to_owned()),
                 overwrite: false,
             }],
+            hooks: Vec::new(),
         };
         let (_, force) = config.resolve("gtk", Path::new("fallback"), true);
 
@@ -336,6 +374,7 @@ mod tests {
                 source: Some("targets/gtk.toml".to_owned()),
                 overwrite: false,
             }],
+            hooks: Vec::new(),
         };
         config.upsert(ConfigTarget {
             name: "gtk".to_owned(),
@@ -430,6 +469,36 @@ targets = ["kitty"]
         );
         assert_eq!(profile.seed, None);
         assert_eq!(profile.image, None);
+    }
+
+    #[test]
+    fn config_toml_accepts_hooks_with_single_or_multiple_events() {
+        let config = toml::from_str::<ChromasyncConfig>(
+            r##"
+[[hooks]]
+name = "all-targets"
+on = "targets:done"
+command = "printf all"
+
+[[hooks]]
+name = "hyprland-lua"
+filters = ["config:default"]
+on = ["target:hyprland-lua:done"]
+command = "hyprctl reload"
+"##,
+        )
+        .expect("hooks should deserialize");
+
+        assert_eq!(config.hooks.len(), 2);
+        assert_eq!(
+            config.hooks[0].on.iter().collect::<Vec<_>>(),
+            vec!["targets:done"]
+        );
+        assert_eq!(
+            config.hooks[1].on.iter().collect::<Vec<_>>(),
+            vec!["target:hyprland-lua:done"]
+        );
+        assert_eq!(config.hooks[1].filters, vec!["config:default"]);
     }
 
     #[test]

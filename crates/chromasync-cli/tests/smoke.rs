@@ -516,6 +516,184 @@ overwrite = true
 }
 
 #[test]
+fn sync_runs_matching_hooks_after_artifacts_are_written() {
+    let workspace = temp_dir_path("sync-hooks-run");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    let output_dir = workspace.join("sync-out");
+
+    fs::create_dir_all(&config_root).expect("config root should be created");
+    fs::write(
+        config_root.join("config.toml"),
+        format!(
+            r##"
+[[configs]]
+name = "default"
+seed = "#4ecdc4"
+template = "terminal"
+mode = "dark"
+targets = ["hyprland-lua", "kitty"]
+output_dir = "{}"
+
+[[hooks]]
+name = "all-targets"
+on = "targets:done"
+command = "printf all > all-hook.txt"
+
+[[hooks]]
+name = "hyprland-lua-target"
+on = ["target:hyprland-lua:done"]
+command = "printf target > target-hook.txt"
+
+[[hooks]]
+name = "missing-target"
+on = "target:ghostty:done"
+command = "printf missing > missing-hook.txt"
+"##,
+            output_dir.display(),
+        ),
+    )
+    .expect("sync config should be written");
+
+    let mut command = isolated_command(&workspace);
+    command.arg("sync");
+
+    command.assert().success();
+
+    assert!(
+        output_dir.join("hypr-chromasync.lua").is_file(),
+        "sync should write the hyprland-lua artifact before hooks run"
+    );
+    assert_eq!(
+        fs::read_to_string(config_root.join("all-hook.txt")).expect("all hook should run"),
+        "all"
+    );
+    assert_eq!(
+        fs::read_to_string(config_root.join("target-hook.txt")).expect("target hook should run"),
+        "target"
+    );
+    assert!(
+        !config_root.join("missing-hook.txt").exists(),
+        "hook for a target that was not generated should not run"
+    );
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn sync_hook_filters_match_selected_profile() {
+    let workspace = temp_dir_path("sync-hook-filters");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    let default_output = workspace.join("default-out");
+    let personal_output = workspace.join("personal-out");
+
+    fs::create_dir_all(&config_root).expect("config root should be created");
+    fs::write(
+        config_root.join("config.toml"),
+        format!(
+            r##"
+[[configs]]
+name = "default"
+seed = "#4ecdc4"
+template = "terminal"
+mode = "dark"
+targets = ["kitty"]
+output_dir = "{}"
+
+[[configs]]
+name = "personalGreen"
+seed = "#00ff00"
+template = "terminal"
+mode = "dark"
+targets = ["kitty"]
+output_dir = "{}"
+
+[[hooks]]
+name = "default-only"
+filters = ["config:default"]
+on = "targets:done"
+command = "printf default > default-hook.txt"
+
+[[hooks]]
+name = "personal-only"
+filters = ["config:personalGreen"]
+on = "targets:done"
+command = "printf personal > personal-hook.txt"
+"##,
+            default_output.display(),
+            personal_output.display(),
+        ),
+    )
+    .expect("sync config should be written");
+
+    let mut command = isolated_command(&workspace);
+    command.args(["sync", "personalGreen"]);
+
+    command.assert().success();
+
+    assert!(
+        personal_output.join("kitty.conf").is_file(),
+        "selected sync profile should write its artifact"
+    );
+    assert!(
+        !config_root.join("default-hook.txt").exists(),
+        "default profile hook should not run for personalGreen"
+    );
+    assert_eq!(
+        fs::read_to_string(config_root.join("personal-hook.txt"))
+            .expect("personal profile hook should run"),
+        "personal"
+    );
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn sync_fails_when_matching_hook_fails_after_writing_artifacts() {
+    let workspace = temp_dir_path("sync-hook-failure");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    let output_dir = workspace.join("sync-out");
+
+    fs::create_dir_all(&config_root).expect("config root should be created");
+    fs::write(
+        config_root.join("config.toml"),
+        format!(
+            r##"
+[[configs]]
+name = "default"
+seed = "#4ecdc4"
+template = "terminal"
+mode = "dark"
+targets = ["kitty"]
+output_dir = "{}"
+
+[[hooks]]
+name = "reload"
+on = "targets:done"
+command = "printf hook-failed >&2; exit 7"
+"##,
+            output_dir.display(),
+        ),
+    )
+    .expect("sync config should be written");
+
+    let mut command = isolated_command(&workspace);
+    command.arg("sync");
+
+    command
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("hook 'reload' exited with"))
+        .stderr(predicate::str::contains("hook-failed"));
+
+    assert!(
+        output_dir.join("kitty.conf").is_file(),
+        "hook failure should not roll back written artifacts"
+    );
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
 fn sync_reports_missing_profile() {
     let workspace = temp_dir_path("sync-missing-profile");
     let config_root = workspace.join("xdg-config").join("chromasync");

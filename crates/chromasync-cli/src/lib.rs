@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeSet,
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -398,6 +399,7 @@ pub fn run_with(cli: Cli) -> Result<()> {
                     .as_ref()
                     .expect("config should be loaded for generate"),
             )
+            .map(|_| ())
         }
         Command::Wallpaper(args) => {
             let force = args.force;
@@ -418,6 +420,7 @@ pub fn run_with(cli: Cli) -> Result<()> {
                     .as_ref()
                     .expect("config should be loaded for wallpaper"),
             )
+            .map(|_| ())
         }
         Command::Batch(args) => run_batch(
             args,
@@ -573,13 +576,14 @@ fn run_sync(
         )
     })?;
 
-    write_and_print(
+    let report = write_and_print(
         &artifacts,
         &request.targets,
         &request.output_dir,
         force,
         config,
-    )
+    )?;
+    run_matching_hooks(config, &profile.name, config_dir, &report)
 }
 
 fn sync_profile_into_request(
@@ -910,7 +914,7 @@ fn write_and_print(
     fallback_output_dir: &Path,
     fallback_force: bool,
     config: &chromasync_core::ChromasyncConfig,
-) -> Result<()> {
+) -> Result<WriteReport> {
     let entries: Vec<chromasync_core::ResolvedArtifact> = artifacts
         .iter()
         .map(|artifact| {
@@ -930,13 +934,89 @@ fn write_and_print(
         .collect();
 
     let written = chromasync_core::write_resolved_artifacts(&entries)?;
+    let report = WriteReport::new(artifacts);
 
     let mut stdout = io::BufWriter::new(io::stdout().lock());
     for path in &written {
         writeln!(stdout, "{}", path.display())?;
     }
 
+    Ok(report)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WriteReport {
+    events: BTreeSet<String>,
+}
+
+impl WriteReport {
+    fn new(artifacts: &[GeneratedArtifact]) -> Self {
+        let mut events = artifacts
+            .iter()
+            .map(|artifact| format!("target:{}:done", artifact.target))
+            .collect::<BTreeSet<_>>();
+
+        if !artifacts.is_empty() {
+            events.insert("targets:done".to_owned());
+        }
+
+        Self { events }
+    }
+
+    fn has_event(&self, event: &str) -> bool {
+        self.events.contains(event)
+    }
+}
+
+fn run_matching_hooks(
+    config: &chromasync_core::ChromasyncConfig,
+    profile_name: &str,
+    config_dir: &Path,
+    report: &WriteReport,
+) -> Result<()> {
+    for hook in &config.hooks {
+        if hook_matches(hook, profile_name, report) {
+            run_hook(hook, config_dir)?;
+        }
+    }
+
     Ok(())
+}
+
+fn hook_matches(
+    hook: &chromasync_core::ConfigHook,
+    profile_name: &str,
+    report: &WriteReport,
+) -> bool {
+    hook.on.iter().any(|event| report.has_event(event))
+        && hook
+            .filters
+            .iter()
+            .all(|filter| filter == &format!("config:{profile_name}"))
+}
+
+fn run_hook(hook: &chromasync_core::ConfigHook, config_dir: &Path) -> Result<()> {
+    let output = shell_command(&hook.command)
+        .current_dir(config_dir)
+        .output()
+        .with_context(|| format!("hook '{}' failed to start", hook.name))?;
+
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let detail = stderr.trim();
+    if detail.is_empty() {
+        bail!("hook '{}' exited with {}", hook.name, output.status);
+    }
+
+    bail!(
+        "hook '{}' exited with {}: {}",
+        hook.name,
+        output.status,
+        detail
+    )
 }
 
 fn uses_installed_output(target_name: &str, requested_targets: &[String]) -> bool {
