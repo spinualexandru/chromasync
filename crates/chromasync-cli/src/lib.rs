@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeSet,
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -383,7 +383,7 @@ pub fn run_with(cli: Cli) -> Result<()> {
         Command::Generate(args) => {
             let force = args.force;
             let request = args.into_request()?;
-            let artifacts = generate_artifacts_with_resolved_output_dirs(
+            let artifacts = generate_routed_artifacts(
                 &request,
                 output_registry
                     .as_ref()
@@ -391,23 +391,15 @@ pub fn run_with(cli: Cli) -> Result<()> {
                 config
                     .as_ref()
                     .expect("config should be loaded for generate"),
+                force,
             )?;
 
-            write_and_print(
-                &artifacts,
-                &request.targets,
-                &request.output_dir,
-                force,
-                config
-                    .as_ref()
-                    .expect("config should be loaded for generate"),
-            )
-            .map(|_| ())
+            write_and_print_routed(&artifacts).map(|_| ())
         }
         Command::Wallpaper(args) => {
             let force = args.force;
             let request = args.into_request()?;
-            let artifacts = generate_artifacts_with_resolved_output_dirs(
+            let artifacts = generate_routed_artifacts(
                 &request,
                 output_registry
                     .as_ref()
@@ -415,18 +407,10 @@ pub fn run_with(cli: Cli) -> Result<()> {
                 config
                     .as_ref()
                     .expect("config should be loaded for wallpaper"),
+                force,
             )?;
 
-            write_and_print(
-                &artifacts,
-                &request.targets,
-                &request.output_dir,
-                force,
-                config
-                    .as_ref()
-                    .expect("config should be loaded for wallpaper"),
-            )
-            .map(|_| ())
+            write_and_print_routed(&artifacts).map(|_| ())
         }
         Command::Batch(args) => run_batch(
             args,
@@ -494,35 +478,50 @@ fn generate_artifacts(
     }
 }
 
-fn generate_artifacts_with_resolved_output_dirs(
+#[derive(Debug, Clone)]
+struct RoutedArtifact {
+    artifact: GeneratedArtifact,
+    output_dir: PathBuf,
+    force: bool,
+}
+
+fn generate_routed_artifacts(
     request: &GenerationRequest,
     output_registry: &chromasync_core::OutputRegistry,
     config: &chromasync_core::ChromasyncConfig,
-) -> Result<Vec<GeneratedArtifact>> {
-    let mut target_groups: BTreeMap<PathBuf, Vec<String>> = BTreeMap::new();
+    fallback_force: bool,
+) -> Result<Vec<RoutedArtifact>> {
+    let mut routed = Vec::new();
 
     for target in &request.targets {
-        let output_dir = if uses_installed_output(target, &request.targets) {
-            config.resolve(target, &request.output_dir, false).0
-        } else {
-            request.output_dir.clone()
-        };
-        target_groups
-            .entry(output_dir)
-            .or_default()
-            .push(target.clone());
+        let (output_dir, force) = output_route_for_target(target, request, fallback_force, config);
+        let mut target_request = request.clone();
+        target_request.output_dir = output_dir.clone();
+        target_request.targets = vec![target.clone()];
+
+        for artifact in generate_artifacts(&target_request, output_registry)? {
+            routed.push(RoutedArtifact {
+                artifact,
+                output_dir: output_dir.clone(),
+                force,
+            });
+        }
     }
 
-    let mut artifacts = Vec::new();
+    Ok(routed)
+}
 
-    for (output_dir, targets) in target_groups {
-        let mut grouped_request = request.clone();
-        grouped_request.output_dir = output_dir;
-        grouped_request.targets = targets;
-        artifacts.extend(generate_artifacts(&grouped_request, output_registry)?);
+fn output_route_for_target(
+    target: &str,
+    request: &GenerationRequest,
+    fallback_force: bool,
+    config: &chromasync_core::ChromasyncConfig,
+) -> (PathBuf, bool) {
+    if !looks_like_path(target) {
+        config.resolve(target, &request.output_dir, fallback_force)
+    } else {
+        (request.output_dir.clone(), fallback_force)
     }
-
-    Ok(artifacts)
 }
 
 fn run_batch(
@@ -558,23 +557,16 @@ fn run_batch(
     for (index, job) in manifest.jobs.into_iter().enumerate() {
         let force = job.force;
         let request = batch_job_into_request(job, &manifest_dir)?;
-        let artifacts =
-            generate_artifacts_with_resolved_output_dirs(&request, output_registry, config)
-                .with_context(|| {
-                    format!(
-                        "batch job {} failed for output '{}'",
-                        index + 1,
-                        request.output_dir.display()
-                    )
-                })?;
+        let artifacts = generate_routed_artifacts(&request, output_registry, config, force)
+            .with_context(|| {
+                format!(
+                    "batch job {} failed for output '{}'",
+                    index + 1,
+                    request.output_dir.display()
+                )
+            })?;
 
-        write_and_print(
-            &artifacts,
-            &request.targets,
-            &request.output_dir,
-            force,
-            config,
-        )?;
+        write_and_print_routed(&artifacts)?;
     }
 
     Ok(())
@@ -607,7 +599,7 @@ fn run_sync(
 
     let force = profile.force;
     let request = sync_profile_into_request(profile, config_dir)?;
-    let artifacts = generate_artifacts_with_resolved_output_dirs(&request, output_registry, config)
+    let artifacts = generate_routed_artifacts(&request, output_registry, config, force)
         .with_context(|| {
             format!(
                 "sync profile '{}' failed for output '{}'",
@@ -616,13 +608,7 @@ fn run_sync(
             )
         })?;
 
-    let report = write_and_print(
-        &artifacts,
-        &request.targets,
-        &request.output_dir,
-        force,
-        config,
-    )?;
+    let report = write_and_print_routed(&artifacts)?;
     run_matching_hooks(config, &profile.name, config_dir, &report)
 }
 
@@ -948,33 +934,23 @@ where
     Ok(normalized)
 }
 
-fn write_and_print(
-    artifacts: &[GeneratedArtifact],
-    requested_targets: &[String],
-    fallback_output_dir: &Path,
-    fallback_force: bool,
-    config: &chromasync_core::ChromasyncConfig,
-) -> Result<WriteReport> {
+fn write_and_print_routed(artifacts: &[RoutedArtifact]) -> Result<WriteReport> {
     let entries: Vec<chromasync_core::ResolvedArtifact> = artifacts
         .iter()
-        .map(|artifact| {
-            let (output_dir, force) = if uses_installed_output(&artifact.target, requested_targets)
-            {
-                config.resolve(&artifact.target, fallback_output_dir, fallback_force)
-            } else {
-                (fallback_output_dir.to_path_buf(), fallback_force)
-            };
-            chromasync_core::ResolvedArtifact {
-                output_dir,
-                file_name: artifact.file_name.clone(),
-                content: artifact.content.clone(),
-                force,
-            }
+        .map(|artifact| chromasync_core::ResolvedArtifact {
+            output_dir: artifact.output_dir.clone(),
+            file_name: artifact.artifact.file_name.clone(),
+            content: artifact.artifact.content.clone(),
+            force: artifact.force,
         })
         .collect();
 
     let written = chromasync_core::write_resolved_artifacts(&entries)?;
-    let report = WriteReport::new(artifacts);
+    let generated_artifacts = artifacts
+        .iter()
+        .map(|artifact| artifact.artifact.clone())
+        .collect::<Vec<_>>();
+    let report = WriteReport::new(&generated_artifacts);
 
     let mut stdout = io::BufWriter::new(io::stdout().lock());
     for path in &written {
@@ -1057,12 +1033,6 @@ fn run_hook(hook: &chromasync_core::ConfigHook, config_dir: &Path) -> Result<()>
         output.status,
         detail
     )
-}
-
-fn uses_installed_output(target_name: &str, requested_targets: &[String]) -> bool {
-    requested_targets
-        .iter()
-        .any(|requested| requested == target_name && !looks_like_path(requested))
 }
 
 fn run_target_install(args: TargetInstallArgs) -> Result<()> {

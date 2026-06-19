@@ -1540,6 +1540,76 @@ fn explicit_path_target_uses_requested_output_even_when_same_name_is_installed()
 }
 
 #[test]
+fn explicit_path_target_keeps_requested_output_when_name_is_also_installed() {
+    let workspace = temp_dir_path("target-install-name-and-path-generate");
+    let installed_outdir = workspace.join("gtk-installed-out");
+    let requested_outdir = workspace.join("requested-out");
+    let requested_artifact = requested_outdir.join("gtk.css");
+    let installed_artifact = installed_outdir.join("gtk.css");
+    let target = example_target_path("gtk.toml");
+
+    let mut install = isolated_command(&workspace);
+    install.args([
+        "target",
+        "install",
+        "--target",
+        target
+            .to_str()
+            .expect("example target path should be utf-8"),
+        "--outdir",
+        installed_outdir
+            .to_str()
+            .expect("installed outdir should be utf-8"),
+    ]);
+    install.assert().success();
+
+    let mut generate = isolated_command(&workspace);
+    generate.args([
+        "generate",
+        "--seed",
+        "#4ecdc4",
+        "--template",
+        "minimal",
+        "--targets",
+        &format!(
+            "gtk,{}",
+            target
+                .to_str()
+                .expect("example target path should be utf-8")
+        ),
+        "--output",
+        requested_outdir
+            .to_str()
+            .expect("requested outdir should be utf-8"),
+    ]);
+    let assert = generate.assert().success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+
+    assert!(
+        stdout.contains(
+            installed_artifact
+                .to_str()
+                .expect("installed artifact path should be utf-8")
+        ),
+        "expected generate output to mention installed outdir '{}', got:\n{stdout}",
+        installed_artifact.display()
+    );
+    assert!(
+        stdout.contains(
+            requested_artifact
+                .to_str()
+                .expect("requested artifact path should be utf-8")
+        ),
+        "expected generate output to mention requested outdir '{}', got:\n{stdout}",
+        requested_artifact.display()
+    );
+    assert!(installed_artifact.is_file());
+    assert!(requested_artifact.is_file());
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
 fn target_install_reinstall_requires_overwrite_flag() {
     let workspace = temp_dir_path("target-install-overwrite");
     let outdir = workspace.join("install-out");
