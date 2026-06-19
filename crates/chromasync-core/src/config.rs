@@ -250,6 +250,8 @@ pub fn install_target(
         ));
     }
 
+    crate::load_output_registry()?.validate_path_target(target_path)?;
+
     let targets_dir =
         chromasync_renderers::user_targets_dir().ok_or(CoreError::UserConfigDirUnavailable)?;
     fs::create_dir_all(&targets_dir).map_err(|source| CoreError::CreateTargetsDir {

@@ -429,6 +429,10 @@ impl OutputRegistry {
         Ok(artifacts)
     }
 
+    pub fn validate_path_target(&self, path: &Path) -> Result<(), RendererError> {
+        self.load_path_target(path).map(|_| ())
+    }
+
     fn load_path_target(&self, path: &Path) -> Result<CompiledTarget, RendererError> {
         if !looks_like_path(path.to_string_lossy().as_ref()) && !path.exists() {
             return Err(RendererError::UnknownTarget {

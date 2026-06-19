@@ -1598,6 +1598,61 @@ template = "foreground={{tokens.text}}"
 }
 
 #[test]
+fn target_install_rejects_built_in_inheritance_without_persisting_target() {
+    let workspace = temp_dir_path("target-install-built-in-inheritance");
+    fs::create_dir_all(&workspace).expect("workspace should be created");
+    let target_path = workspace.join("gtk-from-kitty.toml");
+    fs::write(
+        &target_path,
+        r#"
+name = "gtk-from-kitty"
+extends = "kitty"
+
+[[artifacts]]
+file_name = "gtk.css"
+template = "foreground={{tokens.text}}"
+"#,
+    )
+    .expect("target should be written");
+
+    let mut install = isolated_command(&workspace);
+    install.args([
+        "target",
+        "install",
+        "--target",
+        target_path.to_str().expect("target path should be utf-8"),
+        "--outdir",
+        workspace.to_str().expect("outdir should be utf-8"),
+    ]);
+
+    install.assert().failure().stderr(predicate::str::contains(
+        "target 'gtk-from-kitty' cannot inherit from built-in renderer 'kitty'",
+    ));
+
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    assert!(
+        !config_root
+            .join("targets")
+            .join("gtk-from-kitty.toml")
+            .exists(),
+        "invalid target should not be copied into user config"
+    );
+    assert!(
+        !config_root.join("config.toml").exists(),
+        "invalid target should not create a config entry"
+    );
+
+    let mut targets = isolated_command(&workspace);
+    targets.arg("targets");
+    targets
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("kitty\tbuilt-in\tkitty"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
 fn installed_overwrite_flag_forces_existing_artifact() {
     let workspace = temp_dir_path("target-install-overwrite-force");
     let outdir = workspace.join("force-out");

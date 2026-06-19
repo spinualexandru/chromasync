@@ -5,6 +5,7 @@
 # Build output
 /target
 **/target
+/book/book/
 
 # Ignore test output files
 chromasync
