@@ -2,10 +2,15 @@
 name = "chromasync-template"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+description = "Template loading and semantic token resolution for Chromasync"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [dependencies]
-chromasync-color = { path = "../chromasync-color" }
-chromasync-types = { path = "../chromasync-types" }
+chromasync-color = { version = "0.3.0", path = "../chromasync-color" }
+chromasync-types = { version = "0.3.0", path = "../chromasync-types" }
 directories.workspace = true
 serde.workspace = true
 thiserror.workspace = true

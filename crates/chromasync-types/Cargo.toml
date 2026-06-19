@@ -2,6 +2,11 @@
 name = "chromasync-types"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+description = "Shared data structures for Chromasync theme generation"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [dependencies]
 serde.workspace = true

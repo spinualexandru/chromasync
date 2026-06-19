@@ -2,14 +2,19 @@
 name = "chromasync-mcp"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+description = "Model Context Protocol server for Chromasync theme generation"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [[bin]]
 name = "chromasync-mcp"
 path = "src/main.rs"
 
 [dependencies]
-chromasync-core = { path = "../chromasync-core" }
-chromasync-types = { path = "../chromasync-types" }
+chromasync-core = { version = "0.3.0", path = "../chromasync-core" }
+chromasync-types = { version = "0.3.0", path = "../chromasync-types" }
 rmcp.workspace = true
 schemars.workspace = true
 serde.workspace = true

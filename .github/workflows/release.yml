@@ -53,7 +53,7 @@ jobs:
           key: ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --release -p chromasync-cli --target ${{ matrix.target }}
+        run: cargo build --release -p chromasync --target ${{ matrix.target }}
 
       - name: Rename binary
         run: |

@@ -18,7 +18,7 @@ Useful starting commands:
 
 ```bash
 cargo run -- --help
-cargo build --release -p chromasync-cli
+cargo build --release -p chromasync
 ```
 
 ## Repository Layout
@@ -83,7 +83,7 @@ Run the same checks as CI:
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
-cargo build --release -p chromasync-cli
+cargo build --release -p chromasync
 cargo run -p chromasync-docs -- generate --check
 ```
 

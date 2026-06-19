@@ -2,9 +2,14 @@
 name = "chromasync-color"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+description = "Color math and palette generation primitives for Chromasync"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [dependencies]
-chromasync-types = { path = "../chromasync-types" }
+chromasync-types = { version = "0.3.0", path = "../chromasync-types" }
 palette.workspace = true
 thiserror.workspace = true
 

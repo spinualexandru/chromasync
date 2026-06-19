@@ -2,20 +2,20 @@
 
 # Packaging And Installation
 
-Chromasync ships as a Rust workspace. The distributable CLI binary lives in `crates/chromasync-cli`.
+Chromasync ships as a Rust workspace. The distributable CLI package is published as `chromasync` and its source lives in `crates/chromasync-cli`.
 
 ## Install
 
-Install directly from the local workspace:
+Install from crates.io:
 
 ```bash
-cargo install --locked --path crates/chromasync-cli
+cargo install chromasync
 ```
 
 Build a release binary without installing:
 
 ```bash
-cargo build --release -p chromasync-cli
+cargo build --release -p chromasync
 ./target/release/chromasync --help
 ```
 
@@ -27,7 +27,7 @@ Before cutting a release, run:
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
-cargo build --release -p chromasync-cli
+cargo build --release -p chromasync
 ```
 
 The GitHub Actions workflow mirrors those checks.

@@ -20,35 +20,35 @@ use thiserror::Error;
 const BUILTIN_TEMPLATES: [(&str, &str); 8] = [
     (
         "minimal-dark.toml",
-        include_str!("../../../templates/minimal-dark.toml"),
+        include_str!("../templates/minimal-dark.toml"),
     ),
     (
         "minimal-light.toml",
-        include_str!("../../../templates/minimal-light.toml"),
+        include_str!("../templates/minimal-light.toml"),
     ),
     (
         "brutalist-dark.toml",
-        include_str!("../../../templates/brutalist-dark.toml"),
+        include_str!("../templates/brutalist-dark.toml"),
     ),
     (
         "brutalist-light.toml",
-        include_str!("../../../templates/brutalist-light.toml"),
+        include_str!("../templates/brutalist-light.toml"),
     ),
     (
         "terminal-dark.toml",
-        include_str!("../../../templates/terminal-dark.toml"),
+        include_str!("../templates/terminal-dark.toml"),
     ),
     (
         "terminal-light.toml",
-        include_str!("../../../templates/terminal-light.toml"),
+        include_str!("../templates/terminal-light.toml"),
     ),
     (
         "materialish-dark.toml",
-        include_str!("../../../templates/materialish-dark.toml"),
+        include_str!("../templates/materialish-dark.toml"),
     ),
     (
         "materialish-light.toml",
-        include_str!("../../../templates/materialish-light.toml"),
+        include_str!("../templates/materialish-light.toml"),
     ),
 ];
 
@@ -745,7 +745,7 @@ mod tests {
     #[test]
     fn load_template_by_path_uses_filesystem_source() {
         let path = temp_file_path("template-path");
-        fs::write(&path, include_str!("../../../templates/minimal-dark.toml"))
+        fs::write(&path, include_str!("../templates/minimal-dark.toml"))
             .expect("temp template should be written");
 
         let template = load_template(

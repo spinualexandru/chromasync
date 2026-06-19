@@ -9,13 +9,13 @@ A Rust CLI that generates consistent theme files for desktop apps and editors fr
 ## Install
 
 ```bash
-cargo install --locked --path crates/chromasync-cli
+cargo install chromasync
 ```
 
 Or build from source:
 
 ```bash
-cargo build --release -p chromasync-cli
+cargo build --release -p chromasync
 ```
 
 ## Usage

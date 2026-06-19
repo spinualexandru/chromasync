@@ -130,7 +130,7 @@ fn render_cli_reference() -> String {
     let _ = writeln!(output);
     let _ = writeln!(
         output,
-        "This page is generated from the Clap command tree in `chromasync-cli`."
+        "This page is generated from the Clap command tree in `chromasync`."
     );
     let _ = writeln!(output);
 
@@ -277,7 +277,9 @@ fn rewrite_markdown_links(content: &str, root: &Path) -> String {
 
 fn rewrite_link(label: &str, target: &str, root_prefix: &str) -> Option<String> {
     let target = match target {
-        "./docs/PACKAGING.md" | "./PACKAGING.md" => "packaging.md",
+        "https://github.com/spinualexandru/chromasync/blob/main/book/src/reference/packaging.md"
+        | "./docs/PACKAGING.md"
+        | "./PACKAGING.md" => "packaging.md",
         "./docs/PRODUCT.md" | "./PRODUCT.md" => "product.md",
         _ => target,
     };

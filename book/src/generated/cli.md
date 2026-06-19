@@ -2,7 +2,7 @@
 
 # CLI Reference
 
-This page is generated from the Clap command tree in `chromasync-cli`.
+This page is generated from the Clap command tree in `chromasync`.
 
 ## `chromasync`
 

@@ -1,7 +1,19 @@
 [package]
-name = "chromasync-cli"
+name = "chromasync"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+description = "Dynamic color engine and theme generator CLI"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords = ["theme", "color", "cli", "palette", "desktop"]
+categories = ["command-line-utilities", "config"]
+
+[lib]
+name = "chromasync_cli"
+path = "src/lib.rs"
 
 [[bin]]
 name = "chromasync"
@@ -9,8 +21,8 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
-chromasync-core = { path = "../chromasync-core" }
-chromasync-types = { path = "../chromasync-types" }
+chromasync-core = { version = "0.3.0", path = "../chromasync-core" }
+chromasync-types = { version = "0.3.0", path = "../chromasync-types" }
 clap.workspace = true
 clap_complete = { workspace = true }
 serde.workspace = true

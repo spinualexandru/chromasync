@@ -7,13 +7,13 @@ A Rust CLI that generates consistent theme files for desktop apps and editors fr
 ## Install
 
 ```bash
-cargo install --locked --path crates/chromasync-cli
+cargo install chromasync
 ```
 
 Or build from source:
 
 ```bash
-cargo build --release -p chromasync-cli
+cargo build --release -p chromasync
 ```
 
 ## Usage
@@ -161,4 +161,4 @@ If you want to contribute and are not yet vouched, open an issue describing the 
 
 Maintainers can also comment `unvouch` or `denounce` to remove trust or explicitly block an account when needed. The trust list lives in `.github/VOUCHED.td`.
 
-See the [Packaging guide](./docs/PACKAGING.md) for release and packaging details.
+See the [Packaging guide](https://github.com/spinualexandru/chromasync/blob/main/book/src/reference/packaging.md) for release and packaging details.

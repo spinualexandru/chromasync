@@ -2,6 +2,12 @@
 name = "chromasync-docs"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+description = "Documentation generator for the Chromasync mdBook"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish = false
 
 [[bin]]
 name = "chromasync-docs"
@@ -9,9 +15,9 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
-chromasync-cli = { path = "../chromasync-cli" }
-chromasync-core = { path = "../chromasync-core" }
-chromasync-renderers = { path = "../chromasync-renderers" }
-chromasync-template = { path = "../chromasync-template" }
-chromasync-types = { path = "../chromasync-types" }
+chromasync-cli = { package = "chromasync", version = "0.3.0", path = "../chromasync-cli" }
+chromasync-core = { version = "0.3.0", path = "../chromasync-core" }
+chromasync-renderers = { version = "0.3.0", path = "../chromasync-renderers" }
+chromasync-template = { version = "0.3.0", path = "../chromasync-template" }
+chromasync-types = { version = "0.3.0", path = "../chromasync-types" }
 clap.workspace = true
