@@ -573,6 +573,16 @@ fn target_from_file(path: &Path, user_config: bool) -> Result<LoadedTarget, Rend
     target_from_file_with_source(path, source)
 }
 
+/// Parse and validate a standalone target TOML file, returning its spec.
+///
+/// Runs the same validation that target discovery applies (name rules, artifact
+/// file names, placeholder compilation, inheritance target names) without
+/// resolving `extends` against a registry. Used by `chromasync target install`
+/// to reject malformed targets before copying them into the user config.
+pub fn parse_target_file(path: &Path) -> Result<TargetSpec, RendererError> {
+    Ok(target_from_file(path, false)?.spec)
+}
+
 fn target_from_file_with_source(
     path: &Path,
     source: TargetSource,

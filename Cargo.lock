@@ -150,7 +150,7 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "chromasync-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -166,7 +166,7 @@ dependencies = [
 
 [[package]]
 name = "chromasync-color"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chromasync-types",
  "palette",
@@ -176,7 +176,7 @@ dependencies = [
 
 [[package]]
 name = "chromasync-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chromasync-color",
  "chromasync-extract",
@@ -191,7 +191,7 @@ dependencies = [
 
 [[package]]
 name = "chromasync-docs"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "chromasync-cli",
@@ -204,7 +204,7 @@ dependencies = [
 
 [[package]]
 name = "chromasync-extract"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "image",
  "thiserror",
@@ -212,7 +212,7 @@ dependencies = [
 
 [[package]]
 name = "chromasync-mcp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chromasync-core",
  "chromasync-types",
@@ -229,7 +229,7 @@ dependencies = [
 
 [[package]]
 name = "chromasync-renderers"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chromasync-types",
  "directories",
@@ -240,7 +240,7 @@ dependencies = [
 
 [[package]]
 name = "chromasync-template"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chromasync-color",
  "chromasync-types",
@@ -253,7 +253,7 @@ dependencies = [
 
 [[package]]
 name = "chromasync-types"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
 ]

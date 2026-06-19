@@ -66,7 +66,7 @@ fn ghostty_example_target_matches_golden_file() {
     assert_example_target_matches_golden(
         "ghostty.toml",
         "ghostty",
-        "colors.txt",
+        "chromasync.ghostty",
         include_str!("fixtures/ghostty.colors.golden"),
     );
 }

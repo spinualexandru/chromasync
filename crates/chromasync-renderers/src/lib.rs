@@ -9,7 +9,7 @@ use thiserror::Error;
 
 pub use crate::registry::{
     ArtifactSpec, CompiledTarget, ListedTarget, OutputRegistry, RendererRegistry, TargetRegistry,
-    TargetSource, TargetSpec, user_targets_dir,
+    TargetSource, TargetSpec, parse_target_file, user_targets_dir,
 };
 
 pub const BUILTIN_TARGETS: [RenderTarget; 2] = [RenderTarget::Kitty, RenderTarget::Alacritty];

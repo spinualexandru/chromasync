@@ -1,5 +1,4 @@
 use std::{
-    collections::BTreeSet,
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -43,6 +42,11 @@ enum Command {
     },
     /// List available renderer targets and where they were loaded from.
     Targets,
+    /// Manage installed renderer targets.
+    Target {
+        #[command(subcommand)]
+        command: TargetCommand,
+    },
     /// Show palette families and resolved semantic tokens.
     Preview(PreviewArgs),
     /// Export resolved semantic tokens.
@@ -65,6 +69,25 @@ enum PackCommand {
 struct PackInfoArgs {
     /// Pack name from pack.toml.
     name: String,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum TargetCommand {
+    /// Install a target TOML into the user config and record its output directory.
+    Install(TargetInstallArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct TargetInstallArgs {
+    /// Path to the target TOML file to install.
+    #[arg(long)]
+    target: PathBuf,
+    /// Directory where this target's generated artifacts should be written.
+    #[arg(long)]
+    outdir: PathBuf,
+    /// Replace an existing installed target and mark it for forced overwrite during generation.
+    #[arg(long)]
+    overwrite: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -90,6 +113,9 @@ struct GenerateArgs {
     /// Output directory for generated artifacts.
     #[arg(long, default_value = "chromasync")]
     output: PathBuf,
+    /// Overwrite existing artifacts instead of refusing when a file already exists at the destination.
+    #[arg(long)]
+    force: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -115,6 +141,9 @@ struct WallpaperArgs {
     /// Output directory for generated artifacts.
     #[arg(long, default_value = "chromasync")]
     output: PathBuf,
+    /// Overwrite existing artifacts instead of refusing when a file already exists at the destination.
+    #[arg(long)]
+    force: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -212,6 +241,8 @@ struct BatchJob {
     #[serde(default)]
     targets: Vec<String>,
     output: PathBuf,
+    #[serde(default)]
+    force: bool,
 }
 
 impl From<CliMode> for ThemeMode {
@@ -316,6 +347,21 @@ pub fn run_with(cli: Cli) -> Result<()> {
         Command::Templates
         | Command::Packs
         | Command::Pack { .. }
+        | Command::Target { .. }
+        | Command::Preview(_)
+        | Command::Tokens(_)
+        | Command::Completions { .. } => None,
+    };
+
+    let config = match &cli.command {
+        Command::Generate(_) | Command::Wallpaper(_) | Command::Batch(_) => {
+            Some(chromasync_core::ChromasyncConfig::load()?)
+        }
+        Command::Targets
+        | Command::Templates
+        | Command::Packs
+        | Command::Pack { .. }
+        | Command::Target { .. }
         | Command::Preview(_)
         | Command::Tokens(_)
         | Command::Completions { .. } => None,
@@ -323,6 +369,7 @@ pub fn run_with(cli: Cli) -> Result<()> {
 
     match cli.command {
         Command::Generate(args) => {
+            let force = args.force;
             let request = args.into_request()?;
             let artifacts = chromasync_core::generate_with_output_registry(
                 &request,
@@ -331,9 +378,17 @@ pub fn run_with(cli: Cli) -> Result<()> {
                     .expect("output registry should be loaded for generate"),
             )?;
 
-            write_artifacts(&request.output_dir, &artifacts)
+            write_and_print(
+                &artifacts,
+                &request.output_dir,
+                force,
+                config
+                    .as_ref()
+                    .expect("config should be loaded for generate"),
+            )
         }
         Command::Wallpaper(args) => {
+            let force = args.force;
             let request = args.into_request()?;
             let artifacts = generate_artifacts(
                 &request,
@@ -342,13 +397,21 @@ pub fn run_with(cli: Cli) -> Result<()> {
                     .expect("output registry should be loaded for wallpaper"),
             )?;
 
-            write_artifacts(&request.output_dir, &artifacts)
+            write_and_print(
+                &artifacts,
+                &request.output_dir,
+                force,
+                config
+                    .as_ref()
+                    .expect("config should be loaded for wallpaper"),
+            )
         }
         Command::Batch(args) => run_batch(
             args,
             output_registry
                 .as_ref()
                 .expect("output registry should be loaded for batch"),
+            config.as_ref().expect("config should be loaded for batch"),
         ),
         Command::Templates => print_templates(),
         Command::Packs => print_packs(),
@@ -360,6 +423,9 @@ pub fn run_with(cli: Cli) -> Result<()> {
                 .as_ref()
                 .expect("output registry should be loaded for targets"),
         ),
+        Command::Target { command } => match command {
+            TargetCommand::Install(args) => run_target_install(args),
+        },
         Command::Preview(args) => {
             let preview = chromasync_core::preview(&args.into_request())?;
             println!("{preview}");
@@ -399,7 +465,11 @@ fn generate_artifacts(
     }
 }
 
-fn run_batch(args: BatchArgs, output_registry: &chromasync_core::OutputRegistry) -> Result<()> {
+fn run_batch(
+    args: BatchArgs,
+    output_registry: &chromasync_core::OutputRegistry,
+    config: &chromasync_core::ChromasyncConfig,
+) -> Result<()> {
     let manifest_path = args.file;
     let manifest_dir = manifest_path
         .parent()
@@ -426,6 +496,7 @@ fn run_batch(args: BatchArgs, output_registry: &chromasync_core::OutputRegistry)
     }
 
     for (index, job) in manifest.jobs.into_iter().enumerate() {
+        let force = job.force;
         let request = batch_job_into_request(job, &manifest_dir)?;
         let artifacts = generate_artifacts(&request, output_registry).with_context(|| {
             format!(
@@ -435,7 +506,7 @@ fn run_batch(args: BatchArgs, output_registry: &chromasync_core::OutputRegistry)
             )
         })?;
 
-        write_artifacts(&request.output_dir, &artifacts)?;
+        write_and_print(&artifacts, &request.output_dir, force, config)?;
     }
 
     Ok(())
@@ -621,52 +692,42 @@ where
     Ok(normalized)
 }
 
-fn write_artifacts(output_dir: &Path, artifacts: &[GeneratedArtifact]) -> Result<()> {
-    if artifacts.is_empty() {
-        return Ok(());
-    }
-
-    let mut seen_paths = BTreeSet::new();
-    let destinations = artifacts
+fn write_and_print(
+    artifacts: &[GeneratedArtifact],
+    fallback_output_dir: &Path,
+    fallback_force: bool,
+    config: &chromasync_core::ChromasyncConfig,
+) -> Result<()> {
+    let entries: Vec<chromasync_core::ResolvedArtifact> = artifacts
         .iter()
         .map(|artifact| {
-            let path = output_dir.join(&artifact.file_name);
-
-            if !seen_paths.insert(path.clone()) {
-                bail!(
-                    "multiple artifacts would write to the same destination '{}'",
-                    path.display()
-                );
+            let (output_dir, force) =
+                config.resolve(&artifact.target, fallback_output_dir, fallback_force);
+            chromasync_core::ResolvedArtifact {
+                output_dir,
+                file_name: artifact.file_name.clone(),
+                content: artifact.content.clone(),
+                force,
             }
-
-            if path.exists() {
-                bail!(
-                    "refusing to overwrite existing artifact '{}'",
-                    path.display()
-                );
-            }
-
-            Ok((artifact, path))
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect();
 
-    fs::create_dir_all(output_dir).with_context(|| {
-        format!(
-            "failed to create output directory '{}'",
-            output_dir.display()
-        )
-    })?;
-
-    for (artifact, path) in &destinations {
-        fs::write(path, &artifact.content)
-            .with_context(|| format!("failed to write artifact '{}'", path.display()))?;
-    }
+    let written = chromasync_core::write_resolved_artifacts(&entries)?;
 
     let mut stdout = io::BufWriter::new(io::stdout().lock());
-
-    for (_, path) in &destinations {
+    for path in &written {
         writeln!(stdout, "{}", path.display())?;
     }
+
+    Ok(())
+}
+
+fn run_target_install(args: TargetInstallArgs) -> Result<()> {
+    let summary = chromasync_core::install_target(&args.target, args.outdir, args.overwrite)?;
+
+    let mut stdout = io::BufWriter::new(io::stdout().lock());
+    writeln!(stdout, "{}", summary.target_file.display())?;
+    writeln!(stdout, "{}", summary.config_file.display())?;
 
     Ok(())
 }

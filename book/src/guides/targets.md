@@ -174,15 +174,40 @@ bg={{tokens.bg | hex_no_hash}}
 - If a child artifact has the same `file_name` as a base artifact, the child's version replaces it.
 - A target with `extends` can omit `[[artifacts]]` entirely to inherit the base unchanged under a new name.
 
-## Installing user targets
+## Installing targets
 
-Drop `.toml` target files into:
+The `target install` command installs a target TOML into the user config and records where its generated artifacts should be written:
 
+```bash
+chromasync target install \
+  --target examples/targets/gtk.toml \
+  --outdir ~/.config/gtk-4.0
 ```
-~/.config/chromasync/targets/
+
+This:
+
+1. Validates the target and copies it to `~/.config/chromasync/targets/<name>.toml` (discovered by name from then on).
+2. Records a `[[targets]]` entry in `~/.config/chromasync/config.toml` mapping the target to its output directory.
+
+The command prints the installed target file path and the config file path.
+
+Re-running install for an already-installed target is refused unless you pass `--overwrite`. The same flag is recorded in the config as `overwrite = true`, which makes `generate`, `wallpaper`, and `batch` overwrite existing artifacts for that target (a per-target `--force`).
+
+You can still drop `.toml` files directly into `~/.config/chromasync/targets/` — all `.toml` files there are auto-discovered. The difference is that `target install` also wires up the per-target output directory. Targets can also be distributed as part of a [pack](./packs.md).
+
+### The chromasync config
+
+`~/.config/chromasync/config.toml` records each installed target's output directory (and overwrite flag):
+
+```toml
+[[targets]]
+name = "gtk"
+output_dir = "~/.config/gtk-4.0"
+source = "targets/gtk.toml"
+overwrite = false
 ```
 
-All `.toml` files in this directory are auto-discovered. Targets can also be distributed as part of a [pack](./packs.md).
+The `generate`, `wallpaper`, and `batch` commands read this config. Each installed target writes its artifacts to the recorded `output_dir` instead of the generic `--output` directory; targets without an entry (built-ins, ad-hoc path targets, or pack targets) fall back to `--output`. A leading `~` in `output_dir` expands to your home directory. Passing `--force` forces every target regardless of the recorded `overwrite` flag.
 
 ## Validation
 

@@ -1,6 +1,12 @@
+mod config;
 mod packs;
 
-use std::fmt::Write;
+use std::{
+    collections::BTreeSet,
+    fmt::Write,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use chromasync_color::ColorError;
 use chromasync_extract::{ExtractError, ExtractedSeed};
@@ -13,6 +19,9 @@ use chromasync_types::{
 use thiserror::Error;
 
 pub use chromasync_renderers::{ListedTarget, OutputRegistry};
+pub use config::{
+    ChromasyncConfig, ConfigTarget, InstallSummary, config_file_path, expand_tilde, install_target,
+};
 pub use packs::{PackError, PackRegistry, pack_search_roots};
 
 #[derive(Debug, Clone)]
@@ -47,6 +56,53 @@ pub enum CoreError {
     Extract(#[from] ExtractError),
     #[error(transparent)]
     Color(#[from] ColorError),
+    #[error("refusing to overwrite existing artifact '{path}'")]
+    ArtifactExists { path: PathBuf },
+    #[error("multiple artifacts would write to the same destination '{path}'")]
+    ArtifactCollision { path: PathBuf },
+    #[error("failed to create output directory '{path}': {source}")]
+    CreateOutputDir {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    #[error("failed to write artifact '{path}': {source}")]
+    WriteArtifact {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    #[error("could not resolve the chromasync user config directory")]
+    UserConfigDirUnavailable,
+    #[error("failed to read chromasync config '{path}': {source}")]
+    ConfigRead {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    #[error("failed to parse chromasync config '{path}': {error}")]
+    ConfigParse {
+        path: PathBuf,
+        #[source]
+        error: toml::de::Error,
+    },
+    #[error("failed to serialize chromasync config: {error}")]
+    ConfigSerialize { error: String },
+    #[error("failed to write chromasync config '{path}': {source}")]
+    ConfigWrite {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    #[error("target '{name}' is already installed at '{path}'; pass --overwrite to replace it")]
+    TargetAlreadyInstalled { name: String, path: PathBuf },
+    #[error("failed to create targets directory '{path}': {source}")]
+    CreateTargetsDir {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    #[error("failed to copy target file from '{from}' to '{to}': {source}")]
+    CopyTargetFile {
+        from: PathBuf,
+        to: PathBuf,
+        source: std::io::Error,
+    },
 }
 
 pub fn list_templates() -> Result<Vec<ListedTemplate>, CoreError> {
@@ -154,6 +210,99 @@ pub fn generate_from_wallpaper_with_output_registry(
     output_registry: &OutputRegistry,
 ) -> Result<Vec<GeneratedArtifact>, CoreError> {
     render_from_palette_with_wallpaper(request, output_registry)
+}
+
+/// Write generated artifacts into `output_dir`.
+///
+/// Returns the full paths of every file written (in artifact order), suitable for
+/// echoing to the user. This is the single source of truth for write policy:
+/// both the CLI and the MCP server route through it.
+///
+/// By default the writer refuses to overwrite an existing file — it fails loudly
+/// before touching the disk. Pass `force = true` to replace existing files
+/// instead. The collision check (two artifacts mapping to one destination) is
+/// always enforced regardless of `force`, since that signals a target-design
+/// bug rather than stale output.
+pub fn write_artifacts(
+    output_dir: &Path,
+    artifacts: &[GeneratedArtifact],
+    force: bool,
+) -> Result<Vec<PathBuf>, CoreError> {
+    if artifacts.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let resolved: Vec<ResolvedArtifact> = artifacts
+        .iter()
+        .map(|artifact| ResolvedArtifact {
+            output_dir: output_dir.to_path_buf(),
+            file_name: artifact.file_name.clone(),
+            content: artifact.content.clone(),
+            force,
+        })
+        .collect();
+
+    write_resolved_artifacts(&resolved)
+}
+
+/// A single artifact paired with the directory it should be written to and
+/// whether existing files may be overwritten.
+///
+/// Used by [`write_resolved_artifacts`], which lets the CLI route each
+/// generated artifact to its own output directory (e.g. one per installed
+/// target) while still sharing collision and overwrite enforcement with
+/// [`write_artifacts`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedArtifact {
+    pub output_dir: PathBuf,
+    pub file_name: String,
+    pub content: String,
+    pub force: bool,
+}
+
+/// Write artifacts to their individually resolved destinations.
+///
+/// Each entry carries its own `output_dir` and `force` flag, so installed
+/// targets can land in different directories and opt into per-target
+/// overwrite. Collision detection runs across all destinations regardless of
+/// `force`; missing output directories are created on demand.
+pub fn write_resolved_artifacts(entries: &[ResolvedArtifact]) -> Result<Vec<PathBuf>, CoreError> {
+    if entries.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut seen_paths = BTreeSet::new();
+    let mut destinations = Vec::with_capacity(entries.len());
+
+    for entry in entries {
+        let path = entry.output_dir.join(&entry.file_name);
+
+        if !seen_paths.insert(path.clone()) {
+            return Err(CoreError::ArtifactCollision { path });
+        }
+
+        if !entry.force && path.exists() {
+            return Err(CoreError::ArtifactExists { path });
+        }
+
+        destinations.push(path);
+    }
+
+    for entry in entries {
+        fs::create_dir_all(&entry.output_dir).map_err(|source| CoreError::CreateOutputDir {
+            path: entry.output_dir.clone(),
+            source,
+        })?;
+    }
+
+    for (entry, path) in entries.iter().zip(&destinations) {
+        fs::write(path, &entry.content).map_err(|source| CoreError::WriteArtifact {
+            path: path.clone(),
+            source,
+        })?;
+    }
+
+    Ok(destinations)
 }
 
 fn palette_from_request(

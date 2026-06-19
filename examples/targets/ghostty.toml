@@ -4,7 +4,7 @@ description = "Example user-defined Ghostty target."
 chroma = "vibrant"
 
 [[artifacts]]
-file_name = "colors.txt"
+file_name = "chromasync.ghostty"
 template = """
 background = {{tokens.bg}}
 foreground = {{tokens.text}}

@@ -263,8 +263,9 @@ fn generate_writes_light_mode_editor_theme() {
 
 #[test]
 fn generate_writes_ghostty_example_target() {
-    let output_dir = temp_dir_path("generate-ghostty-output");
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let workspace = temp_dir_path("generate-ghostty-output");
+    let output_dir = workspace.join("output");
+    let mut command = isolated_command(&workspace);
 
     command.args(["generate", "--seed", "#4ecdc4", "--template", "terminal"]);
     command
@@ -277,7 +278,7 @@ fn generate_writes_ghostty_example_target() {
 
     let assert = command.assert().success();
     let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
-    let theme_path = output_dir.join("colors.txt");
+    let theme_path = output_dir.join("chromasync.ghostty");
 
     assert!(
         stdout.contains(theme_path.to_str().expect("theme path should be utf-8")),
@@ -290,7 +291,7 @@ fn generate_writes_ghostty_example_target() {
     assert!(content.contains("cursor-color = #"));
     assert!(content.contains("palette = 15=#"));
 
-    fs::remove_dir_all(output_dir).expect("output directory should be removed");
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
 }
 
 #[test]
@@ -458,6 +459,50 @@ fn generate_refuses_to_overwrite_existing_artifacts() {
     command.assert().failure().stderr(predicate::str::contains(
         "refusing to overwrite existing artifact",
     ));
+
+    fs::remove_dir_all(output_dir).expect("output directory should be removed");
+}
+
+#[test]
+fn generate_force_overwrites_existing_artifacts() {
+    let output_dir = temp_dir_path("generate-force");
+    fs::create_dir_all(&output_dir).expect("output directory should be created");
+    fs::write(output_dir.join("theme.css"), "existing")
+        .expect("existing artifact should be written");
+
+    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+
+    command.args([
+        "generate",
+        "--seed",
+        "#4ecdc4",
+        "--template",
+        "minimal",
+        "--targets",
+        example_target_path("css.toml")
+            .to_str()
+            .expect("example target path should be utf-8"),
+        "--output",
+        output_dir.to_str().expect("output path should be utf-8"),
+        "--force",
+    ]);
+
+    let assert = command.assert().success();
+    let theme_path = output_dir.join("theme.css");
+
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    assert!(
+        stdout.contains(theme_path.to_str().expect("theme path should be utf-8")),
+        "expected --force output to mention '{}', got:\n{stdout}",
+        theme_path.display()
+    );
+
+    let content = fs::read_to_string(&theme_path).expect("theme artifact should be readable");
+    assert_ne!(
+        content, "existing",
+        "--force should replace the existing artifact with generated content"
+    );
+    assert!(content.contains("--chromasync-"));
 
     fs::remove_dir_all(output_dir).expect("output directory should be removed");
 }
@@ -828,6 +873,246 @@ fn invalid_pack_target_collisions_fail_with_clear_errors() {
     command.assert().failure().stderr(predicate::str::contains(
         "user target 'kitty' collides with a built-in renderer name",
     ));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn target_install_copies_target_and_records_config() {
+    let workspace = temp_dir_path("target-install");
+    let outdir = workspace.join("install-out");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    let target_file = config_root.join("targets").join("gtk.toml");
+    let config_file = config_root.join("config.toml");
+
+    let mut command = isolated_command(&workspace);
+    command.args([
+        "target",
+        "install",
+        "--target",
+        example_target_path("gtk.toml")
+            .to_str()
+            .expect("example target path should be utf-8"),
+        "--outdir",
+        outdir.to_str().expect("outdir should be utf-8"),
+    ]);
+
+    let assert = command.assert().success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    assert!(
+        stdout.contains(target_file.to_str().expect("target path should be utf-8")),
+        "expected install output to mention '{}', got:\n{stdout}",
+        target_file.display()
+    );
+    assert!(
+        stdout.contains(config_file.to_str().expect("config path should be utf-8")),
+        "expected install output to mention '{}', got:\n{stdout}",
+        config_file.display()
+    );
+
+    let target_content =
+        fs::read_to_string(&target_file).expect("installed target file should exist");
+    assert!(target_content.contains("name = \"gtk\""));
+
+    let config_content = fs::read_to_string(&config_file).expect("config file should exist");
+    assert!(config_content.contains("[[targets]]"));
+    assert!(config_content.contains("name = \"gtk\""));
+    assert!(config_content.contains(&outdir.display().to_string()));
+    assert!(config_content.contains("source = \"targets/gtk.toml\""));
+    assert!(config_content.contains("overwrite = false"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn generate_writes_to_installed_target_outdir() {
+    let workspace = temp_dir_path("target-install-generate");
+    let outdir = workspace.join("gtk-out");
+    let artifact_path = outdir.join("gtk.css");
+
+    let mut install = isolated_command(&workspace);
+    install.args([
+        "target",
+        "install",
+        "--target",
+        example_target_path("gtk.toml")
+            .to_str()
+            .expect("example target path should be utf-8"),
+        "--outdir",
+        outdir.to_str().expect("outdir should be utf-8"),
+    ]);
+    install.assert().success();
+
+    let mut generate = isolated_command(&workspace);
+    generate.args([
+        "generate",
+        "--seed",
+        "#4ecdc4",
+        "--template",
+        "minimal",
+        "--targets",
+        "gtk",
+    ]);
+    let assert = generate.assert().success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    assert!(
+        stdout.contains(
+            artifact_path
+                .to_str()
+                .expect("artifact path should be utf-8")
+        ),
+        "expected generate to write to installed outdir '{}', got:\n{stdout}",
+        artifact_path.display()
+    );
+
+    let metadata = fs::metadata(&artifact_path).expect("installed artifact should exist");
+    assert!(metadata.is_file());
+    assert!(metadata.len() > 0);
+
+    assert!(
+        !workspace.join("chromasync").exists(),
+        "fallback output dir should not be created when a target is installed"
+    );
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn target_install_reinstall_requires_overwrite_flag() {
+    let workspace = temp_dir_path("target-install-overwrite");
+    let outdir = workspace.join("install-out");
+    let config_file = workspace
+        .join("xdg-config")
+        .join("chromasync")
+        .join("config.toml");
+    let target = example_target_path("gtk.toml")
+        .to_str()
+        .expect("example target path should be utf-8")
+        .to_owned();
+    let outdir_str = outdir.to_str().expect("outdir should be utf-8").to_owned();
+
+    let mut first = isolated_command(&workspace);
+    first.args([
+        "target",
+        "install",
+        "--target",
+        &target,
+        "--outdir",
+        &outdir_str,
+    ]);
+    first.assert().success();
+
+    let mut repeat = isolated_command(&workspace);
+    repeat.args([
+        "target",
+        "install",
+        "--target",
+        &target,
+        "--outdir",
+        &outdir_str,
+    ]);
+    repeat
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("is already installed"))
+        .stderr(predicate::str::contains("pass --overwrite"));
+
+    let mut overwrite = isolated_command(&workspace);
+    overwrite.args([
+        "target",
+        "install",
+        "--target",
+        &target,
+        "--outdir",
+        &outdir_str,
+        "--overwrite",
+    ]);
+    overwrite.assert().success();
+
+    let config_content =
+        fs::read_to_string(&config_file).expect("config file should exist after overwrite");
+    assert!(config_content.contains("overwrite = true"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn target_install_rejects_built_in_name_collision() {
+    let workspace = temp_dir_path("target-install-collision");
+    let target_path = temp_file_path("kitty-collision");
+    fs::write(
+        &target_path,
+        r#"
+name = "kitty"
+
+[[artifacts]]
+file_name = "kitty.conf"
+template = "foreground={{tokens.text}}"
+"#,
+    )
+    .expect("collision target should be written");
+
+    let mut command = isolated_command(&workspace);
+    command.args([
+        "target",
+        "install",
+        "--target",
+        target_path.to_str().expect("target path should be utf-8"),
+        "--outdir",
+        workspace.to_str().expect("outdir should be utf-8"),
+    ]);
+
+    command.assert().failure().stderr(predicate::str::contains(
+        "user target 'kitty' collides with a built-in renderer name",
+    ));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+    fs::remove_file(target_path).expect("collision target should be removed");
+}
+
+#[test]
+fn installed_overwrite_flag_forces_existing_artifact() {
+    let workspace = temp_dir_path("target-install-overwrite-force");
+    let outdir = workspace.join("force-out");
+    fs::create_dir_all(&outdir).expect("outdir should be created");
+    let artifact_path = outdir.join("gtk.css");
+    fs::write(&artifact_path, "existing").expect("existing artifact should be written");
+
+    let target = example_target_path("gtk.toml")
+        .to_str()
+        .expect("example target path should be utf-8")
+        .to_owned();
+    let outdir_str = outdir.to_str().expect("outdir should be utf-8").to_owned();
+
+    let mut install = isolated_command(&workspace);
+    install.args([
+        "target",
+        "install",
+        "--target",
+        &target,
+        "--outdir",
+        &outdir_str,
+        "--overwrite",
+    ]);
+    install.assert().success();
+
+    let mut generate = isolated_command(&workspace);
+    generate.args([
+        "generate",
+        "--seed",
+        "#4ecdc4",
+        "--template",
+        "minimal",
+        "--targets",
+        "gtk",
+    ]);
+    generate.assert().success();
+
+    let content = fs::read_to_string(&artifact_path).expect("artifact should be readable");
+    assert_ne!(
+        content, "existing",
+        "installed overwrite=true should force-overwrite the existing artifact"
+    );
 
     fs::remove_dir_all(workspace).expect("workspace should be removed");
 }

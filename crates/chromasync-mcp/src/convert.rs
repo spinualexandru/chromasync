@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-use std::fs;
 use std::path::Path;
 
 use chromasync_core::CoreError;
@@ -51,67 +49,20 @@ pub fn string_error_to_mcp(err: String) -> McpError {
 pub fn write_artifacts(
     output_dir: &Path,
     artifacts: &[GeneratedArtifact],
+    force: bool,
 ) -> Result<Vec<Value>, McpError> {
-    if artifacts.is_empty() {
-        return Ok(Vec::new());
-    }
+    let paths = chromasync_core::write_artifacts(output_dir, artifacts, force)
+        .map_err(core_error_to_mcp)?;
 
-    let mut seen_paths = BTreeSet::new();
-    let destinations = artifacts
+    Ok(artifacts
         .iter()
-        .map(|artifact| {
-            let path = output_dir.join(&artifact.file_name);
-
-            if !seen_paths.insert(path.clone()) {
-                return Err(McpError::internal_error(
-                    format!(
-                        "multiple artifacts would write to the same destination '{}'",
-                        path.display()
-                    ),
-                    None,
-                ));
-            }
-
-            if path.exists() {
-                return Err(McpError::internal_error(
-                    format!(
-                        "refusing to overwrite existing artifact '{}'",
-                        path.display()
-                    ),
-                    None,
-                ));
-            }
-
-            Ok((artifact, path))
+        .zip(&paths)
+        .map(|(artifact, path)| {
+            serde_json::json!({
+                "target": artifact.target,
+                "file_name": artifact.file_name,
+                "path": path.display().to_string(),
+            })
         })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    fs::create_dir_all(output_dir).map_err(|e| {
-        McpError::internal_error(
-            format!(
-                "failed to create output directory '{}': {e}",
-                output_dir.display()
-            ),
-            None,
-        )
-    })?;
-
-    let mut results = Vec::with_capacity(destinations.len());
-
-    for (artifact, path) in &destinations {
-        fs::write(path, &artifact.content).map_err(|e| {
-            McpError::internal_error(
-                format!("failed to write artifact '{}': {e}", path.display()),
-                None,
-            )
-        })?;
-
-        results.push(serde_json::json!({
-            "target": artifact.target,
-            "file_name": artifact.file_name,
-            "path": path.display().to_string(),
-        }));
-    }
-
-    Ok(results)
+        .collect())
 }

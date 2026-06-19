@@ -74,7 +74,9 @@ chromasync/theme.css
 
 ### Overwrite protection
 
-Generate refuses to overwrite existing files. If an artifact already exists at the destination, the command fails before writing anything. Delete or move the existing output directory first, or use a different `--output` path.
+Generate refuses to overwrite existing files. If an artifact already exists at the destination, the command fails before writing anything. Delete or move the existing file first, use a different `--output` path, or pass `--force` to overwrite in place.
+
+`--force` is the intended way to drive iterative workflows such as regenerating themes on every wallpaper change — it replaces each destination file with the freshly generated content. The collision check below is always enforced, even under `--force`.
 
 ### Collision detection
 

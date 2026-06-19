@@ -19,6 +19,7 @@ Commands:
   packs        List the discovered theme packs
   pack         Inspect a discovered theme pack
   targets      List available renderer targets and where they were loaded from
+  target       Manage installed renderer targets
   preview      Show palette families and resolved semantic tokens
   tokens       Export resolved semantic tokens
   completions  Generate shell completion scripts
@@ -72,6 +73,9 @@ Options:
           
           [default: chromasync]
 
+      --force
+          Overwrite existing artifacts instead of refusing when a file already exists at the destination
+
   -h, --help
           Print help
 ```
@@ -115,6 +119,9 @@ Options:
           Output directory for generated artifacts
           
           [default: chromasync]
+
+      --force
+          Overwrite existing artifacts instead of refusing when a file already exists at the destination
 
   -h, --help
           Print help
@@ -199,6 +206,43 @@ List available renderer targets and where they were loaded from
 Usage: targets
 
 Options:
+  -h, --help
+          Print help
+```
+
+### `chromasync target`
+
+```text
+Manage installed renderer targets
+
+Usage: target <COMMAND>
+
+Commands:
+  install  Install a target TOML into the user config and record its output directory
+  help     Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help
+          Print help
+```
+
+#### `chromasync target install`
+
+```text
+Install a target TOML into the user config and record its output directory
+
+Usage: install [OPTIONS] --target <TARGET> --outdir <OUTDIR>
+
+Options:
+      --target <TARGET>
+          Path to the target TOML file to install
+
+      --outdir <OUTDIR>
+          Directory where this target's generated artifacts should be written
+
+      --overwrite
+          Replace an existing installed target and mark it for forced overwrite during generation
+
   -h, --help
           Print help
 ```
