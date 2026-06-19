@@ -1,0 +1,46 @@
+#:schema ../../schemas/target.json
+name = "hyprland-lua"
+description = "Example user-defined Hyprland Lua target."
+chroma = "vibrant"
+
+[[artifacts]]
+file_name = "hypr-chromasync.lua"
+template = """
+return {
+    misc = {
+        background_color = "{{tokens.bg | rgba(FF)}}"
+    },
+    general = {
+        col = {
+            active_border = {
+                colors = {
+                    "{{tokens.accent | rgba(FF)}}",
+                    "{{tokens.accent_hover | rgba(FF)}}"
+                },
+                angle = 45
+            },
+            inactive_border = {
+                colors = {"{{tokens.border | rgba(FF)}}"},
+                angle = 45
+            },
+        }
+    },
+    decoration = {
+        shadow = {
+            color = "{{tokens.bg | rgba(CC)}}"
+        },
+        glow = {
+            color = "{{tokens.accent | rgba(99)}}",
+            color_inactive = "{{tokens.border | rgba(66)}}"
+        }
+    },
+    group = {
+        col = {
+            border_active = "{{tokens.accent | rgba(FF)}}",
+            border_inactive = "{{tokens.border | rgba(FF)}}",
+            group_border = "{{tokens.border_strong | rgba(FF)}}",
+            group_border_active = "{{tokens.accent_hover | rgba(FF)}}"
+        }
+    }
+}
+"""

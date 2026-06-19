@@ -15,6 +15,7 @@ Commands:
   generate     Generate theme artifacts from a seed color
   wallpaper    Generate theme artifacts from a wallpaper image
   batch        Execute a batch manifest with multiple generation jobs
+  sync         Run a named sync profile from the user config
   templates    List the available templates and where they were loaded from
   packs        List the discovered theme packs
   pack         Inspect a discovered theme pack
@@ -138,6 +139,22 @@ Options:
       --file <FILE>
           Path to a TOML manifest containing multiple jobs
 
+  -h, --help
+          Print help
+```
+
+### `chromasync sync`
+
+```text
+Run a named sync profile from the user config
+
+Usage: sync [PROFILE]
+
+Arguments:
+  [PROFILE]
+          Profile name under [[configs]]. Defaults to "default"
+
+Options:
   -h, --help
           Print help
 ```

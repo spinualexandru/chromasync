@@ -29,6 +29,9 @@ chromasync generate --seed "#ff6b6b" --template brutalist --mode dark \
 chromasync wallpaper --image wallpaper.png --template materialish --mode light \
   --targets kitty,examples/targets/css.toml
 
+# Run the default profile from ~/.config/chromasync/config.toml
+chromasync sync
+
 # Preview palette and tokens without writing files
 chromasync preview --seed "#4ecdc4" --template minimal --mode light
 
@@ -39,7 +42,23 @@ chromasync tokens --seed "#7c3aed" --template terminal --mode dark --format json
 chromasync batch --file jobs.toml
 ```
 
-Output is written to `./chromasync` by default.
+Output is written to `./chromasync` by default. For simpler repeatable workflows,
+define a sync profile in `~/.config/chromasync/config.toml`:
+
+```toml
+[[configs]]
+name = "default"
+seed = "#4ecdc4"
+template = "materialish"
+mode = "auto"
+targets = ["kitty"]
+chroma = "industrial"
+
+[[targets]]
+name = "kitty"
+output_dir = "~/.config/kitty"
+overwrite = true
+```
 
 ## Built-in Templates & Targets
 

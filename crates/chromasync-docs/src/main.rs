@@ -60,6 +60,7 @@ fn generate_book(check: bool) -> Result<()> {
         ("guides/generate.md", "Generate"),
         ("guides/wallpaper.md", "Wallpaper"),
         ("guides/batch.md", "Batch"),
+        ("guides/sync.md", "Sync"),
         ("guides/templates.md", "Templates"),
         ("guides/packs.md", "Packs"),
         ("guides/targets.md", "Targets"),
@@ -93,6 +94,7 @@ fn render_summary() -> String {
          - [Generate](guides/generate.md)\n\
          - [Wallpaper](guides/wallpaper.md)\n\
          - [Batch](guides/batch.md)\n\
+         - [Sync](guides/sync.md)\n\
          - [Templates](guides/templates.md)\n\
          - [Packs](guides/packs.md)\n\
          - [Targets](guides/targets.md)\n\

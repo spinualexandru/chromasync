@@ -9,6 +9,7 @@
 - [Generate](guides/generate.md)
 - [Wallpaper](guides/wallpaper.md)
 - [Batch](guides/batch.md)
+- [Sync](guides/sync.md)
 - [Templates](guides/templates.md)
 - [Packs](guides/packs.md)
 - [Targets](guides/targets.md)

@@ -19,6 +19,7 @@ fn help_lists_main_subcommands() {
         .stdout(predicate::str::contains("generate"))
         .stdout(predicate::str::contains("wallpaper"))
         .stdout(predicate::str::contains("batch"))
+        .stdout(predicate::str::contains("sync"))
         .stdout(predicate::str::contains("templates"))
         .stdout(predicate::str::contains("packs"))
         .stdout(predicate::str::contains("pack"))
@@ -290,6 +291,250 @@ fn generate_writes_ghostty_example_target() {
     assert!(content.contains("background = #"));
     assert!(content.contains("cursor-color = #"));
     assert!(content.contains("palette = 15=#"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn sync_default_profile_writes_built_in_and_user_targets() {
+    let workspace = temp_dir_path("sync-default-profile");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    let targets_dir = config_root.join("targets");
+    let ghostty_out = workspace.join("ghostty-out");
+    let kitty_out = workspace.join("kitty-out");
+
+    fs::create_dir_all(&targets_dir).expect("user targets directory should be created");
+    fs::copy(
+        example_target_path("ghostty.toml"),
+        targets_dir.join("ghostty.toml"),
+    )
+    .expect("ghostty target should copy");
+    fs::write(
+        config_root.join("config.toml"),
+        format!(
+            r##"
+[[configs]]
+name = "default"
+seed = "#4ecdc4"
+template = "terminal"
+mode = "dark"
+chroma = "industrial"
+targets = ["ghostty", "kitty"]
+
+[[targets]]
+name = "ghostty"
+output_dir = "{}"
+source = "targets/ghostty.toml"
+overwrite = false
+
+[[targets]]
+name = "kitty"
+output_dir = "{}"
+overwrite = false
+"##,
+            ghostty_out.display(),
+            kitty_out.display(),
+        ),
+    )
+    .expect("sync config should be written");
+
+    let mut command = isolated_command(&workspace);
+    command.arg("sync");
+
+    let assert = command.assert().success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    let ghostty_theme = ghostty_out.join("chromasync.ghostty");
+    let kitty_theme = kitty_out.join("kitty.conf");
+
+    for path in [&ghostty_theme, &kitty_theme] {
+        assert!(
+            stdout.contains(path.to_str().expect("output path should be utf-8")),
+            "expected sync output to mention '{}', got:\n{stdout}",
+            path.display()
+        );
+        let metadata = fs::metadata(path).expect("sync artifact should exist");
+        assert!(metadata.is_file());
+        assert!(metadata.len() > 0);
+    }
+
+    let ghostty_content =
+        fs::read_to_string(&ghostty_theme).expect("ghostty theme should be readable");
+    assert!(ghostty_content.contains("background = #"));
+    let kitty_content = fs::read_to_string(&kitty_theme).expect("kitty theme should be readable");
+    assert!(kitty_content.contains("background #"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn sync_named_profile_selects_requested_config() {
+    let workspace = temp_dir_path("sync-named-profile");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    let targets_dir = config_root.join("targets");
+    let output_dir = workspace.join("sync-out");
+
+    fs::create_dir_all(&targets_dir).expect("user targets directory should be created");
+    fs::write(
+        targets_dir.join("sync_probe.toml"),
+        r#"
+name = "sync_probe"
+
+[[artifacts]]
+file_name = "mode.txt"
+template = """
+mode={{ctx.mode}}
+seed={{ctx.seed}}
+"""
+"#,
+    )
+    .expect("sync probe target should be written");
+    fs::write(
+        config_root.join("config.toml"),
+        format!(
+            r##"
+[[configs]]
+name = "default"
+seed = "#4ecdc4"
+template = "minimal"
+mode = "dark"
+targets = ["sync_probe"]
+
+[[configs]]
+name = "personalGreen"
+seed = "#00ff00"
+template = "minimal"
+mode = "light"
+targets = ["sync_probe"]
+
+[[targets]]
+name = "sync_probe"
+output_dir = "{}"
+source = "targets/sync_probe.toml"
+overwrite = true
+"##,
+            output_dir.display(),
+        ),
+    )
+    .expect("sync config should be written");
+
+    let mut command = isolated_command(&workspace);
+    command.args(["sync", "personalGreen"]);
+
+    let assert = command.assert().success();
+    let artifact = output_dir.join("mode.txt");
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    assert!(
+        stdout.contains(artifact.to_str().expect("output path should be utf-8")),
+        "expected sync output to mention '{}', got:\n{stdout}",
+        artifact.display()
+    );
+
+    let content = fs::read_to_string(&artifact).expect("sync probe should be readable");
+    assert!(content.contains("mode=light"));
+    assert!(content.contains("seed=#00ff00"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn sync_profile_fetches_wallpaper_image_from_command() {
+    let workspace = temp_dir_path("sync-image-fetch-command");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    let output_dir = workspace.join("kitty-out");
+    let wallpaper = wallpaper_fixture("wallpaper-blocks.png");
+
+    fs::create_dir_all(&config_root).expect("config root should be created");
+    fs::write(
+        config_root.join("config.toml"),
+        format!(
+            r#"
+[[configs]]
+name = "default"
+image_fetch_command = "printf '%s\n' '{}'"
+template = "terminal"
+mode = "dark"
+targets = ["kitty"]
+
+[[targets]]
+name = "kitty"
+output_dir = "{}"
+overwrite = true
+"#,
+            wallpaper.display(),
+            output_dir.display(),
+        ),
+    )
+    .expect("sync config should be written");
+
+    let mut command = isolated_command(&workspace);
+    command.arg("sync");
+
+    let assert = command.assert().success();
+    let artifact = output_dir.join("kitty.conf");
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    assert!(
+        stdout.contains(artifact.to_str().expect("output path should be utf-8")),
+        "expected sync output to mention '{}', got:\n{stdout}",
+        artifact.display()
+    );
+
+    let content = fs::read_to_string(&artifact).expect("kitty theme should be readable");
+    assert!(content.contains("background #"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn sync_reports_missing_profile() {
+    let workspace = temp_dir_path("sync-missing-profile");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+
+    fs::create_dir_all(&config_root).expect("config root should be created");
+    fs::write(
+        config_root.join("config.toml"),
+        r##"
+[[configs]]
+name = "default"
+seed = "#4ecdc4"
+template = "minimal"
+targets = ["kitty"]
+"##,
+    )
+    .expect("sync config should be written");
+
+    let mut command = isolated_command(&workspace);
+    command.args(["sync", "personalGreen"]);
+
+    command.assert().failure().stderr(predicate::str::contains(
+        "sync profile 'personalGreen' was not found",
+    ));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
+fn sync_requires_exactly_one_color_source() {
+    let workspace = temp_dir_path("sync-missing-source");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+
+    fs::create_dir_all(&config_root).expect("config root should be created");
+    fs::write(
+        config_root.join("config.toml"),
+        r#"
+[[configs]]
+name = "default"
+template = "minimal"
+targets = ["kitty"]
+"#,
+    )
+    .expect("sync config should be written");
+
+    let mut command = isolated_command(&workspace);
+    command.arg("sync");
+
+    command.assert().failure().stderr(predicate::str::contains(
+        "sync profile 'default' must define exactly one of 'seed', 'image', or 'image_fetch_command'",
+    ));
 
     fs::remove_dir_all(workspace).expect("workspace should be removed");
 }
