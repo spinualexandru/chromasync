@@ -132,6 +132,33 @@ template = "{{tokens.bg}}"
     fs::remove_dir_all(dir).expect("temp target directory should be removed");
 }
 
+#[test]
+fn user_config_targets_colliding_with_built_ins_are_ignored() {
+    let dir = temp_dir_path("target-registry-user-collision");
+    fs::create_dir_all(&dir).expect("temp target directory should be created");
+
+    fs::write(
+        dir.join("ghostty.toml"),
+        r#"
+name = "ghostty"
+
+[[artifacts]]
+file_name = "custom.css"
+template = "{{tokens.bg}}"
+"#,
+    )
+    .expect("colliding user target should be written");
+
+    let built_in = RendererRegistry::new();
+    let registry = TargetRegistry::from_dir(&dir, true, &built_in.built_in_name_set())
+        .expect("stale user target collisions should be ignored");
+
+    assert!(registry.get("ghostty").is_none());
+    assert!(registry.list_targets().is_empty());
+
+    fs::remove_dir_all(dir).expect("temp target directory should be removed");
+}
+
 fn sample_tokens() -> SemanticTokens {
     SemanticTokens {
         bg: "#0F1115".to_owned(),

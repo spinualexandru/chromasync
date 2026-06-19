@@ -19,17 +19,21 @@ waybar       pack        catppuccin [/home/user/.config/chromasync/packs/catppuc
 
 ## Built-in targets
 
-Chromasync ships with two built-in targets compiled into the binary:
+Chromasync ships with built-in targets compiled into the binary:
 
 | Name | Default artifact | Description |
 | --- | --- | --- |
-| `kitty` | `kitty.conf` | Kitty terminal emulator theme (foreground, background, cursor, selection, borders, tabs, 16-color ANSI palette) |
 | `alacritty` | `alacritty.toml` | Alacritty terminal emulator theme (primary colors, cursor, selection, search, hints, 16-color ANSI palette) |
+| `ghostty` | `chromasync.ghostty` | Ghostty terminal theme |
+| `hyprland` | `hyprland.conf` | Hyprland color configuration |
+| `hyprland-lua` | `hypr-chromasync.lua` | Hyprland Lua color configuration |
+| `kitty` | `kitty.conf` | Kitty terminal emulator theme (foreground, background, cursor, selection, borders, tabs, 16-color ANSI palette) |
+| `zed` | `chromasync.json` | Zed editor theme |
 
 Use them by name:
 
 ```bash
-chromasync generate --seed "#4ecdc4" --template minimal --targets kitty,alacritty
+chromasync generate --seed "#4ecdc4" --template minimal --targets kitty,alacritty,ghostty,hyprland
 ```
 
 Built-in targets cannot be overridden or extended by user-defined targets.
@@ -55,7 +59,7 @@ Pass a comma-separated list of target names or file paths to `--targets`:
 chromasync generate \
   --seed "#89b4fa" \
   --template minimal \
-  --targets kitty,gtk,/path/to/custom.toml
+  --targets kitty,hyprland,gtk,/path/to/custom.toml
 ```
 
 Duplicates in the list are silently deduplicated. Target names are trimmed of whitespace.
@@ -87,7 +91,7 @@ Each `[[artifacts]]` entry produces one output file. Placeholders are substitute
 | `description` | no | Human-readable description shown by `chromasync targets` |
 | `extends` | no | Name of another user-defined target to inherit from |
 
-Target names must not collide with built-in target names (`kitty`, `alacritty`).
+Target names must not collide with built-in target names.
 
 ### Artifact fields
 
@@ -169,7 +173,7 @@ bg={{tokens.bg | hex_no_hash}}
 
 ### Inheritance rules
 
-- The base target must be user-defined or from a pack — extending built-in targets (`kitty`, `alacritty`) is not allowed.
+- The base target must be user-defined or from a pack — extending built-in targets is not allowed.
 - Chains are supported: target A can extend B, which extends C. Cycles are detected and rejected.
 - If a child artifact has the same `file_name` as a base artifact, the child's version replaces it.
 - A target with `extends` can omit `[[artifacts]]` entirely to inherit the base unchanged under a new name.

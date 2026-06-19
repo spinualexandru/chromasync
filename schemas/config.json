@@ -97,7 +97,7 @@
         "name": {
           "type": "string",
           "pattern": "^[a-z0-9_-]+$",
-          "description": "Target name. For custom targets, this matches the name field of a discovered target TOML. Built-in targets such as kitty and alacritty can also be mapped here."
+          "description": "Target name. For custom targets, this matches the name field of a discovered target TOML. Built-in targets such as kitty, alacritty, ghostty, hyprland, hyprland-lua, and zed can also be mapped here."
         },
         "output_dir": {
           "type": "string",

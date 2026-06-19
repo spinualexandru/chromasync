@@ -52,7 +52,7 @@ fn templates_lists_built_in_templates() {
 }
 
 #[test]
-fn targets_lists_only_current_built_in_renderers() {
+fn targets_lists_built_in_renderers() {
     let workspace = temp_dir_path("list-targets");
     let mut command = isolated_command(&workspace);
 
@@ -61,13 +61,17 @@ fn targets_lists_only_current_built_in_renderers() {
     command
         .assert()
         .success()
-        .stdout(predicate::str::contains("kitty"))
-        .stdout(predicate::str::contains("alacritty"))
+        .stdout(predicate::str::contains("alacritty\tbuilt-in\talacritty"))
+        .stdout(predicate::str::contains("ghostty\tbuilt-in\tghostty"))
+        .stdout(predicate::str::contains("hyprland\tbuilt-in\thyprland"))
+        .stdout(predicate::str::contains(
+            "hyprland-lua\tbuilt-in\thyprland-lua",
+        ))
+        .stdout(predicate::str::contains("kitty\tbuilt-in\tkitty"))
+        .stdout(predicate::str::contains("zed\tbuilt-in\tzed"))
         .stdout(predicate::str::contains("gtk").not())
-        .stdout(predicate::str::contains("hyprland").not())
         .stdout(predicate::str::contains("css").not())
         .stdout(predicate::str::contains("foot").not())
-        .stdout(predicate::str::contains("ghostty").not())
         .stdout(predicate::str::contains("waybar").not())
         .stdout(predicate::str::contains("editor").not())
         .stdout(predicate::str::contains("rofi").not());
@@ -78,14 +82,11 @@ fn targets_lists_only_current_built_in_renderers() {
 #[test]
 fn generate_writes_requested_artifacts() {
     let output_dir = temp_dir_path("generate-output");
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let mut command = isolated_command(&output_dir);
 
     command.args(["generate", "--seed", "#ff6b6b", "--template", "brutalist"]);
     command.arg("--targets").arg(example_and_builtin_targets(&[
-        "gtk.toml",
-        "hyprland.toml",
-        "kitty",
-        "css.toml",
+        "gtk.toml", "hyprland", "kitty", "css.toml",
     ]));
     command.args([
         "--output",
@@ -126,7 +127,7 @@ fn generate_writes_requested_artifacts() {
 fn wallpaper_writes_requested_artifacts() {
     let output_dir = temp_dir_path("wallpaper-output");
     let wallpaper = wallpaper_fixture("wallpaper-blocks.png");
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let mut command = isolated_command(&output_dir);
 
     command.args([
         "wallpaper",
@@ -136,10 +137,7 @@ fn wallpaper_writes_requested_artifacts() {
         "brutalist",
     ]);
     command.arg("--targets").arg(example_and_builtin_targets(&[
-        "gtk.toml",
-        "hyprland.toml",
-        "kitty",
-        "css.toml",
+        "gtk.toml", "hyprland", "kitty", "css.toml",
     ]));
     command.args([
         "--output",
@@ -179,7 +177,7 @@ fn wallpaper_writes_requested_artifacts() {
 #[test]
 fn generate_writes_phase_six_artifacts() {
     let output_dir = temp_dir_path("generate-phase-six-output");
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let mut command = isolated_command(&output_dir);
 
     command.args(["generate", "--seed", "#4ecdc4", "--template", "terminal"]);
     command.arg("--targets").arg(example_and_builtin_targets(&[
@@ -226,7 +224,7 @@ fn generate_writes_phase_six_artifacts() {
 #[test]
 fn generate_writes_light_mode_editor_theme() {
     let output_dir = temp_dir_path("generate-light-editor-output");
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let mut command = isolated_command(&output_dir);
 
     command.args([
         "generate",
@@ -263,15 +261,13 @@ fn generate_writes_light_mode_editor_theme() {
 }
 
 #[test]
-fn generate_writes_ghostty_example_target() {
+fn generate_writes_ghostty_built_in_target() {
     let workspace = temp_dir_path("generate-ghostty-output");
     let output_dir = workspace.join("output");
     let mut command = isolated_command(&workspace);
 
     command.args(["generate", "--seed", "#4ecdc4", "--template", "terminal"]);
-    command
-        .arg("--targets")
-        .arg(example_and_builtin_targets(&["ghostty.toml"]));
+    command.arg("--targets").arg("ghostty");
     command.args([
         "--output",
         output_dir.to_str().expect("output path should be utf-8"),
@@ -299,16 +295,10 @@ fn generate_writes_ghostty_example_target() {
 fn sync_default_profile_writes_built_in_and_user_targets() {
     let workspace = temp_dir_path("sync-default-profile");
     let config_root = workspace.join("xdg-config").join("chromasync");
-    let targets_dir = config_root.join("targets");
     let ghostty_out = workspace.join("ghostty-out");
     let kitty_out = workspace.join("kitty-out");
 
-    fs::create_dir_all(&targets_dir).expect("user targets directory should be created");
-    fs::copy(
-        example_target_path("ghostty.toml"),
-        targets_dir.join("ghostty.toml"),
-    )
-    .expect("ghostty target should copy");
+    fs::create_dir_all(&config_root).expect("config root should be created");
     fs::write(
         config_root.join("config.toml"),
         format!(
@@ -324,7 +314,6 @@ targets = ["ghostty", "kitty"]
 [[targets]]
 name = "ghostty"
 output_dir = "{}"
-source = "targets/ghostty.toml"
 overwrite = false
 
 [[targets]]
@@ -543,7 +532,7 @@ targets = ["kitty"]
 fn wallpaper_writes_phase_six_artifacts() {
     let output_dir = temp_dir_path("wallpaper-phase-six-output");
     let wallpaper = wallpaper_fixture("wallpaper-blocks.png");
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let mut command = isolated_command(&output_dir);
 
     command.args([
         "wallpaper",
@@ -685,7 +674,7 @@ fn generate_refuses_to_overwrite_existing_artifacts() {
     fs::write(output_dir.join("theme.css"), "existing")
         .expect("existing artifact should be written");
 
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let mut command = isolated_command(&output_dir);
 
     command.args([
         "generate",
@@ -715,7 +704,7 @@ fn generate_force_overwrites_existing_artifacts() {
     fs::write(output_dir.join("theme.css"), "existing")
         .expect("existing artifact should be written");
 
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let mut command = isolated_command(&output_dir);
 
     command.args([
         "generate",
@@ -754,7 +743,8 @@ fn generate_force_overwrites_existing_artifacts() {
 
 #[test]
 fn generate_reports_invalid_seed_errors() {
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let workspace = temp_dir_path("generate-invalid-seed");
+    let mut command = isolated_command(&workspace);
 
     command.args([
         "generate",
@@ -769,11 +759,14 @@ fn generate_reports_invalid_seed_errors() {
     command.assert().failure().stderr(predicate::str::contains(
         "seed color 'nope' must use the #RRGGBB format",
     ));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
 }
 
 #[test]
 fn generate_reports_missing_template_errors() {
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let workspace = temp_dir_path("generate-missing-template");
+    let mut command = isolated_command(&workspace);
 
     command.args([
         "generate",
@@ -789,11 +782,14 @@ fn generate_reports_missing_template_errors() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("template 'missing' was not found"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
 }
 
 #[test]
 fn generate_rejects_non_mvp_targets_at_cli_boundary() {
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let workspace = temp_dir_path("generate-unknown-target");
+    let mut command = isolated_command(&workspace);
 
     command.args([
         "generate",
@@ -809,14 +805,17 @@ fn generate_rejects_non_mvp_targets_at_cli_boundary() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("target 'rofi' was not found"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
 }
 
 #[test]
 fn generate_reports_output_directory_creation_errors() {
+    let workspace = temp_dir_path("generate-output-dir-workspace");
     let output_path = temp_file_path("generate-output-dir");
     fs::write(&output_path, "blocking file").expect("blocking file should be written");
 
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let mut command = isolated_command(&workspace);
 
     command.args([
         "generate",
@@ -835,6 +834,7 @@ fn generate_reports_output_directory_creation_errors() {
     ));
 
     fs::remove_file(output_path).expect("blocking file should be removed");
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
 }
 
 #[test]
@@ -893,7 +893,7 @@ output = "wallpaper-output"
     )
     .expect("batch manifest should be written");
 
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let mut command = isolated_command(&batch_dir);
     command.args([
         "batch",
         "--file",
@@ -954,7 +954,7 @@ seed={{ctx.seed}}
     )
     .expect("custom target should be written");
 
-    let mut command = Command::cargo_bin("chromasync").expect("binary should build");
+    let mut command = isolated_command(&output_dir);
     command.args([
         "generate",
         "--seed",

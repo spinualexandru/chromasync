@@ -444,7 +444,7 @@ chromasync generate \
   --seed "#ff6b6b" \
   --template brutalist \
   --mode dark \
-  --targets examples/targets/gtk.toml,examples/targets/hyprland.toml
+  --targets examples/targets/gtk.toml,hyprland
 ```
 
 Output:
@@ -469,7 +469,7 @@ Example:
 chromasync wallpaper \
   --image wallpaper.jpg \
   --template oled \
-  --targets examples/targets/gtk.toml,examples/targets/hyprland.toml
+  --targets examples/targets/gtk.toml,hyprland
 ```
 
 ---
@@ -503,17 +503,19 @@ Example output:
 ```
 kitty
 alacritty
+ghostty
+hyprland
+hyprland-lua
+zed
 ```
 
 Example declarative targets live in:
 
 ```
 examples/targets/gtk.toml
-examples/targets/hyprland.toml
 examples/targets/css.toml
 examples/targets/waybar.toml
 examples/targets/foot.toml
-examples/targets/ghostty.toml
 examples/targets/editor.toml
 ```
 

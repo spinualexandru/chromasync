@@ -112,6 +112,7 @@ impl fmt::Display for ContrastStrategy {
 pub enum RenderTarget {
     Gtk,
     Hyprland,
+    HyprlandLua,
     Kitty,
     Css,
     Waybar,
@@ -120,6 +121,7 @@ pub enum RenderTarget {
     Foot,
     Ghostty,
     Editor,
+    Zed,
 }
 
 impl RenderTarget {
@@ -129,6 +131,7 @@ impl RenderTarget {
         match self {
             Self::Gtk => "gtk",
             Self::Hyprland => "hyprland",
+            Self::HyprlandLua => "hyprland-lua",
             Self::Kitty => "kitty",
             Self::Css => "css",
             Self::Waybar => "waybar",
@@ -137,6 +140,7 @@ impl RenderTarget {
             Self::Foot => "foot",
             Self::Ghostty => "ghostty",
             Self::Editor => "editor",
+            Self::Zed => "zed",
         }
     }
 
@@ -144,14 +148,16 @@ impl RenderTarget {
         match self {
             Self::Gtk => "gtk.css",
             Self::Hyprland => "hyprland.conf",
+            Self::HyprlandLua => "hypr-chromasync.lua",
             Self::Kitty => "kitty.conf",
             Self::Css => "theme.css",
             Self::Waybar => "style.css",
             Self::Rofi => "config.rasi",
             Self::Alacritty => "alacritty.toml",
             Self::Foot => "foot.ini",
-            Self::Ghostty => "colors.txt",
+            Self::Ghostty => "chromasync.ghostty",
             Self::Editor => "theme.json",
+            Self::Zed => "chromasync.json",
         }
     }
 }

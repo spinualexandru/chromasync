@@ -1,6 +1,6 @@
-#:schema ../../schemas/target.json
+#:schema ../../../schemas/target.json
 name = "hyprland-lua"
-description = "Example user-defined Hyprland Lua target."
+description = "Built-in Hyprland Lua target."
 chroma = "vibrant"
 
 [[artifacts]]

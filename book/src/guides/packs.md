@@ -142,7 +142,7 @@ color={{tokens.accent}}
 
 Inheritance rules:
 
-- The base target must be a user-defined or pack target — extending built-in targets (`kitty`, `alacritty`) is not allowed.
+- The base target must be a user-defined or pack target — extending built-in targets is not allowed.
 - Chains are supported: target A can extend B, which extends C.
 - If a child artifact has the same `file_name` as a base artifact, the child's version replaces it.
 - A target with `extends` can omit `[[artifacts]]` entirely to inherit the base unchanged under a new name.

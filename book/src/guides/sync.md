@@ -34,7 +34,6 @@ chroma = "industrial"
 [[targets]]
 name = "ghostty"
 output_dir = "~/.config/ghostty/themes"
-source = "targets/ghostty.toml"
 overwrite = true
 
 [[targets]]

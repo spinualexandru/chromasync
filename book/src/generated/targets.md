@@ -4,5 +4,9 @@
 
 | Name | Default Artifact |
 | --- | --- |
-| `kitty` | `kitty.conf` |
 | `alacritty` | `alacritty.toml` |
+| `ghostty` | `chromasync.ghostty` |
+| `hyprland` | `hyprland.conf` |
+| `hyprland-lua` | `hypr-chromasync.lua` |
+| `kitty` | `kitty.conf` |
+| `zed` | `chromasync.json` |

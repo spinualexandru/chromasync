@@ -29,8 +29,14 @@ chromasync generate --seed "#ff6b6b" --template brutalist --mode dark \
 chromasync wallpaper --image wallpaper.png --template materialish --mode light \
   --targets kitty,examples/targets/css.toml
 
-# Run the default profile from ~/.config/chromasync/config.toml
+# Run the default sync profile from ~/.config/chromasync/config.toml
 chromasync sync
+
+# Run a named sync profile
+chromasync sync work
+
+# Install a custom target and record where its artifacts should be written
+chromasync target install --target examples/targets/gtk.toml --outdir ~/.config/gtk-4.0
 
 # Preview palette and tokens without writing files
 chromasync preview --seed "#4ecdc4" --template minimal --mode light
@@ -42,13 +48,19 @@ chromasync tokens --seed "#7c3aed" --template terminal --mode dark --format json
 chromasync batch --file jobs.toml
 ```
 
-Output is written to `./chromasync` by default. For simpler repeatable workflows,
-define a sync profile in `~/.config/chromasync/config.toml`:
+Output is written to `./chromasync` by default.
+
+## Sync
+
+Use `chromasync sync` when you want Chromasync to read a saved profile from
+`~/.config/chromasync/config.toml` and write each target to its configured
+destination. A profile can use a fixed seed, a fixed wallpaper image, or a
+command that returns the current wallpaper path:
 
 ```toml
 [[configs]]
 name = "default"
-seed = "#4ecdc4"
+image_fetch_command = "qs -c noctalia-shell ipc call wallpaper get"
 template = "materialish"
 mode = "auto"
 targets = ["kitty"]
@@ -60,13 +72,49 @@ output_dir = "~/.config/kitty"
 overwrite = true
 ```
 
+Run it with:
+
+```bash
+chromasync sync          # uses the profile named "default"
+chromasync sync work     # uses the profile named "work"
+```
+
+`mode = "auto"` follows the desktop color-scheme when it can be detected, and
+falls back to dark mode.
+
+## Installing Targets
+
+Built-in targets can be used by name. Declarative target specs, such as the
+examples under [`examples/targets/`](examples/targets/), can be installed into
+the user config and assigned an output directory:
+
+```bash
+chromasync target install \
+  --target examples/targets/gtk.toml \
+  --outdir ~/.config/gtk-4.0
+```
+
+This copies the target TOML into `~/.config/chromasync/targets/` and records a
+matching `[[targets]]` entry in `~/.config/chromasync/config.toml`. Add
+`--overwrite` to replace an existing installed target and mark its generated
+artifacts as overwrite-safe during generation.
+
+Once installed, the target can be referenced by name:
+
+```bash
+chromasync generate --seed "#4ecdc4" --targets gtk
+chromasync sync
+```
+
 ## Built-in Templates & Targets
 
-| Templates                                          | Targets              |
-| -------------------------------------------------- | -------------------- |
-| `minimal`, `brutalist`, `terminal`, `materialish`  | `kitty`, `alacritty` |
+| Templates                                          | Targets                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| `minimal`, `brutalist`, `terminal`, `materialish`  | `kitty`, `alacritty`, `ghostty`, `hyprland`, `hyprland-lua`, `zed` |
 
-Additional targets (GTK, Hyprland, CSS, Waybar, Foot, Ghostty, Editor) are available as declarative TOML specs under [`examples/targets/`](examples/targets/). Custom targets can be added to `~/.config/chromasync/targets/`.
+Additional targets (GTK, CSS, Waybar, Foot, Editor) are
+available as declarative TOML specs under
+[`examples/targets/`](examples/targets/).
 
 ```bash
 chromasync templates   # list available templates

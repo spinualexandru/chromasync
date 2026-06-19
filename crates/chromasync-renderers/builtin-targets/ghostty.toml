@@ -1,6 +1,6 @@
-#:schema ../../schemas/target.json
+#:schema ../../../schemas/target.json
 name = "ghostty"
-description = "Example user-defined Ghostty target."
+description = "Built-in Ghostty target."
 chroma = "vibrant"
 
 [[artifacts]]

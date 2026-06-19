@@ -679,7 +679,7 @@ mod tests {
             contrast: ContrastStrategy::RelativeLuminance,
             targets: vec![
                 example_target_path("gtk.toml"),
-                example_target_path("hyprland.toml"),
+                "hyprland".to_owned(),
                 "kitty".to_owned(),
                 example_target_path("css.toml"),
             ],

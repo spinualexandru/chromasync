@@ -48,13 +48,13 @@ chromasync templates
 
 ## Choosing targets
 
-Targets can be built-in names (`kitty`, `alacritty`), paths to declarative target TOML files, or targets provided by packs. Mix them freely in a comma-separated list:
+Targets can be built-in names (`kitty`, `alacritty`, `ghostty`, `hyprland`, `hyprland-lua`, `zed`), paths to declarative target TOML files, or targets provided by packs. Mix them freely in a comma-separated list:
 
 ```bash
---targets kitty,alacritty,examples/targets/gtk.toml,examples/targets/css.toml
+--targets kitty,alacritty,hyprland,examples/targets/gtk.toml,examples/targets/css.toml
 ```
 
-Declarative example targets for GTK, Hyprland, CSS, Waybar, Foot, Ghostty, and Editor ship under `examples/targets/`.
+Declarative example targets for GTK, CSS, Waybar, Foot, and Editor ship under `examples/targets/`.
 
 List available targets with:
 
@@ -98,7 +98,7 @@ chromasync generate \
   --seed "#4ecdc4" \
   --template minimal \
   --mode dark \
-  --targets kitty,alacritty,examples/targets/gtk.toml,examples/targets/hyprland.toml
+  --targets kitty,alacritty,hyprland,examples/targets/gtk.toml
 ```
 
 Generate a light theme with APCA contrast into a custom directory:
