@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chromasync.dev/schemas/config.json",
+  "title": "Chromasync Config",
+  "description": "Records where each installed target writes its generated artifacts. Auto-managed by `chromasync target install` at ~/.config/chromasync/config.toml. Read by the generate, wallpaper, and batch commands so an installed target writes to its recorded output_dir instead of the generic --output fallback.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "targets": {
+      "type": "array",
+      "default": [],
+      "description": "Installed target entries. Empty when no target has been installed yet.",
+      "items": { "$ref": "#/$defs/target" }
+    }
+  },
+  "$defs": {
+    "target": {
+      "type": "object",
+      "description": "One row under [[targets]] mapping an installed target to its output directory and overwrite flag.",
+      "required": ["name", "output_dir", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]+$",
+          "description": "Target name. Lowercase letters, digits, '-', or '_'. Matches the `name` field of the installed target TOML and must not collide with a built-in target name."
+        },
+        "output_dir": {
+          "type": "string",
+          "description": "Directory where this target's generated artifacts are written. A leading `~` or `~/` expands to the user's home directory at resolve time."
+        },
+        "source": {
+          "type": "string",
+          "description": "Location of the installed target file relative to the config root (e.g. \"targets/gtk.toml\")."
+        },
+        "overwrite": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, generation overwrites existing artifacts for this target (a per-target --force). A global --force on the CLI overrides this regardless of the recorded value."
+        }
+      }
+    }
+  }
+}

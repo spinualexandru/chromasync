@@ -15,6 +15,7 @@ use crate::CoreError;
 /// installed target writes to its recorded directory instead of the generic
 /// `--output` fallback.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ChromasyncConfig {
     #[serde(default)]
     pub targets: Vec<ConfigTarget>,
@@ -22,6 +23,7 @@ pub struct ChromasyncConfig {
 
 /// One row of the chromasync config under `[[targets]]`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ConfigTarget {
     /// Target name (matches the `name` field of the installed target TOML).
     pub name: String,
@@ -277,6 +279,40 @@ mod tests {
         assert_eq!(config.targets.len(), 1);
         assert_eq!(config.targets[0].output_dir, PathBuf::from("/new"));
         assert!(config.targets[0].overwrite);
+    }
+
+    #[test]
+    fn config_toml_rejects_unknown_root_fields() {
+        let error = toml::from_str::<ChromasyncConfig>(
+            r#"
+unknown = true
+"#,
+        )
+        .expect_err("unknown root config fields should be rejected");
+
+        assert!(
+            error.to_string().contains("unknown field"),
+            "expected unknown-field parse error, got: {error}"
+        );
+    }
+
+    #[test]
+    fn config_toml_rejects_unknown_target_fields() {
+        let error = toml::from_str::<ChromasyncConfig>(
+            r#"
+[[targets]]
+name = "gtk"
+output_dir = "/tmp/gtk"
+source = "targets/gtk.toml"
+extra = true
+"#,
+        )
+        .expect_err("unknown target config fields should be rejected");
+
+        assert!(
+            error.to_string().contains("unknown field"),
+            "expected unknown-field parse error, got: {error}"
+        );
     }
 
     #[test]
