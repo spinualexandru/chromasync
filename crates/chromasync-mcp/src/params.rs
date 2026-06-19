@@ -23,6 +23,9 @@ pub struct GenerateParams {
     pub targets: Vec<String>,
     /// Output directory for generated artifact files.
     pub output_dir: String,
+    /// When true, overwrite existing files at the destination instead of refusing.
+    #[serde(default)]
+    pub force: bool,
 }
 
 /// Parameters for generating theme artifacts from a wallpaper image.
@@ -45,6 +48,9 @@ pub struct WallpaperParams {
     pub targets: Vec<String>,
     /// Output directory for generated artifact files.
     pub output_dir: String,
+    /// When true, overwrite existing files at the destination instead of refusing.
+    #[serde(default)]
+    pub force: bool,
 }
 
 /// Parameters for running a batch manifest with multiple generation jobs.

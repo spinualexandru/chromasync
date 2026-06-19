@@ -152,7 +152,9 @@ Returns a JSON array with each template's name, mode, description, source, and l
 
 ## Overwrite protection
 
-Like the CLI, the `generate`, `wallpaper`, and `batch` tools refuse to overwrite existing files. If an artifact already exists at the destination, the tool returns an error. Delete or move the existing output first, or use a different `output_dir`.
+Like the CLI, the `generate`, `wallpaper`, and `batch` tools refuse to overwrite existing files. If an artifact already exists at the destination, the tool returns an error. Delete or move the existing output first, use a different `output_dir`, or set `force: true` to overwrite in place.
+
+Set `"force": true` when driving iterative workflows such as regenerating themes on every wallpaper change. The collision check (two artifacts writing to the same file) is always enforced, even when forcing.
 
 ## Building from source
 

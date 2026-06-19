@@ -16,11 +16,9 @@ fn gtk_example_target_matches_golden_file() {
 }
 
 #[test]
-fn hyprland_example_target_matches_golden_file() {
-    assert_example_target_matches_golden(
-        "hyprland.toml",
-        "hyprland",
-        "hyprland.conf",
+fn hyprland_built_in_target_matches_golden_file() {
+    assert_matches_golden(
+        RenderTarget::Hyprland,
         include_str!("fixtures/hyprland.conf.golden"),
     );
 }
@@ -62,11 +60,9 @@ fn foot_example_target_matches_golden_file() {
 }
 
 #[test]
-fn ghostty_example_target_matches_golden_file() {
-    assert_example_target_matches_golden(
-        "ghostty.toml",
-        "ghostty",
-        "colors.txt",
+fn ghostty_built_in_target_matches_golden_file() {
+    assert_matches_golden(
+        RenderTarget::Ghostty,
         include_str!("fixtures/ghostty.colors.golden"),
     );
 }
@@ -96,20 +92,34 @@ fn built_in_targets_render_to_generated_artifacts() {
     let artifacts = render_targets(built_in_targets(), &sample_tokens())
         .expect("built-in targets should render");
 
-    assert_eq!(artifacts.len(), 2);
+    assert_eq!(artifacts.len(), 6);
     assert_eq!(
         artifacts
             .iter()
             .map(|artifact| artifact.target.clone())
             .collect::<Vec<_>>(),
-        vec!["kitty".to_owned(), "alacritty".to_owned()]
+        vec![
+            "alacritty".to_owned(),
+            "ghostty".to_owned(),
+            "hyprland".to_owned(),
+            "hyprland-lua".to_owned(),
+            "kitty".to_owned(),
+            "zed".to_owned(),
+        ]
     );
     assert_eq!(
         artifacts
             .iter()
             .map(|artifact| artifact.file_name.as_str())
             .collect::<Vec<_>>(),
-        vec!["kitty.conf", "alacritty.toml"]
+        vec![
+            "alacritty.toml",
+            "chromasync.ghostty",
+            "hyprland.conf",
+            "hypr-chromasync.lua",
+            "kitty.conf",
+            "chromasync.json",
+        ]
     );
 }
 

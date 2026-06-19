@@ -19,17 +19,21 @@ waybar       pack        catppuccin [/home/user/.config/chromasync/packs/catppuc
 
 ## Built-in targets
 
-Chromasync ships with two built-in targets compiled into the binary:
+Chromasync ships with built-in targets compiled into the binary:
 
 | Name | Default artifact | Description |
 | --- | --- | --- |
-| `kitty` | `kitty.conf` | Kitty terminal emulator theme (foreground, background, cursor, selection, borders, tabs, 16-color ANSI palette) |
 | `alacritty` | `alacritty.toml` | Alacritty terminal emulator theme (primary colors, cursor, selection, search, hints, 16-color ANSI palette) |
+| `ghostty` | `chromasync.ghostty` | Ghostty terminal theme |
+| `hyprland` | `hyprland.conf` | Hyprland color configuration |
+| `hyprland-lua` | `hypr-chromasync.lua` | Hyprland Lua color configuration |
+| `kitty` | `kitty.conf` | Kitty terminal emulator theme (foreground, background, cursor, selection, borders, tabs, 16-color ANSI palette) |
+| `zed` | `chromasync.json` | Zed editor theme |
 
 Use them by name:
 
 ```bash
-chromasync generate --seed "#4ecdc4" --template minimal --targets kitty,alacritty
+chromasync generate --seed "#4ecdc4" --template minimal --targets kitty,alacritty,ghostty,hyprland
 ```
 
 Built-in targets cannot be overridden or extended by user-defined targets.
@@ -55,7 +59,7 @@ Pass a comma-separated list of target names or file paths to `--targets`:
 chromasync generate \
   --seed "#89b4fa" \
   --template minimal \
-  --targets kitty,gtk,/path/to/custom.toml
+  --targets kitty,hyprland,gtk,/path/to/custom.toml
 ```
 
 Duplicates in the list are silently deduplicated. Target names are trimmed of whitespace.
@@ -87,7 +91,7 @@ Each `[[artifacts]]` entry produces one output file. Placeholders are substitute
 | `description` | no | Human-readable description shown by `chromasync targets` |
 | `extends` | no | Name of another user-defined target to inherit from |
 
-Target names must not collide with built-in target names (`kitty`, `alacritty`).
+Target names must not collide with built-in target names.
 
 ### Artifact fields
 
@@ -169,20 +173,45 @@ bg={{tokens.bg | hex_no_hash}}
 
 ### Inheritance rules
 
-- The base target must be user-defined or from a pack — extending built-in targets (`kitty`, `alacritty`) is not allowed.
+- The base target must be user-defined or from a pack — extending built-in targets is not allowed.
 - Chains are supported: target A can extend B, which extends C. Cycles are detected and rejected.
 - If a child artifact has the same `file_name` as a base artifact, the child's version replaces it.
 - A target with `extends` can omit `[[artifacts]]` entirely to inherit the base unchanged under a new name.
 
-## Installing user targets
+## Installing targets
 
-Drop `.toml` target files into:
+The `target install` command installs a target TOML into the user config and records where its generated artifacts should be written:
 
+```bash
+chromasync target install \
+  --target examples/targets/gtk.toml \
+  --outdir ~/.config/gtk-4.0
 ```
-~/.config/chromasync/targets/
+
+This:
+
+1. Validates the target and copies it to `~/.config/chromasync/targets/<name>.toml` (discovered by name from then on).
+2. Records a `[[targets]]` entry in `~/.config/chromasync/config.toml` mapping the target to its output directory.
+
+The command prints the installed target file path and the config file path.
+
+Re-running install for an already-installed target is refused unless you pass `--overwrite`. The same flag is recorded in the config as `overwrite = true`, which makes `generate`, `wallpaper`, and `batch` overwrite existing artifacts for that target (a per-target `--force`).
+
+You can still drop `.toml` files directly into `~/.config/chromasync/targets/` — all `.toml` files there are auto-discovered. The difference is that `target install` also wires up the per-target output directory. Targets can also be distributed as part of a [pack](./packs.md).
+
+### The chromasync config
+
+`~/.config/chromasync/config.toml` records each installed target's output directory (and overwrite flag):
+
+```toml
+[[targets]]
+name = "gtk"
+output_dir = "~/.config/gtk-4.0"
+source = "targets/gtk.toml"
+overwrite = false
 ```
 
-All `.toml` files in this directory are auto-discovered. Targets can also be distributed as part of a [pack](./packs.md).
+The `generate`, `wallpaper`, and `batch` commands read this config. Each installed target writes its artifacts to the recorded `output_dir` instead of the generic `--output` directory; targets without an entry (built-ins, ad-hoc path targets, or pack targets) fall back to `--output`. A leading `~` in `output_dir` expands to your home directory. Passing `--force` forces every target regardless of the recorded `overwrite` flag.
 
 ## Validation
 

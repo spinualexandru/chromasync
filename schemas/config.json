@@ -1,0 +1,157 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chromasync.dev/schemas/config.json",
+  "title": "Chromasync Config",
+  "description": "Defines sync profiles and records where configured targets write generated artifacts. Auto-managed in part by `chromasync target install` at ~/.config/chromasync/config.toml. Read by the generate, wallpaper, batch, and sync commands so configured targets write to their recorded output_dir instead of the generic output fallback.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "configs": {
+      "type": "array",
+      "default": [],
+      "description": "Runnable sync profiles selected by `chromasync sync [name]`.",
+      "items": { "$ref": "#/$defs/syncProfile" }
+    },
+    "targets": {
+      "type": "array",
+      "default": [],
+      "description": "Target output entries. Empty when no target has been configured yet.",
+      "items": { "$ref": "#/$defs/target" }
+    },
+    "hooks": {
+      "type": "array",
+      "default": [],
+      "description": "Commands run after successful sync generation events.",
+      "items": { "$ref": "#/$defs/hook" }
+    }
+  },
+  "$defs": {
+    "syncProfile": {
+      "type": "object",
+      "description": "One row under [[configs]] describing a syncable theme generation profile. Exactly one of seed, image, or image_fetch_command must be set.",
+      "required": ["name", "targets"],
+      "additionalProperties": false,
+      "oneOf": [
+        { "required": ["seed"] },
+        { "required": ["image"] },
+        { "required": ["image_fetch_command"] }
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Profile name selected by `chromasync sync [name]`. `chromasync sync` without a name selects `default`."
+        },
+        "seed": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Hex seed color. Mutually exclusive with image and image_fetch_command."
+        },
+        "image": {
+          "type": "string",
+          "description": "Wallpaper image path. Relative paths are resolved from the config.toml directory. Mutually exclusive with seed and image_fetch_command."
+        },
+        "image_fetch_command": {
+          "type": "string",
+          "description": "Shell command run from the config.toml directory whose first non-empty stdout line is a wallpaper image path. Relative output paths are resolved from the config.toml directory. Mutually exclusive with seed and image."
+        },
+        "template": {
+          "type": "string",
+          "description": "Template name (built-in lookup) or path to a .toml template file. Relative paths are resolved from the config.toml directory."
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["dark", "light", "auto"],
+          "default": "dark",
+          "description": "Theme mode. auto detects the current GNOME color-scheme with gsettings and falls back to dark."
+        },
+        "contrast": {
+          "type": "string",
+          "enum": ["relative-luminance", "apca-experimental"],
+          "default": "relative-luminance",
+          "description": "Contrast selection algorithm."
+        },
+        "chroma": {
+          "type": "string",
+          "enum": ["subtle", "normal", "vibrant", "muted", "industrial"],
+          "default": "normal",
+          "description": "Chroma strategy used when generating palette families."
+        },
+        "targets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Target names (built-in, installed, or pack-provided) or target TOML paths. Relative paths are resolved from the config.toml directory."
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "chromasync",
+          "description": "Fallback output directory for targets without a [[targets]] entry. Relative paths are resolved from the config.toml directory."
+        },
+        "force": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, sync overwrites existing artifacts for targets that do not have their own overwrite setting."
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "description": "One row under [[targets]] mapping a target to its output directory and overwrite flag.",
+      "required": ["name", "output_dir"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]+$",
+          "description": "Target name. For custom targets, this matches the name field of a discovered target TOML. Built-in targets such as kitty, alacritty, ghostty, hyprland, hyprland-lua, and zed can also be mapped here."
+        },
+        "output_dir": {
+          "type": "string",
+          "description": "Directory where this target's generated artifacts are written. A leading ~ or ~/ expands to the user's home directory at resolve time."
+        },
+        "source": {
+          "type": "string",
+          "description": "Optional location of the installed target file relative to the config root, such as \"targets/gtk.toml\". Omit for built-in targets."
+        },
+        "overwrite": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, generation overwrites existing artifacts for this target (a per-target --force). A global --force or sync profile force=true overrides this regardless of the recorded value."
+        }
+      }
+    },
+    "hook": {
+      "type": "object",
+      "description": "One command hook under [[hooks]]. Hooks currently run after successful `chromasync sync` artifact writes.",
+      "required": ["name", "on", "command"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable hook name used in error messages."
+        },
+        "on": {
+          "description": "Event or events that trigger this hook. Supported events are `targets:done` and `target:<target-name>:done`.",
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            }
+          ]
+        },
+        "command": {
+          "type": "string",
+          "description": "Shell command run from the directory containing config.toml. A non-zero exit status fails the sync command after artifacts have been written."
+        },
+        "filters": {
+          "type": "array",
+          "default": [],
+          "items": { "type": "string" },
+          "description": "Optional filters. Currently supports `config:<profile-name>`; all filters must match."
+        }
+      }
+    }
+  }
+}

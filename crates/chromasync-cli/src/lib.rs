@@ -3,6 +3,7 @@ use std::{
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
+    process::Command as ProcessCommand,
 };
 
 use anyhow::{Context, Result, bail};
@@ -32,6 +33,8 @@ enum Command {
     Wallpaper(WallpaperArgs),
     /// Execute a batch manifest with multiple generation jobs.
     Batch(BatchArgs),
+    /// Run a named sync profile from the user config.
+    Sync(SyncArgs),
     /// List the available templates and where they were loaded from.
     Templates,
     /// List the discovered theme packs.
@@ -43,6 +46,11 @@ enum Command {
     },
     /// List available renderer targets and where they were loaded from.
     Targets,
+    /// Manage installed renderer targets.
+    Target {
+        #[command(subcommand)]
+        command: TargetCommand,
+    },
     /// Show palette families and resolved semantic tokens.
     Preview(PreviewArgs),
     /// Export resolved semantic tokens.
@@ -65,6 +73,25 @@ enum PackCommand {
 struct PackInfoArgs {
     /// Pack name from pack.toml.
     name: String,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum TargetCommand {
+    /// Install a target TOML into the user config and record its output directory.
+    Install(TargetInstallArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct TargetInstallArgs {
+    /// Path to the target TOML file to install.
+    #[arg(long)]
+    target: PathBuf,
+    /// Directory where this target's generated artifacts should be written.
+    #[arg(long)]
+    outdir: PathBuf,
+    /// Replace an existing installed target and mark it for forced overwrite during generation.
+    #[arg(long)]
+    overwrite: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -90,6 +117,9 @@ struct GenerateArgs {
     /// Output directory for generated artifacts.
     #[arg(long, default_value = "chromasync")]
     output: PathBuf,
+    /// Overwrite existing artifacts instead of refusing when a file already exists at the destination.
+    #[arg(long)]
+    force: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -115,6 +145,9 @@ struct WallpaperArgs {
     /// Output directory for generated artifacts.
     #[arg(long, default_value = "chromasync")]
     output: PathBuf,
+    /// Overwrite existing artifacts instead of refusing when a file already exists at the destination.
+    #[arg(long)]
+    force: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -165,6 +198,12 @@ struct BatchArgs {
     file: PathBuf,
 }
 
+#[derive(Debug, Clone, Args)]
+struct SyncArgs {
+    /// Profile name under [[configs]]. Defaults to "default".
+    profile: Option<String>,
+}
+
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum CliMode {
     Dark,
@@ -212,6 +251,8 @@ struct BatchJob {
     #[serde(default)]
     targets: Vec<String>,
     output: PathBuf,
+    #[serde(default)]
+    force: bool,
 }
 
 impl From<CliMode> for ThemeMode {
@@ -310,12 +351,29 @@ pub fn run() -> Result<()> {
 
 pub fn run_with(cli: Cli) -> Result<()> {
     let output_registry = match &cli.command {
-        Command::Generate(_) | Command::Wallpaper(_) | Command::Batch(_) | Command::Targets => {
-            Some(chromasync_core::load_output_registry()?)
-        }
+        Command::Generate(_)
+        | Command::Wallpaper(_)
+        | Command::Batch(_)
+        | Command::Sync(_)
+        | Command::Targets => Some(chromasync_core::load_output_registry()?),
         Command::Templates
         | Command::Packs
         | Command::Pack { .. }
+        | Command::Target { .. }
+        | Command::Preview(_)
+        | Command::Tokens(_)
+        | Command::Completions { .. } => None,
+    };
+
+    let config = match &cli.command {
+        Command::Generate(_) | Command::Wallpaper(_) | Command::Batch(_) | Command::Sync(_) => {
+            Some(chromasync_core::ChromasyncConfig::load()?)
+        }
+        Command::Targets
+        | Command::Templates
+        | Command::Packs
+        | Command::Pack { .. }
+        | Command::Target { .. }
         | Command::Preview(_)
         | Command::Tokens(_)
         | Command::Completions { .. } => None,
@@ -323,32 +381,50 @@ pub fn run_with(cli: Cli) -> Result<()> {
 
     match cli.command {
         Command::Generate(args) => {
+            let force = args.force;
             let request = args.into_request()?;
-            let artifacts = chromasync_core::generate_with_output_registry(
+            let artifacts = generate_routed_artifacts(
                 &request,
                 output_registry
                     .as_ref()
                     .expect("output registry should be loaded for generate"),
+                config
+                    .as_ref()
+                    .expect("config should be loaded for generate"),
+                force,
             )?;
 
-            write_artifacts(&request.output_dir, &artifacts)
+            write_and_print_routed(&artifacts).map(|_| ())
         }
         Command::Wallpaper(args) => {
+            let force = args.force;
             let request = args.into_request()?;
-            let artifacts = generate_artifacts(
+            let artifacts = generate_routed_artifacts(
                 &request,
                 output_registry
                     .as_ref()
                     .expect("output registry should be loaded for wallpaper"),
+                config
+                    .as_ref()
+                    .expect("config should be loaded for wallpaper"),
+                force,
             )?;
 
-            write_artifacts(&request.output_dir, &artifacts)
+            write_and_print_routed(&artifacts).map(|_| ())
         }
         Command::Batch(args) => run_batch(
             args,
             output_registry
                 .as_ref()
                 .expect("output registry should be loaded for batch"),
+            config.as_ref().expect("config should be loaded for batch"),
+        ),
+        Command::Sync(args) => run_sync(
+            args,
+            output_registry
+                .as_ref()
+                .expect("output registry should be loaded for sync"),
+            config.as_ref().expect("config should be loaded for sync"),
         ),
         Command::Templates => print_templates(),
         Command::Packs => print_packs(),
@@ -360,6 +436,9 @@ pub fn run_with(cli: Cli) -> Result<()> {
                 .as_ref()
                 .expect("output registry should be loaded for targets"),
         ),
+        Command::Target { command } => match command {
+            TargetCommand::Install(args) => run_target_install(args),
+        },
         Command::Preview(args) => {
             let preview = chromasync_core::preview(&args.into_request())?;
             println!("{preview}");
@@ -399,7 +478,57 @@ fn generate_artifacts(
     }
 }
 
-fn run_batch(args: BatchArgs, output_registry: &chromasync_core::OutputRegistry) -> Result<()> {
+#[derive(Debug, Clone)]
+struct RoutedArtifact {
+    artifact: GeneratedArtifact,
+    output_dir: PathBuf,
+    force: bool,
+}
+
+fn generate_routed_artifacts(
+    request: &GenerationRequest,
+    output_registry: &chromasync_core::OutputRegistry,
+    config: &chromasync_core::ChromasyncConfig,
+    fallback_force: bool,
+) -> Result<Vec<RoutedArtifact>> {
+    let mut routed = Vec::new();
+
+    for target in &request.targets {
+        let (output_dir, force) = output_route_for_target(target, request, fallback_force, config);
+        let mut target_request = request.clone();
+        target_request.output_dir = output_dir.clone();
+        target_request.targets = vec![target.clone()];
+
+        for artifact in generate_artifacts(&target_request, output_registry)? {
+            routed.push(RoutedArtifact {
+                artifact,
+                output_dir: output_dir.clone(),
+                force,
+            });
+        }
+    }
+
+    Ok(routed)
+}
+
+fn output_route_for_target(
+    target: &str,
+    request: &GenerationRequest,
+    fallback_force: bool,
+    config: &chromasync_core::ChromasyncConfig,
+) -> (PathBuf, bool) {
+    if !looks_like_path(target) {
+        config.resolve(target, &request.output_dir, fallback_force)
+    } else {
+        (request.output_dir.clone(), fallback_force)
+    }
+}
+
+fn run_batch(
+    args: BatchArgs,
+    output_registry: &chromasync_core::OutputRegistry,
+    config: &chromasync_core::ChromasyncConfig,
+) -> Result<()> {
     let manifest_path = args.file;
     let manifest_dir = manifest_path
         .parent()
@@ -426,19 +555,203 @@ fn run_batch(args: BatchArgs, output_registry: &chromasync_core::OutputRegistry)
     }
 
     for (index, job) in manifest.jobs.into_iter().enumerate() {
+        let force = job.force;
         let request = batch_job_into_request(job, &manifest_dir)?;
-        let artifacts = generate_artifacts(&request, output_registry).with_context(|| {
+        let artifacts = generate_routed_artifacts(&request, output_registry, config, force)
+            .with_context(|| {
+                format!(
+                    "batch job {} failed for output '{}'",
+                    index + 1,
+                    request.output_dir.display()
+                )
+            })?;
+
+        write_and_print_routed(&artifacts)?;
+    }
+
+    Ok(())
+}
+
+fn run_sync(
+    args: SyncArgs,
+    output_registry: &chromasync_core::OutputRegistry,
+    config: &chromasync_core::ChromasyncConfig,
+) -> Result<()> {
+    let profile_name = args.profile.unwrap_or_else(|| "default".to_owned());
+    let config_path = chromasync_core::config_file_path()
+        .context("could not resolve the chromasync user config directory")?;
+
+    if !config_path.exists() {
+        bail!(
+            "chromasync config '{}' does not exist; create a [[configs]] profile first",
+            config_path.display()
+        );
+    }
+
+    let config_dir = config_path.parent().unwrap_or_else(|| Path::new("."));
+    let profile = config.sync_profile(&profile_name).ok_or_else(|| {
+        anyhow::anyhow!(
+            "sync profile '{}' was not found in '{}'",
+            profile_name,
+            config_path.display()
+        )
+    })?;
+
+    let force = profile.force;
+    let request = sync_profile_into_request(profile, config_dir)?;
+    let artifacts = generate_routed_artifacts(&request, output_registry, config, force)
+        .with_context(|| {
             format!(
-                "batch job {} failed for output '{}'",
-                index + 1,
+                "sync profile '{}' failed for output '{}'",
+                profile.name,
                 request.output_dir.display()
             )
         })?;
 
-        write_artifacts(&request.output_dir, &artifacts)?;
+    let report = write_and_print_routed(&artifacts)?;
+    run_matching_hooks(config, &profile.name, config_dir, &report)
+}
+
+fn sync_profile_into_request(
+    profile: &chromasync_core::SyncProfile,
+    config_dir: &Path,
+) -> Result<GenerationRequest> {
+    let color_source_count = usize::from(profile.seed.is_some())
+        + usize::from(profile.image.is_some())
+        + usize::from(profile.image_fetch_command.is_some());
+
+    if color_source_count != 1 {
+        bail!(
+            "sync profile '{}' must define exactly one of 'seed', 'image', or 'image_fetch_command'",
+            profile.name
+        );
     }
 
-    Ok(())
+    if profile.targets.is_empty() {
+        bail!(
+            "sync profile '{}' must define at least one target",
+            profile.name
+        );
+    }
+
+    Ok(GenerationRequest {
+        seed: profile.seed.clone(),
+        wallpaper: sync_profile_wallpaper(profile, config_dir)?,
+        template: profile
+            .template
+            .as_ref()
+            .map(|template| resolve_template_reference(config_dir, template)),
+        mode: resolve_sync_mode(profile.mode),
+        contrast: profile.contrast,
+        chroma: profile.chroma,
+        targets: normalize_targets_relative_to(config_dir, profile.targets.clone())?,
+        output_dir: resolve_relative_path(config_dir, &profile.output_dir),
+    })
+}
+
+fn sync_profile_wallpaper(
+    profile: &chromasync_core::SyncProfile,
+    config_dir: &Path,
+) -> Result<Option<PathBuf>> {
+    if let Some(command) = &profile.image_fetch_command {
+        return fetch_sync_profile_image(&profile.name, command, config_dir).map(Some);
+    }
+
+    Ok(profile
+        .image
+        .as_ref()
+        .map(|path| resolve_relative_path(config_dir, path)))
+}
+
+fn fetch_sync_profile_image(
+    profile_name: &str,
+    command_line: &str,
+    config_dir: &Path,
+) -> Result<PathBuf> {
+    let output = shell_command(command_line)
+        .current_dir(config_dir)
+        .output()
+        .with_context(|| {
+            format!("sync profile '{profile_name}' image_fetch_command failed to start")
+        })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let detail = stderr.trim();
+        if detail.is_empty() {
+            bail!(
+                "sync profile '{}' image_fetch_command exited with {}",
+                profile_name,
+                output.status
+            );
+        }
+
+        bail!(
+            "sync profile '{}' image_fetch_command exited with {}: {}",
+            profile_name,
+            output.status,
+            detail
+        );
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let Some(path) = stdout.lines().map(str::trim).find(|line| !line.is_empty()) else {
+        bail!("sync profile '{profile_name}' image_fetch_command did not print an image path");
+    };
+
+    Ok(resolve_relative_path(config_dir, Path::new(path)))
+}
+
+fn shell_command(command_line: &str) -> ProcessCommand {
+    #[cfg(windows)]
+    {
+        let mut command = ProcessCommand::new("cmd");
+        command.args(["/C", command_line]);
+        command
+    }
+
+    #[cfg(not(windows))]
+    {
+        let mut command = ProcessCommand::new("sh");
+        command.args(["-c", command_line]);
+        command
+    }
+}
+
+fn resolve_sync_mode(mode: chromasync_core::SyncMode) -> ThemeMode {
+    match mode {
+        chromasync_core::SyncMode::Light => ThemeMode::Light,
+        chromasync_core::SyncMode::Dark => ThemeMode::Dark,
+        chromasync_core::SyncMode::Auto => detect_desktop_theme_mode(),
+    }
+}
+
+fn detect_desktop_theme_mode() -> ThemeMode {
+    let output = ProcessCommand::new("gsettings")
+        .args(["get", "org.gnome.desktop.interface", "color-scheme"])
+        .output();
+
+    match output {
+        Ok(output) if output.status.success() => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            desktop_mode_from_gsettings_output(&stdout).unwrap_or(ThemeMode::Dark)
+        }
+        _ => ThemeMode::Dark,
+    }
+}
+
+fn desktop_mode_from_gsettings_output(output: &str) -> Option<ThemeMode> {
+    let value = output
+        .trim()
+        .trim_matches('\'')
+        .trim_matches('"')
+        .to_ascii_lowercase();
+
+    match value.as_str() {
+        "prefer-light" => Some(ThemeMode::Light),
+        "prefer-dark" => Some(ThemeMode::Dark),
+        _ => None,
+    }
 }
 
 fn batch_job_into_request(job: BatchJob, base_dir: &Path) -> Result<GenerationRequest> {
@@ -621,52 +934,139 @@ where
     Ok(normalized)
 }
 
-fn write_artifacts(output_dir: &Path, artifacts: &[GeneratedArtifact]) -> Result<()> {
-    if artifacts.is_empty() {
-        return Ok(());
-    }
-
-    let mut seen_paths = BTreeSet::new();
-    let destinations = artifacts
+fn write_and_print_routed(artifacts: &[RoutedArtifact]) -> Result<WriteReport> {
+    let entries: Vec<chromasync_core::ResolvedArtifact> = artifacts
         .iter()
-        .map(|artifact| {
-            let path = output_dir.join(&artifact.file_name);
-
-            if !seen_paths.insert(path.clone()) {
-                bail!(
-                    "multiple artifacts would write to the same destination '{}'",
-                    path.display()
-                );
-            }
-
-            if path.exists() {
-                bail!(
-                    "refusing to overwrite existing artifact '{}'",
-                    path.display()
-                );
-            }
-
-            Ok((artifact, path))
+        .map(|artifact| chromasync_core::ResolvedArtifact {
+            output_dir: artifact.output_dir.clone(),
+            file_name: artifact.artifact.file_name.clone(),
+            content: artifact.artifact.content.clone(),
+            force: artifact.force,
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect();
 
-    fs::create_dir_all(output_dir).with_context(|| {
-        format!(
-            "failed to create output directory '{}'",
-            output_dir.display()
-        )
-    })?;
-
-    for (artifact, path) in &destinations {
-        fs::write(path, &artifact.content)
-            .with_context(|| format!("failed to write artifact '{}'", path.display()))?;
-    }
+    let written = chromasync_core::write_resolved_artifacts(&entries)?;
+    let generated_artifacts = artifacts
+        .iter()
+        .map(|artifact| artifact.artifact.clone())
+        .collect::<Vec<_>>();
+    let report = WriteReport::new(&generated_artifacts);
 
     let mut stdout = io::BufWriter::new(io::stdout().lock());
-
-    for (_, path) in &destinations {
+    for path in &written {
         writeln!(stdout, "{}", path.display())?;
     }
 
+    Ok(report)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WriteReport {
+    events: BTreeSet<String>,
+}
+
+impl WriteReport {
+    fn new(artifacts: &[GeneratedArtifact]) -> Self {
+        let mut events = artifacts
+            .iter()
+            .map(|artifact| format!("target:{}:done", artifact.target))
+            .collect::<BTreeSet<_>>();
+
+        if !artifacts.is_empty() {
+            events.insert("targets:done".to_owned());
+        }
+
+        Self { events }
+    }
+
+    fn has_event(&self, event: &str) -> bool {
+        self.events.contains(event)
+    }
+}
+
+fn run_matching_hooks(
+    config: &chromasync_core::ChromasyncConfig,
+    profile_name: &str,
+    config_dir: &Path,
+    report: &WriteReport,
+) -> Result<()> {
+    for hook in &config.hooks {
+        if hook_matches(hook, profile_name, report) {
+            run_hook(hook, config_dir)?;
+        }
+    }
+
     Ok(())
+}
+
+fn hook_matches(
+    hook: &chromasync_core::ConfigHook,
+    profile_name: &str,
+    report: &WriteReport,
+) -> bool {
+    hook.on.iter().any(|event| report.has_event(event))
+        && hook
+            .filters
+            .iter()
+            .all(|filter| filter == &format!("config:{profile_name}"))
+}
+
+fn run_hook(hook: &chromasync_core::ConfigHook, config_dir: &Path) -> Result<()> {
+    let output = shell_command(&hook.command)
+        .current_dir(config_dir)
+        .output()
+        .with_context(|| format!("hook '{}' failed to start", hook.name))?;
+
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let detail = stderr.trim();
+    if detail.is_empty() {
+        bail!("hook '{}' exited with {}", hook.name, output.status);
+    }
+
+    bail!(
+        "hook '{}' exited with {}: {}",
+        hook.name,
+        output.status,
+        detail
+    )
+}
+
+fn run_target_install(args: TargetInstallArgs) -> Result<()> {
+    let summary = chromasync_core::install_target(&args.target, args.outdir, args.overwrite)?;
+
+    let mut stdout = io::BufWriter::new(io::stdout().lock());
+    writeln!(stdout, "{}", summary.target_file.display())?;
+    writeln!(stdout, "{}", summary.config_file.display())?;
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ThemeMode, desktop_mode_from_gsettings_output};
+
+    #[test]
+    fn gsettings_prefer_light_maps_to_light_mode() {
+        assert_eq!(
+            desktop_mode_from_gsettings_output("'prefer-light'\n"),
+            Some(ThemeMode::Light)
+        );
+    }
+
+    #[test]
+    fn gsettings_prefer_dark_maps_to_dark_mode() {
+        assert_eq!(
+            desktop_mode_from_gsettings_output("'prefer-dark'\n"),
+            Some(ThemeMode::Dark)
+        );
+    }
+
+    #[test]
+    fn unknown_gsettings_color_scheme_is_not_inferred() {
+        assert_eq!(desktop_mode_from_gsettings_output("'default'\n"), None);
+    }
 }

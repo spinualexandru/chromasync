@@ -48,13 +48,13 @@ chromasync templates
 
 ## Choosing targets
 
-Targets can be built-in names (`kitty`, `alacritty`), paths to declarative target TOML files, or targets provided by packs. Mix them freely in a comma-separated list:
+Targets can be built-in names (`kitty`, `alacritty`, `ghostty`, `hyprland`, `hyprland-lua`, `zed`), paths to declarative target TOML files, or targets provided by packs. Mix them freely in a comma-separated list:
 
 ```bash
---targets kitty,alacritty,examples/targets/gtk.toml,examples/targets/css.toml
+--targets kitty,alacritty,hyprland,examples/targets/gtk.toml,examples/targets/css.toml
 ```
 
-Declarative example targets for GTK, Hyprland, CSS, Waybar, Foot, Ghostty, and Editor ship under `examples/targets/`.
+Declarative example targets for GTK, CSS, Waybar, Foot, and Editor ship under `examples/targets/`.
 
 List available targets with:
 
@@ -74,7 +74,9 @@ chromasync/theme.css
 
 ### Overwrite protection
 
-Generate refuses to overwrite existing files. If an artifact already exists at the destination, the command fails before writing anything. Delete or move the existing output directory first, or use a different `--output` path.
+Generate refuses to overwrite existing files. If an artifact already exists at the destination, the command fails before writing anything. Delete or move the existing file first, use a different `--output` path, or pass `--force` to overwrite in place.
+
+`--force` is the intended way to drive iterative workflows such as regenerating themes on every wallpaper change — it replaces each destination file with the freshly generated content. The collision check below is always enforced, even under `--force`.
 
 ### Collision detection
 
@@ -96,7 +98,7 @@ chromasync generate \
   --seed "#4ecdc4" \
   --template minimal \
   --mode dark \
-  --targets kitty,alacritty,examples/targets/gtk.toml,examples/targets/hyprland.toml
+  --targets kitty,alacritty,hyprland,examples/targets/gtk.toml
 ```
 
 Generate a light theme with APCA contrast into a custom directory:

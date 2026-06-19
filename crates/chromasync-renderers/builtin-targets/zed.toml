@@ -1,7 +1,7 @@
-#:schema ../../schemas/target.json
+#:schema ../../../schemas/target.json
 name = "zed"
-description = "Example user-defined Zed Editor theme target."
-preferred_template = "editor"
+description = "Built-in Zed Editor theme target."
+preferred_template = "materialish"
 chroma = "normal"
 
 [[artifacts]]

@@ -1,7 +1,9 @@
 Declarative Chromasync target examples.
 
-These target TOML files provide `gtk`, `hyprland`, `css`, `waybar`, `foot`,
-`ghostty`, and `editor` outputs. Use them with commands such as:
+These target TOML files provide additional `gtk`, `css`, `waybar`, `foot`, and
+`editor` outputs. Built-in targets such as `ghostty`, `hyprland`,
+`hyprland-lua`, and `zed` can be used by name. Use the example targets with
+commands such as:
 
 ```bash
 cargo run -- generate \

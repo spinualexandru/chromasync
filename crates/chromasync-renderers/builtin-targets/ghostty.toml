@@ -1,10 +1,10 @@
-#:schema ../../schemas/target.json
+#:schema ../../../schemas/target.json
 name = "ghostty"
-description = "Example user-defined Ghostty target."
+description = "Built-in Ghostty target."
 chroma = "vibrant"
 
 [[artifacts]]
-file_name = "colors.txt"
+file_name = "chromasync.ghostty"
 template = """
 background = {{tokens.bg}}
 foreground = {{tokens.text}}

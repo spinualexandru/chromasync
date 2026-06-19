@@ -9,13 +9,49 @@ use thiserror::Error;
 
 pub use crate::registry::{
     ArtifactSpec, CompiledTarget, ListedTarget, OutputRegistry, RendererRegistry, TargetRegistry,
-    TargetSource, TargetSpec, user_targets_dir,
+    TargetSource, TargetSpec, parse_target_file, user_targets_dir,
 };
 
-pub const BUILTIN_TARGETS: [RenderTarget; 2] = [RenderTarget::Kitty, RenderTarget::Alacritty];
+pub const BUILTIN_TARGETS: [RenderTarget; 6] = [
+    RenderTarget::Alacritty,
+    RenderTarget::Ghostty,
+    RenderTarget::Hyprland,
+    RenderTarget::HyprlandLua,
+    RenderTarget::Kitty,
+    RenderTarget::Zed,
+];
+
+pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 4] = [
+    (
+        "ghostty",
+        "ghostty.toml",
+        include_str!("../builtin-targets/ghostty.toml"),
+    ),
+    (
+        "hyprland",
+        "hyprland.toml",
+        include_str!("../builtin-targets/hyprland.toml"),
+    ),
+    (
+        "hyprland-lua",
+        "hyprland-lua.toml",
+        include_str!("../builtin-targets/hyprland-lua.toml"),
+    ),
+    (
+        "zed",
+        "zed.toml",
+        include_str!("../builtin-targets/zed.toml"),
+    ),
+];
 
 pub trait ArtifactGenerator: Send + Sync {
     fn name(&self) -> &str;
+    fn preferred_template(&self) -> Option<&str> {
+        None
+    }
+    fn chroma_strategy(&self) -> Option<chromasync_types::ChromaStrategy> {
+        None
+    }
     fn generate(
         &self,
         tokens: &SemanticTokens,

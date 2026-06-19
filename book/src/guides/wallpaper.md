@@ -80,7 +80,7 @@ chromasync wallpaper \
   --image ~/wallpapers/sunset.png \
   --template materialish \
   --mode light \
-  --targets kitty,alacritty,examples/targets/gtk.toml,examples/targets/hyprland.toml
+  --targets kitty,alacritty,hyprland,examples/targets/gtk.toml
 ```
 
 Generate with APCA contrast into a custom directory:

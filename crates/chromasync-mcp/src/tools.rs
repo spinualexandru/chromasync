@@ -40,7 +40,7 @@ impl ChromasyncServer {
         .map_err(string_error_to_mcp)?;
 
         let artifacts = chromasync_core::generate(&request).map_err(core_error_to_mcp)?;
-        let written = write_artifacts(Path::new(&params.output_dir), &artifacts)?;
+        let written = write_artifacts(Path::new(&params.output_dir), &artifacts, params.force)?;
         let json = serde_json::to_string_pretty(&written)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
@@ -68,7 +68,7 @@ impl ChromasyncServer {
 
         let artifacts =
             chromasync_core::generate_from_wallpaper(&request).map_err(core_error_to_mcp)?;
-        let written = write_artifacts(Path::new(&params.output_dir), &artifacts)?;
+        let written = write_artifacts(Path::new(&params.output_dir), &artifacts, params.force)?;
         let json = serde_json::to_string_pretty(&written)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
@@ -122,6 +122,7 @@ impl ChromasyncServer {
 
         for (index, job) in manifest.jobs.into_iter().enumerate() {
             let job_name = job.name.clone();
+            let force = job.force;
             let request = batch_job_into_request(job, &manifest_dir)?;
             let artifacts = if request.wallpaper.is_some() {
                 chromasync_core::generate_from_wallpaper_with_output_registry(
@@ -142,7 +143,7 @@ impl ChromasyncServer {
                 )
             })?;
 
-            let written = write_artifacts(&request.output_dir, &artifacts)?;
+            let written = write_artifacts(&request.output_dir, &artifacts, force)?;
             all_results.push(serde_json::json!({
                 "job": job_name.unwrap_or_else(|| format!("job_{}", index + 1)),
                 "output_dir": request.output_dir.display().to_string(),
@@ -361,6 +362,8 @@ struct BatchJob {
     #[serde(default)]
     targets: Vec<String>,
     output: PathBuf,
+    #[serde(default)]
+    force: bool,
 }
 
 fn batch_job_into_request(

@@ -14,8 +14,8 @@ use directories::ProjectDirs;
 use serde::Deserialize;
 
 use crate::{
-    ArtifactGenerator, BUILTIN_TARGETS, RendererError, alacritty::AlacrittyRenderer, hyprland_rgba,
-    kitty::KittyRenderer, normalized_hex_without_hash,
+    ArtifactGenerator, BUILTIN_DECLARATIVE_TARGETS, BUILTIN_TARGETS, RendererError,
+    alacritty::AlacrittyRenderer, hyprland_rgba, kitty::KittyRenderer, normalized_hex_without_hash,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -174,8 +174,12 @@ impl RendererRegistry {
             renderers: BTreeMap::new(),
         };
 
-        registry.register(KittyRenderer);
         registry.register(AlacrittyRenderer);
+        registry.register(KittyRenderer);
+
+        for (name, file_name, content) in BUILTIN_DECLARATIVE_TARGETS {
+            registry.register(built_in_declarative_target(name, file_name, content));
+        }
 
         registry
     }
@@ -211,14 +215,28 @@ impl RendererRegistry {
         BUILTIN_TARGETS
             .iter()
             .filter_map(|target| {
-                self.renderers.get(target.as_str()).map(|_| ListedTarget {
-                    name: target.as_str().to_owned(),
-                    preferred_template: None,
-                    chroma: None,
-                    source: TargetSource::BuiltIn(target.as_str()),
-                })
+                self.renderers
+                    .get(target.as_str())
+                    .map(|generator| ListedTarget {
+                        name: target.as_str().to_owned(),
+                        preferred_template: generator.preferred_template().map(str::to_owned),
+                        chroma: generator.chroma_strategy(),
+                        source: TargetSource::BuiltIn(target.as_str()),
+                    })
             })
             .collect()
+    }
+
+    pub fn resolve_preferred_template(&self, target: &str) -> Option<String> {
+        self.renderers
+            .get(target)
+            .and_then(|generator| generator.preferred_template().map(str::to_owned))
+    }
+
+    pub fn resolve_chroma_strategy(&self, target: &str) -> Option<ChromaStrategy> {
+        self.renderers
+            .get(target)
+            .and_then(|generator| generator.chroma_strategy())
     }
 }
 
@@ -372,7 +390,7 @@ impl OutputRegistry {
             return compiled.preferred_template;
         }
 
-        None
+        self.built_in.resolve_preferred_template(target)
     }
 
     pub fn resolve_chroma_strategy(&self, target: &str) -> Option<ChromaStrategy> {
@@ -386,7 +404,7 @@ impl OutputRegistry {
             return compiled.chroma;
         }
 
-        None
+        self.built_in.resolve_chroma_strategy(target)
     }
 
     pub fn generate(
@@ -409,6 +427,10 @@ impl OutputRegistry {
         }
 
         Ok(artifacts)
+    }
+
+    pub fn validate_path_target(&self, path: &Path) -> Result<(), RendererError> {
+        self.load_path_target(path).map(|_| ())
     }
 
     fn load_path_target(&self, path: &Path) -> Result<CompiledTarget, RendererError> {
@@ -483,6 +505,14 @@ impl Default for OutputRegistry {
 impl ArtifactGenerator for CompiledTarget {
     fn name(&self) -> &str {
         &self.name
+    }
+
+    fn preferred_template(&self) -> Option<&str> {
+        self.preferred_template.as_deref()
+    }
+
+    fn chroma_strategy(&self) -> Option<ChromaStrategy> {
+        self.chroma
     }
 
     fn generate(
@@ -573,6 +603,16 @@ fn target_from_file(path: &Path, user_config: bool) -> Result<LoadedTarget, Rend
     target_from_file_with_source(path, source)
 }
 
+/// Parse and validate a standalone target TOML file, returning its spec.
+///
+/// Runs the same validation that target discovery applies (name rules, artifact
+/// file names, placeholder compilation, inheritance target names) without
+/// resolving `extends` against a registry. Used by `chromasync target install`
+/// to reject malformed targets before copying them into the user config.
+pub fn parse_target_file(path: &Path) -> Result<TargetSpec, RendererError> {
+    Ok(target_from_file(path, false)?.spec)
+}
+
 fn target_from_file_with_source(
     path: &Path,
     source: TargetSource,
@@ -590,6 +630,34 @@ fn target_from_file_with_source(
     )?;
 
     Ok(LoadedTarget { spec, source })
+}
+
+fn built_in_declarative_target(
+    name: &'static str,
+    file_name: &str,
+    content: &str,
+) -> CompiledTarget {
+    let spec = parse_target(
+        file_name,
+        content,
+        format!("built-in declarative target {file_name}"),
+    )
+    .expect("built-in declarative target should parse");
+    assert_eq!(
+        spec.name, name,
+        "built-in declarative target name should match its registry entry"
+    );
+    let source = TargetSource::BuiltIn(name);
+    let loaded = LoadedTarget { spec, source };
+    let base = CompiledTarget {
+        name: loaded.spec.name.clone(),
+        preferred_template: None,
+        chroma: None,
+        artifacts: Vec::new(),
+        source: loaded.source.clone(),
+    };
+
+    compile_loaded_target(&loaded, &base).expect("built-in declarative target should compile")
 }
 
 fn loaded_targets_from_packs(packs: &[ThemePack]) -> Result<Vec<LoadedTarget>, RendererError> {
@@ -712,6 +780,10 @@ fn compile_registry_targets(
 
     for target in loaded {
         if built_in_names.contains(&target.spec.name) {
+            if matches!(target.source, TargetSource::UserConfig(_)) {
+                continue;
+            }
+
             return Err(RendererError::TargetNameCollidesWithBuiltIn {
                 name: target.spec.name,
             });
