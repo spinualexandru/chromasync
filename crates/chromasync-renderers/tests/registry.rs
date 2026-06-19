@@ -167,7 +167,7 @@ fn built_in_declarative_targets_expose_metadata() {
 
     assert_eq!(
         registry.resolve_preferred_template("zed").as_deref(),
-        Some("editor")
+        Some("materialish")
     );
     assert_eq!(
         registry.resolve_chroma_strategy("ghostty"),
@@ -179,7 +179,7 @@ fn built_in_declarative_targets_expose_metadata() {
         .into_iter()
         .find(|target| target.name == "zed")
         .expect("zed should be listed");
-    assert_eq!(zed.preferred_template.as_deref(), Some("editor"));
+    assert_eq!(zed.preferred_template.as_deref(), Some("materialish"));
     assert_eq!(zed.chroma, Some(ChromaStrategy::Normal));
 }
 

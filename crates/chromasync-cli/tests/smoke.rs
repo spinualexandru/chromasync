@@ -295,21 +295,6 @@ fn generate_writes_ghostty_built_in_target() {
 fn generate_uses_zed_built_in_preferred_template() {
     let workspace = temp_dir_path("generate-zed-preferred-template");
     let output_dir = workspace.join("output");
-    let templates_dir = workspace
-        .join("xdg-config")
-        .join("chromasync")
-        .join("templates");
-    fs::create_dir_all(&templates_dir).expect("user templates directory should be created");
-    fs::copy(
-        example_template_path("editor-dark.toml"),
-        templates_dir.join("editor-dark.toml"),
-    )
-    .expect("dark editor template should be installed");
-    fs::copy(
-        example_template_path("editor-light.toml"),
-        templates_dir.join("editor-light.toml"),
-    )
-    .expect("light editor template should be installed");
 
     let mut command = isolated_command(&workspace);
     command.args(["generate", "--seed", "#4ecdc4", "--targets", "zed"]);
@@ -1443,6 +1428,56 @@ fn generate_writes_to_installed_target_outdir() {
 }
 
 #[test]
+fn installed_target_context_output_dir_matches_resolved_outdir() {
+    let workspace = temp_dir_path("target-install-context-output-dir");
+    fs::create_dir_all(&workspace).expect("workspace should be created");
+    let installed_outdir = workspace.join("installed-out");
+    let artifact_path = installed_outdir.join("probe.txt");
+    let target_path = workspace.join("outdir-probe.toml");
+    fs::write(
+        &target_path,
+        r#"
+name = "outdir-probe"
+
+[[artifacts]]
+file_name = "probe.txt"
+template = "output={{ctx.output_dir}}"
+"#,
+    )
+    .expect("target should be written");
+
+    let mut install = isolated_command(&workspace);
+    install.args([
+        "target",
+        "install",
+        "--target",
+        target_path.to_str().expect("target path should be utf-8"),
+        "--outdir",
+        installed_outdir
+            .to_str()
+            .expect("installed outdir should be utf-8"),
+    ]);
+    install.assert().success();
+
+    let mut generate = isolated_command(&workspace);
+    generate.args([
+        "generate",
+        "--seed",
+        "#4ecdc4",
+        "--template",
+        "minimal",
+        "--targets",
+        "outdir-probe",
+    ]);
+    generate.assert().success();
+
+    let content = fs::read_to_string(&artifact_path).expect("installed artifact should exist");
+    assert_eq!(content, format!("output={}", installed_outdir.display()));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
 fn explicit_path_target_uses_requested_output_even_when_same_name_is_installed() {
     let workspace = temp_dir_path("target-install-path-generate");
     let installed_outdir = workspace.join("gtk-installed-out");
@@ -1653,6 +1688,61 @@ template = "foreground={{tokens.text}}"
 }
 
 #[test]
+fn target_install_rejects_unknown_inheritance_without_persisting_target() {
+    let workspace = temp_dir_path("target-install-unknown-inheritance");
+    fs::create_dir_all(&workspace).expect("workspace should be created");
+    let target_path = workspace.join("gtk-from-missing.toml");
+    fs::write(
+        &target_path,
+        r#"
+name = "gtk-from-missing"
+extends = "missing-base"
+
+[[artifacts]]
+file_name = "gtk.css"
+template = "foreground={{tokens.text}}"
+"#,
+    )
+    .expect("target should be written");
+
+    let mut install = isolated_command(&workspace);
+    install.args([
+        "target",
+        "install",
+        "--target",
+        target_path.to_str().expect("target path should be utf-8"),
+        "--outdir",
+        workspace.to_str().expect("outdir should be utf-8"),
+    ]);
+
+    install.assert().failure().stderr(predicate::str::contains(
+        "target 'gtk-from-missing' references unknown base target 'missing-base'",
+    ));
+
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    assert!(
+        !config_root
+            .join("targets")
+            .join("gtk-from-missing.toml")
+            .exists(),
+        "invalid target should not be copied into user config"
+    );
+    assert!(
+        !config_root.join("config.toml").exists(),
+        "invalid target should not create a config entry"
+    );
+
+    let mut targets = isolated_command(&workspace);
+    targets.arg("targets");
+    targets
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("kitty\tbuilt-in\tkitty"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
 fn installed_overwrite_flag_forces_existing_artifact() {
     let workspace = temp_dir_path("target-install-overwrite-force");
     let outdir = workspace.join("force-out");
@@ -1802,12 +1892,6 @@ fn example_and_builtin_targets(entries: &[&str]) -> String {
 fn example_target_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../examples/targets")
-        .join(name)
-}
-
-fn example_template_path(name: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../examples/templates")
         .join(name)
 }
 

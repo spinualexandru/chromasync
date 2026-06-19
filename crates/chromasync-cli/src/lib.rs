@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -383,11 +383,14 @@ pub fn run_with(cli: Cli) -> Result<()> {
         Command::Generate(args) => {
             let force = args.force;
             let request = args.into_request()?;
-            let artifacts = chromasync_core::generate_with_output_registry(
+            let artifacts = generate_artifacts_with_resolved_output_dirs(
                 &request,
                 output_registry
                     .as_ref()
                     .expect("output registry should be loaded for generate"),
+                config
+                    .as_ref()
+                    .expect("config should be loaded for generate"),
             )?;
 
             write_and_print(
@@ -404,11 +407,14 @@ pub fn run_with(cli: Cli) -> Result<()> {
         Command::Wallpaper(args) => {
             let force = args.force;
             let request = args.into_request()?;
-            let artifacts = generate_artifacts(
+            let artifacts = generate_artifacts_with_resolved_output_dirs(
                 &request,
                 output_registry
                     .as_ref()
                     .expect("output registry should be loaded for wallpaper"),
+                config
+                    .as_ref()
+                    .expect("config should be loaded for wallpaper"),
             )?;
 
             write_and_print(
@@ -488,6 +494,37 @@ fn generate_artifacts(
     }
 }
 
+fn generate_artifacts_with_resolved_output_dirs(
+    request: &GenerationRequest,
+    output_registry: &chromasync_core::OutputRegistry,
+    config: &chromasync_core::ChromasyncConfig,
+) -> Result<Vec<GeneratedArtifact>> {
+    let mut target_groups: BTreeMap<PathBuf, Vec<String>> = BTreeMap::new();
+
+    for target in &request.targets {
+        let output_dir = if uses_installed_output(target, &request.targets) {
+            config.resolve(target, &request.output_dir, false).0
+        } else {
+            request.output_dir.clone()
+        };
+        target_groups
+            .entry(output_dir)
+            .or_default()
+            .push(target.clone());
+    }
+
+    let mut artifacts = Vec::new();
+
+    for (output_dir, targets) in target_groups {
+        let mut grouped_request = request.clone();
+        grouped_request.output_dir = output_dir;
+        grouped_request.targets = targets;
+        artifacts.extend(generate_artifacts(&grouped_request, output_registry)?);
+    }
+
+    Ok(artifacts)
+}
+
 fn run_batch(
     args: BatchArgs,
     output_registry: &chromasync_core::OutputRegistry,
@@ -521,13 +558,15 @@ fn run_batch(
     for (index, job) in manifest.jobs.into_iter().enumerate() {
         let force = job.force;
         let request = batch_job_into_request(job, &manifest_dir)?;
-        let artifacts = generate_artifacts(&request, output_registry).with_context(|| {
-            format!(
-                "batch job {} failed for output '{}'",
-                index + 1,
-                request.output_dir.display()
-            )
-        })?;
+        let artifacts =
+            generate_artifacts_with_resolved_output_dirs(&request, output_registry, config)
+                .with_context(|| {
+                    format!(
+                        "batch job {} failed for output '{}'",
+                        index + 1,
+                        request.output_dir.display()
+                    )
+                })?;
 
         write_and_print(
             &artifacts,
@@ -568,13 +607,14 @@ fn run_sync(
 
     let force = profile.force;
     let request = sync_profile_into_request(profile, config_dir)?;
-    let artifacts = generate_artifacts(&request, output_registry).with_context(|| {
-        format!(
-            "sync profile '{}' failed for output '{}'",
-            profile.name,
-            request.output_dir.display()
-        )
-    })?;
+    let artifacts = generate_artifacts_with_resolved_output_dirs(&request, output_registry, config)
+        .with_context(|| {
+            format!(
+                "sync profile '{}' failed for output '{}'",
+                profile.name,
+                request.output_dir.display()
+            )
+        })?;
 
     let report = write_and_print(
         &artifacts,
