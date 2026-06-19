@@ -4,7 +4,9 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use chromasync_renderers::{ArtifactGenerator, RendererError, RendererRegistry, TargetRegistry};
+use chromasync_renderers::{
+    ArtifactGenerator, OutputRegistry, RendererError, RendererRegistry, TargetRegistry,
+};
 use chromasync_types::{ChromaStrategy, GenerationContext, SemanticTokens, ThemeMode};
 
 #[test]
@@ -157,6 +159,28 @@ template = "{{tokens.bg}}"
     assert!(registry.list_targets().is_empty());
 
     fs::remove_dir_all(dir).expect("temp target directory should be removed");
+}
+
+#[test]
+fn built_in_declarative_targets_expose_metadata() {
+    let registry = OutputRegistry::default();
+
+    assert_eq!(
+        registry.resolve_preferred_template("zed").as_deref(),
+        Some("editor")
+    );
+    assert_eq!(
+        registry.resolve_chroma_strategy("ghostty"),
+        Some(ChromaStrategy::Vibrant)
+    );
+
+    let zed = registry
+        .list_targets()
+        .into_iter()
+        .find(|target| target.name == "zed")
+        .expect("zed should be listed");
+    assert_eq!(zed.preferred_template.as_deref(), Some("editor"));
+    assert_eq!(zed.chroma, Some(ChromaStrategy::Normal));
 }
 
 fn sample_tokens() -> SemanticTokens {

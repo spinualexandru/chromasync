@@ -391,6 +391,7 @@ pub fn run_with(cli: Cli) -> Result<()> {
 
             write_and_print(
                 &artifacts,
+                &request.targets,
                 &request.output_dir,
                 force,
                 config
@@ -410,6 +411,7 @@ pub fn run_with(cli: Cli) -> Result<()> {
 
             write_and_print(
                 &artifacts,
+                &request.targets,
                 &request.output_dir,
                 force,
                 config
@@ -524,7 +526,13 @@ fn run_batch(
             )
         })?;
 
-        write_and_print(&artifacts, &request.output_dir, force, config)?;
+        write_and_print(
+            &artifacts,
+            &request.targets,
+            &request.output_dir,
+            force,
+            config,
+        )?;
     }
 
     Ok(())
@@ -565,7 +573,13 @@ fn run_sync(
         )
     })?;
 
-    write_and_print(&artifacts, &request.output_dir, force, config)
+    write_and_print(
+        &artifacts,
+        &request.targets,
+        &request.output_dir,
+        force,
+        config,
+    )
 }
 
 fn sync_profile_into_request(
@@ -892,6 +906,7 @@ where
 
 fn write_and_print(
     artifacts: &[GeneratedArtifact],
+    requested_targets: &[String],
     fallback_output_dir: &Path,
     fallback_force: bool,
     config: &chromasync_core::ChromasyncConfig,
@@ -899,8 +914,12 @@ fn write_and_print(
     let entries: Vec<chromasync_core::ResolvedArtifact> = artifacts
         .iter()
         .map(|artifact| {
-            let (output_dir, force) =
-                config.resolve(&artifact.target, fallback_output_dir, fallback_force);
+            let (output_dir, force) = if uses_installed_output(&artifact.target, requested_targets)
+            {
+                config.resolve(&artifact.target, fallback_output_dir, fallback_force)
+            } else {
+                (fallback_output_dir.to_path_buf(), fallback_force)
+            };
             chromasync_core::ResolvedArtifact {
                 output_dir,
                 file_name: artifact.file_name.clone(),
@@ -918,6 +937,12 @@ fn write_and_print(
     }
 
     Ok(())
+}
+
+fn uses_installed_output(target_name: &str, requested_targets: &[String]) -> bool {
+    requested_targets
+        .iter()
+        .any(|requested| requested == target_name && !looks_like_path(requested))
 }
 
 fn run_target_install(args: TargetInstallArgs) -> Result<()> {

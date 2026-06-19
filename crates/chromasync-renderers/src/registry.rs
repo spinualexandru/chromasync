@@ -215,14 +215,28 @@ impl RendererRegistry {
         BUILTIN_TARGETS
             .iter()
             .filter_map(|target| {
-                self.renderers.get(target.as_str()).map(|_| ListedTarget {
-                    name: target.as_str().to_owned(),
-                    preferred_template: None,
-                    chroma: None,
-                    source: TargetSource::BuiltIn(target.as_str()),
-                })
+                self.renderers
+                    .get(target.as_str())
+                    .map(|generator| ListedTarget {
+                        name: target.as_str().to_owned(),
+                        preferred_template: generator.preferred_template().map(str::to_owned),
+                        chroma: generator.chroma_strategy(),
+                        source: TargetSource::BuiltIn(target.as_str()),
+                    })
             })
             .collect()
+    }
+
+    pub fn resolve_preferred_template(&self, target: &str) -> Option<String> {
+        self.renderers
+            .get(target)
+            .and_then(|generator| generator.preferred_template().map(str::to_owned))
+    }
+
+    pub fn resolve_chroma_strategy(&self, target: &str) -> Option<ChromaStrategy> {
+        self.renderers
+            .get(target)
+            .and_then(|generator| generator.chroma_strategy())
     }
 }
 
@@ -376,7 +390,7 @@ impl OutputRegistry {
             return compiled.preferred_template;
         }
 
-        None
+        self.built_in.resolve_preferred_template(target)
     }
 
     pub fn resolve_chroma_strategy(&self, target: &str) -> Option<ChromaStrategy> {
@@ -390,7 +404,7 @@ impl OutputRegistry {
             return compiled.chroma;
         }
 
-        None
+        self.built_in.resolve_chroma_strategy(target)
     }
 
     pub fn generate(
@@ -487,6 +501,14 @@ impl Default for OutputRegistry {
 impl ArtifactGenerator for CompiledTarget {
     fn name(&self) -> &str {
         &self.name
+    }
+
+    fn preferred_template(&self) -> Option<&str> {
+        self.preferred_template.as_deref()
+    }
+
+    fn chroma_strategy(&self) -> Option<ChromaStrategy> {
+        self.chroma
     }
 
     fn generate(

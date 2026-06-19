@@ -292,6 +292,48 @@ fn generate_writes_ghostty_built_in_target() {
 }
 
 #[test]
+fn generate_uses_zed_built_in_preferred_template() {
+    let workspace = temp_dir_path("generate-zed-preferred-template");
+    let output_dir = workspace.join("output");
+    let templates_dir = workspace
+        .join("xdg-config")
+        .join("chromasync")
+        .join("templates");
+    fs::create_dir_all(&templates_dir).expect("user templates directory should be created");
+    fs::copy(
+        example_template_path("editor-dark.toml"),
+        templates_dir.join("editor-dark.toml"),
+    )
+    .expect("dark editor template should be installed");
+    fs::copy(
+        example_template_path("editor-light.toml"),
+        templates_dir.join("editor-light.toml"),
+    )
+    .expect("light editor template should be installed");
+
+    let mut command = isolated_command(&workspace);
+    command.args(["generate", "--seed", "#4ecdc4", "--targets", "zed"]);
+    command.args([
+        "--output",
+        output_dir.to_str().expect("output path should be utf-8"),
+    ]);
+
+    let assert = command.assert().success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    let theme_path = output_dir.join("chromasync.json");
+
+    assert!(
+        stdout.contains(theme_path.to_str().expect("theme path should be utf-8")),
+        "expected generate output to mention '{}', got:\n{stdout}",
+        theme_path.display()
+    );
+    let content = fs::read_to_string(&theme_path).expect("zed theme should be readable");
+    assert!(content.contains("\"name\": \"Chromasync\""));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
 fn sync_default_profile_writes_built_in_and_user_targets() {
     let workspace = temp_dir_path("sync-default-profile");
     let config_root = workspace.join("xdg-config").join("chromasync");
@@ -1223,6 +1265,68 @@ fn generate_writes_to_installed_target_outdir() {
 }
 
 #[test]
+fn explicit_path_target_uses_requested_output_even_when_same_name_is_installed() {
+    let workspace = temp_dir_path("target-install-path-generate");
+    let installed_outdir = workspace.join("gtk-installed-out");
+    let requested_outdir = workspace.join("requested-out");
+    let requested_artifact = requested_outdir.join("gtk.css");
+    let installed_artifact = installed_outdir.join("gtk.css");
+
+    let mut install = isolated_command(&workspace);
+    install.args([
+        "target",
+        "install",
+        "--target",
+        example_target_path("gtk.toml")
+            .to_str()
+            .expect("example target path should be utf-8"),
+        "--outdir",
+        installed_outdir
+            .to_str()
+            .expect("installed outdir should be utf-8"),
+    ]);
+    install.assert().success();
+
+    let mut generate = isolated_command(&workspace);
+    generate.args([
+        "generate",
+        "--seed",
+        "#4ecdc4",
+        "--template",
+        "minimal",
+        "--targets",
+        example_target_path("gtk.toml")
+            .to_str()
+            .expect("example target path should be utf-8"),
+        "--output",
+        requested_outdir
+            .to_str()
+            .expect("requested outdir should be utf-8"),
+    ]);
+    let assert = generate.assert().success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    assert!(
+        stdout.contains(
+            requested_artifact
+                .to_str()
+                .expect("requested artifact path should be utf-8")
+        ),
+        "expected generate to write explicit path target to requested outdir '{}', got:\n{stdout}",
+        requested_artifact.display()
+    );
+
+    let metadata = fs::metadata(&requested_artifact).expect("requested artifact should exist");
+    assert!(metadata.is_file());
+    assert!(
+        !installed_artifact.exists(),
+        "explicit path render should not write to installed outdir '{}'",
+        installed_artifact.display()
+    );
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
 fn target_install_reinstall_requires_overwrite_flag() {
     let workspace = temp_dir_path("target-install-overwrite");
     let outdir = workspace.join("install-out");
@@ -1465,6 +1569,12 @@ fn example_and_builtin_targets(entries: &[&str]) -> String {
 fn example_target_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../examples/targets")
+        .join(name)
+}
+
+fn example_template_path(name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../examples/templates")
         .join(name)
 }
 

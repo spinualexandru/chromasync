@@ -46,6 +46,12 @@ pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 4] = [
 
 pub trait ArtifactGenerator: Send + Sync {
     fn name(&self) -> &str;
+    fn preferred_template(&self) -> Option<&str> {
+        None
+    }
+    fn chroma_strategy(&self) -> Option<chromasync_types::ChromaStrategy> {
+        None
+    }
     fn generate(
         &self,
         tokens: &SemanticTokens,
