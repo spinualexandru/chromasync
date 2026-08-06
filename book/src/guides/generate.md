@@ -87,7 +87,7 @@ If two targets would produce the same output file name, the command fails before
 The `--contrast` flag controls how Chromasync picks foreground colors that are readable against their backgrounds.
 
 - **`relative-luminance`** (default) — WCAG 2.0 luminance contrast ratio, targeting a minimum of 4.5:1.
-- **`apca-experimental`** — APCA (Advanced Perceptual Contrast Algorithm) for more perceptually uniform results. This is experimental and may change.
+- **`apca-experimental`** — signed APCA 0.0.98G-4g lightness contrast, targeting an Lc magnitude of 60. Positive scores represent dark text on a light background and negative scores represent light text on a dark background. Because the generator has no font size or weight context, this is an experimental palette heuristic rather than an accessibility conformance claim.
 
 ## Examples
 

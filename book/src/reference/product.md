@@ -139,12 +139,15 @@ Purpose:
 When a color falls outside the display gamut:
 
 ```
-preserve hue
-preserve lightness
-reduce chroma until valid
+hold OKLCH hue and lightness constant
+reduce chroma with a binary search
+accept local sRGB clipping below a just-noticeable deltaEOK
 ```
 
-This avoids hue shifts and clipping artifacts.
+Chromasync follows the CSS Color 4 local-MINDE algorithm with a deltaEOK JND
+of `0.02` and a chroma-search epsilon of `0.0001`. Local clipping avoids
+excessive chroma loss near irregular gamut boundaries; the accepted result may
+have a small, visually negligible hue or lightness shift.
 
 ---
 

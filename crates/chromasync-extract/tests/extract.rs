@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use chromasync_extract::extract_seed_candidates;
+use chromasync_extract::{extract_seed_candidates, extract_seed_candidates_from_bytes};
 
 #[test]
 fn extracts_dominant_seed_candidates_from_wallpaper_fixture() {
@@ -27,6 +27,30 @@ fn extracts_dominant_seed_candidates_from_wallpaper_fixture() {
     assert_close(result.seeds[0].dominance, 0.5);
     assert_close(result.seeds[1].dominance, 8.0 / 24.0);
     assert_close(result.seeds[2].dominance, 4.0 / 24.0);
+}
+
+#[test]
+fn encoded_image_bytes_match_path_extraction() {
+    let path = fixture("wallpaper-blocks.png");
+    let bytes = std::fs::read(&path).expect("fixture should be readable");
+
+    let from_path = extract_seed_candidates(&path).expect("path extraction should succeed");
+    let from_bytes =
+        extract_seed_candidates_from_bytes(&bytes).expect("byte extraction should succeed");
+
+    assert_eq!(from_bytes, from_path);
+}
+
+#[test]
+fn invalid_encoded_image_bytes_return_a_decode_error() {
+    let error = extract_seed_candidates_from_bytes(b"not an image")
+        .expect_err("invalid image bytes should fail");
+
+    assert!(
+        error
+            .to_string()
+            .starts_with("failed to decode image bytes:")
+    );
 }
 
 #[test]

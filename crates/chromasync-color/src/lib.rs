@@ -4,7 +4,9 @@ use chromasync_types::{
     ChromaStrategy, ContrastStrategy, GeneratedPalette, HexColor, PaletteFamily, PaletteFamilyName,
     ThemeMode, ToneSample,
 };
-use palette::{FromColor, LinSrgb, OklabHue, Oklch, Srgb, convert::FromColorUnclamped};
+use palette::{
+    FromColor, LinSrgb, Okhsl, Oklab, OklabHue, Oklch, Srgb, convert::FromColorUnclamped,
+};
 use thiserror::Error;
 
 pub const MIN_CONTRAST_RATIO: f32 = 4.5;
@@ -13,6 +15,9 @@ pub const SAMPLE_TONES: [u8; 16] = [
     0, 6, 10, 14, 20, 30, 40, 45, 50, 60, 70, 80, 90, 94, 98, 100,
 ];
 
+const GAMUT_JND: f32 = 0.02;
+const GAMUT_EPSILON: f32 = 0.0001;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParsedSeedColor {
     pub hex: HexColor,
@@ -20,6 +25,17 @@ pub struct ParsedSeedColor {
     pub lightness: f32,
     pub chroma: f32,
     pub hue: f32,
+}
+
+/// Human-adjustable Okhsl coordinates in the sRGB gamut.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct OkhslColor {
+    /// Hue in degrees from 0 (inclusive) to 360 (exclusive).
+    pub hue: f32,
+    /// Perceptual saturation from 0.0 to 1.0.
+    pub saturation: f32,
+    /// Perceptual lightness from 0.0 to 1.0.
+    pub lightness: f32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -38,6 +54,12 @@ pub enum ColorError {
     InvalidHexDigits { value: String },
     #[error("tone value {tone} must be within 0.0..=1.0")]
     InvalidTone { tone: f32 },
+    #[error("Okhsl {component} value {value} must be finite and within {range}")]
+    InvalidOkhslComponent {
+        component: &'static str,
+        value: f32,
+        range: &'static str,
+    },
     #[error("at least one foreground candidate is required")]
     MissingContrastCandidates,
 }
@@ -105,6 +127,42 @@ pub fn parse_seed_color(seed: &str) -> Result<ParsedSeedColor, ColorError> {
         chroma,
         hue,
     })
+}
+
+/// Converts a `#RRGGBB` sRGB color into Okhsl coordinates.
+pub fn hex_to_okhsl(value: &str) -> Result<OkhslColor, ColorError> {
+    let rgb = parse_rgb_hex(value, false)?;
+    let srgb = Srgb::new(rgb[0], rgb[1], rgb[2]).into_format::<f32>();
+    let oklab = Oklab::from_color(srgb.into_linear());
+    let okhsl = Okhsl::from_color_unclamped(oklab);
+
+    Ok(OkhslColor {
+        hue: sanitize_hue(okhsl.hue.into_positive_degrees()),
+        saturation: okhsl.saturation.clamp(0.0, 1.0),
+        lightness: okhsl.lightness.clamp(0.0, 1.0),
+    })
+}
+
+/// Converts sRGB-referenced Okhsl coordinates into a `#RRGGBB` color.
+pub fn okhsl_to_hex(hue: f32, saturation: f32, lightness: f32) -> Result<HexColor, ColorError> {
+    validate_okhsl_component("hue", hue, 0.0, 360.0, "0.0..=360.0")?;
+    validate_okhsl_component("saturation", saturation, 0.0, 1.0, "0.0..=1.0")?;
+    validate_okhsl_component("lightness", lightness, 0.0, 1.0, "0.0..=1.0")?;
+
+    let okhsl = Okhsl::new(
+        OklabHue::from_degrees(sanitize_hue(hue)),
+        saturation,
+        lightness,
+    );
+    let oklab = Oklab::from_color_unclamped(okhsl);
+    let encoded = Srgb::from_linear(LinSrgb::from_color_unclamped(oklab));
+
+    Ok(format!(
+        "#{red:02X}{green:02X}{blue:02X}",
+        red = channel_to_u8(encoded.red),
+        green = channel_to_u8(encoded.green),
+        blue = channel_to_u8(encoded.blue),
+    ))
 }
 
 pub fn generate_palette(
@@ -179,22 +237,42 @@ pub fn contrast_ratio(foreground: &str, background: &str) -> Result<f32, ColorEr
     Ok((lighter + 0.05) / (darker + 0.05))
 }
 
+/// Calculates the signed APCA Lc value for a text color on a background color.
+///
+/// Positive values indicate dark text on a light background; negative values
+/// indicate light text on a dark background. Threshold checks should compare
+/// the magnitude while retaining this sign as polarity information.
 pub fn apca_contrast_score(foreground: &str, background: &str) -> Result<f32, ColorError> {
-    let foreground_luminance = apca_luminance(parse_rgb_hex(foreground, false)?);
-    let background_luminance = apca_luminance(parse_rgb_hex(background, false)?);
-    let delta = background_luminance - foreground_luminance;
+    let foreground_luminance = apca_soft_clamp(apca_luminance(parse_rgb_hex(foreground, false)?));
+    let background_luminance = apca_soft_clamp(apca_luminance(parse_rgb_hex(background, false)?));
 
-    if delta.abs() < 0.0005 {
+    if (background_luminance - foreground_luminance).abs() < APCA_DELTA_Y_MIN {
         return Ok(0.0);
     }
 
-    let score = if delta.is_sign_positive() {
-        (background_luminance.powf(0.56) - foreground_luminance.powf(0.57)) * 1.14 * 100.0
+    // SAPC-8 / APCA 0.0.98G-4g core formula, matching apca-w3 0.1.9.
+    // https://github.com/Myndex/apca-w3/blob/master/src/apca-w3.js
+    let sapc = if background_luminance > foreground_luminance {
+        (background_luminance.powf(APCA_NORM_BG) - foreground_luminance.powf(APCA_NORM_TEXT))
+            * APCA_SCALE_BOW
     } else {
-        (background_luminance.powf(0.65) - foreground_luminance.powf(0.62)) * 1.14 * 100.0
+        (background_luminance.powf(APCA_REVERSE_BG) - foreground_luminance.powf(APCA_REVERSE_TEXT))
+            * APCA_SCALE_WOB
     };
 
-    Ok(score.abs())
+    let score = if background_luminance > foreground_luminance {
+        if sapc < APCA_LOW_CLIP {
+            0.0
+        } else {
+            sapc - APCA_LOW_BOW_OFFSET
+        }
+    } else if sapc > -APCA_LOW_CLIP {
+        0.0
+    } else {
+        sapc + APCA_LOW_WOB_OFFSET
+    };
+
+    Ok((score * 100.0) as f32)
 }
 
 pub fn contrast_score(
@@ -216,7 +294,7 @@ pub fn minimum_contrast_score(strategy: ContrastStrategy) -> f32 {
 }
 
 pub fn meets_contrast_threshold(score: f32, strategy: ContrastStrategy) -> bool {
-    score >= minimum_contrast_score(strategy)
+    contrast_score_magnitude(score, strategy) >= minimum_contrast_score(strategy)
 }
 
 pub fn select_readable_color(
@@ -246,7 +324,9 @@ pub fn select_readable_color_with_strategy(
                 let selection_meets = meets_contrast_threshold(selection.score, strategy);
 
                 (selection_meets && !current_meets)
-                    || (selection_meets == current_meets && selection.score > current.score)
+                    || (selection_meets == current_meets
+                        && contrast_score_magnitude(selection.score, strategy)
+                            > contrast_score_magnitude(current.score, strategy))
             }
             None => true,
         };
@@ -259,34 +339,70 @@ pub fn select_readable_color_with_strategy(
     best.ok_or(ColorError::MissingContrastCandidates)
 }
 
+/// Maps an OkLCh color into sRGB using CSS Color 4 local-MINDE chroma reduction.
+///
+/// The returned value is converted back to OkLCh to preserve this crate's
+/// public API. Local clipping can therefore introduce a small, bounded change
+/// in lightness and hue for colors just outside sRGB.
 pub fn gamut_map(color: Oklch) -> Oklch {
-    let lightness = color.l.clamp(0.0, 1.0);
+    let lightness = if color.l.is_nan() { 0.0 } else { color.l };
     let hue = sanitize_hue(color.hue.into_positive_degrees());
-    let target = Oklch::new(
-        lightness,
-        color.chroma.max(0.0),
-        OklabHue::from_degrees(hue),
-    );
+    let chroma = if color.chroma.is_finite() {
+        color.chroma.max(0.0)
+    } else {
+        0.0
+    };
+    let target = Oklch::new(lightness, chroma, OklabHue::from_degrees(hue));
+
+    // CSS Color 4 defines explicit endpoints before testing the destination
+    // gamut. Chroma and hue do not survive beyond the SDR lightness range.
+    if lightness >= 1.0 {
+        return Oklch::new(1.0, 0.0, OklabHue::from_degrees(0.0));
+    }
+    if lightness <= 0.0 {
+        return Oklch::new(0.0, 0.0, OklabHue::from_degrees(0.0));
+    }
 
     if is_displayable(target) {
         return target;
     }
 
-    let mut low = 0.0;
-    let mut high = target.chroma.max(0.0);
+    let mut clipped = clip_to_srgb(target);
+    let mut difference = delta_e_ok(target, clipped);
 
-    for _ in 0..24 {
-        let mid = (low + high) / 2.0;
-        let candidate = Oklch::new(lightness, mid, OklabHue::from_degrees(hue));
+    if difference < GAMUT_JND {
+        return clipped;
+    }
 
-        if is_displayable(candidate) {
-            low = mid;
+    let mut min = 0.0;
+    let mut max = target.chroma;
+    let mut min_in_gamut = true;
+
+    while max - min > GAMUT_EPSILON {
+        let chroma = (min + max) / 2.0;
+        let current = Oklch::new(lightness, chroma, OklabHue::from_degrees(hue));
+
+        if min_in_gamut && is_displayable(current) {
+            min = chroma;
+            continue;
+        }
+
+        clipped = clip_to_srgb(current);
+        difference = delta_e_ok(current, clipped);
+
+        if difference < GAMUT_JND {
+            if GAMUT_JND - difference < GAMUT_EPSILON {
+                return clipped;
+            }
+
+            min_in_gamut = false;
+            min = chroma;
         } else {
-            high = mid;
+            max = chroma;
         }
     }
 
-    Oklch::new(lightness, low, OklabHue::from_degrees(hue))
+    clipped
 }
 
 fn derive_family_specs(seed: &ParsedSeedColor, strategy: ChromaStrategy) -> [FamilySpec; 9] {
@@ -438,14 +554,46 @@ fn relative_luminance(rgb: [u8; 3]) -> f32 {
     (0.2126 * red) + (0.7152 * green) + (0.0722 * blue)
 }
 
-fn apca_luminance(rgb: [u8; 3]) -> f32 {
-    let [red, green, blue] = rgb.map(|channel| {
-        let normalized = f32::from(channel) / 255.0;
+const APCA_MAIN_TRC: f64 = 2.4;
+const APCA_RED_COEFFICIENT: f64 = 0.2126729;
+const APCA_GREEN_COEFFICIENT: f64 = 0.7151522;
+const APCA_BLUE_COEFFICIENT: f64 = 0.072175;
+const APCA_NORM_BG: f64 = 0.56;
+const APCA_NORM_TEXT: f64 = 0.57;
+const APCA_REVERSE_TEXT: f64 = 0.62;
+const APCA_REVERSE_BG: f64 = 0.65;
+const APCA_BLACK_THRESHOLD: f64 = 0.022;
+const APCA_BLACK_CLAMP: f64 = 1.414;
+const APCA_SCALE_BOW: f64 = 1.14;
+const APCA_SCALE_WOB: f64 = 1.14;
+const APCA_LOW_BOW_OFFSET: f64 = 0.027;
+const APCA_LOW_WOB_OFFSET: f64 = 0.027;
+const APCA_DELTA_Y_MIN: f64 = 0.0005;
+const APCA_LOW_CLIP: f64 = 0.1;
 
-        normalized.powf(2.4)
+fn apca_luminance(rgb: [u8; 3]) -> f64 {
+    let [red, green, blue] = rgb.map(|channel| {
+        let normalized = f64::from(channel) / 255.0;
+
+        normalized.powf(APCA_MAIN_TRC)
     });
 
-    (0.2126729 * red) + (0.7151522 * green) + (0.072175 * blue)
+    (APCA_RED_COEFFICIENT * red) + (APCA_GREEN_COEFFICIENT * green) + (APCA_BLUE_COEFFICIENT * blue)
+}
+
+fn apca_soft_clamp(luminance: f64) -> f64 {
+    if luminance > APCA_BLACK_THRESHOLD {
+        luminance
+    } else {
+        luminance + (APCA_BLACK_THRESHOLD - luminance).powf(APCA_BLACK_CLAMP)
+    }
+}
+
+fn contrast_score_magnitude(score: f32, strategy: ContrastStrategy) -> f32 {
+    match strategy {
+        ContrastStrategy::RelativeLuminance => score,
+        ContrastStrategy::ApcaExperimental => score.abs(),
+    }
 }
 
 fn srgb_channel_to_linear(channel: u8) -> f32 {
@@ -466,11 +614,83 @@ fn is_displayable(color: Oklch) -> bool {
         .all(|channel| channel.is_finite() && (0.0..=1.0).contains(&channel))
 }
 
+fn clip_to_srgb(color: Oklch) -> Oklch {
+    let linear = LinSrgb::from_color_unclamped(color);
+    let clipped = LinSrgb::new(
+        linear.red.clamp(0.0, 1.0),
+        linear.green.clamp(0.0, 1.0),
+        linear.blue.clamp(0.0, 1.0),
+    );
+
+    Oklch::from_color(clipped)
+}
+
+fn delta_e_ok(left: Oklch, right: Oklch) -> f32 {
+    let left = Oklab::from_color(left);
+    let right = Oklab::from_color(right);
+
+    ((left.l - right.l).powi(2) + (left.a - right.a).powi(2) + (left.b - right.b).powi(2)).sqrt()
+}
+
+#[cfg(test)]
+fn gamut_map_exact_boundary(color: Oklch) -> Oklch {
+    let lightness = if !color.l.is_nan() {
+        color.l.clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    let hue = sanitize_hue(color.hue.into_positive_degrees());
+    let chroma = if color.chroma.is_finite() {
+        color.chroma.max(0.0)
+    } else {
+        0.0
+    };
+    let target = Oklch::new(lightness, chroma, OklabHue::from_degrees(hue));
+
+    if is_displayable(target) {
+        return target;
+    }
+
+    let mut low = 0.0;
+    let mut high = target.chroma;
+
+    for _ in 0..24 {
+        let mid = (low + high) / 2.0;
+        let candidate = Oklch::new(lightness, mid, OklabHue::from_degrees(hue));
+
+        if is_displayable(candidate) {
+            low = mid;
+        } else {
+            high = mid;
+        }
+    }
+
+    Oklch::new(lightness, low, OklabHue::from_degrees(hue))
+}
+
 fn validate_tone(tone: f32) -> Result<(), ColorError> {
     if tone.is_finite() && (0.0..=1.0).contains(&tone) {
         Ok(())
     } else {
         Err(ColorError::InvalidTone { tone })
+    }
+}
+
+fn validate_okhsl_component(
+    component: &'static str,
+    value: f32,
+    min: f32,
+    max: f32,
+    range: &'static str,
+) -> Result<(), ColorError> {
+    if value.is_finite() && (min..=max).contains(&value) {
+        Ok(())
+    } else {
+        Err(ColorError::InvalidOkhslComponent {
+            component,
+            value,
+            range,
+        })
     }
 }
 
@@ -515,13 +735,16 @@ fn clamp(value: f32, min: f32, max: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
+    use std::{hint::black_box, time::Instant};
+
     use chromasync_types::{ContrastStrategy, PaletteFamilyName};
 
     use super::{
         ChromaStrategy, ColorError, MIN_APCA_SCORE, MIN_CONTRAST_RATIO, OklabHue, Oklch,
-        SAMPLE_TONES, ThemeMode, apca_contrast_score, chroma_curve, contrast_ratio, gamut_map,
-        generate_palette, parse_seed_color, resolve_family_color, select_readable_color,
-        select_readable_color_with_strategy,
+        SAMPLE_TONES, ThemeMode, apca_contrast_score, chroma_curve, contrast_ratio, delta_e_ok,
+        gamut_map, gamut_map_exact_boundary, generate_palette, hex_to_okhsl,
+        meets_contrast_threshold, okhsl_to_hex, parse_seed_color, resolve_family_color,
+        select_readable_color, select_readable_color_with_strategy,
     };
 
     #[test]
@@ -543,6 +766,47 @@ mod tests {
     }
 
     #[test]
+    fn converts_hex_to_okhsl_reference_coordinates() {
+        let color = hex_to_okhsl("#834941").expect("valid hex should convert");
+
+        assert!((color.hue - 28.773_829).abs() < 0.000_1);
+        assert!((color.saturation - 0.462_921_7).abs() < 0.000_1);
+        assert!((color.lightness - 0.390_099_82).abs() < 0.000_1);
+    }
+
+    #[test]
+    fn okhsl_round_trips_srgb_colors() {
+        for hex in [
+            "#000000", "#FFFFFF", "#808080", "#FF0000", "#00FF00", "#0000FF", "#4ECDC4", "#834941",
+        ] {
+            let color = hex_to_okhsl(hex).expect("valid hex should convert");
+            let round_trip = okhsl_to_hex(color.hue, color.saturation, color.lightness)
+                .expect("Okhsl should convert");
+
+            assert_eq!(round_trip, hex, "round trip changed {hex}");
+        }
+    }
+
+    #[test]
+    fn okhsl_to_hex_validates_components_and_wraps_360_degrees() {
+        assert_eq!(
+            okhsl_to_hex(360.0, 0.5, 0.5).expect("360 degrees should wrap"),
+            okhsl_to_hex(0.0, 0.5, 0.5).expect("zero degrees should convert")
+        );
+
+        for result in [
+            okhsl_to_hex(f32::NAN, 0.5, 0.5),
+            okhsl_to_hex(0.0, -0.01, 0.5),
+            okhsl_to_hex(0.0, 0.5, 1.01),
+        ] {
+            assert!(matches!(
+                result,
+                Err(ColorError::InvalidOkhslComponent { .. })
+            ));
+        }
+    }
+
+    #[test]
     fn chroma_curve_peaks_at_midtones() {
         let dark = chroma_curve(0.1).expect("dark tone should be valid");
         let middle = chroma_curve(0.5).expect("midtone should be valid");
@@ -554,19 +818,243 @@ mod tests {
     }
 
     #[test]
-    fn gamut_mapping_preserves_hue_and_lightness_while_reducing_chroma() {
+    fn local_minde_gamut_mapping_returns_clipped_srgb_color() {
         let color = Oklch::new(0.62, 1.0, OklabHue::from_degrees(32.0));
         assert!(!super::is_displayable(color));
 
         let mapped = gamut_map(color);
 
-        assert!((mapped.l - color.l).abs() < 0.0001);
-        assert!(
-            (mapped.hue.into_positive_degrees() - color.hue.into_positive_degrees()).abs() < 0.0001
-        );
         assert!(mapped.chroma < color.chroma);
-        let mapped_hex = super::oklch_to_hex(mapped);
-        assert!(mapped_hex.starts_with('#'));
+        assert!((mapped.l - 0.627_955_4).abs() < 0.000_2);
+        assert!((mapped.chroma - 0.257_683_3).abs() < 0.000_2);
+        assert!((mapped.hue.into_positive_degrees() - 29.233_88).abs() < 0.01);
+        assert_eq!(super::oklch_to_hex(mapped), "#FF0000");
+    }
+
+    #[test]
+    fn local_minde_matches_color_js_reference_vectors() {
+        // colorjs.io 0.6.0 `toGamut({ space: "srgb", method: "css" })`,
+        // which implements the CSS Color 4 sample algorithm.
+        let vectors = [
+            (
+                [0.96476, 0.24503, 110.23],
+                [0.966_684_76, 0.211_008_34, 109.976_92],
+            ),
+            ([0.7, 0.4, 40.0], [0.683_260_44, 0.212_333_07, 40.489_47]),
+            ([0.5, 0.4, 264.0], [0.485_361_96, 0.290_735_48, 264.115_02]),
+            ([0.8, 0.3, 150.0], [0.809_138_6, 0.237_875_42, 147.405_82]),
+            ([0.2, 0.3, 300.0], [0.213_486_18, 0.115_525_21, 297.562_93]),
+        ];
+
+        for ([lightness, chroma, hue], expected) in vectors {
+            let mapped = gamut_map(Oklch::new(lightness, chroma, OklabHue::from_degrees(hue)));
+            let actual = [mapped.l, mapped.chroma, mapped.hue.into_positive_degrees()];
+
+            for (actual, expected) in actual.into_iter().zip(expected) {
+                assert!(
+                    (actual - expected).abs() < 0.001,
+                    "expected {expected}, got {actual} for OkLCh({lightness}, {chroma}, {hue})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn gamut_mapping_leaves_in_gamut_colors_unchanged() {
+        let color = Oklch::new(0.62, 0.04, OklabHue::from_degrees(210.0));
+
+        assert!(super::is_displayable(color));
+        assert_eq!(gamut_map(color), color);
+    }
+
+    #[test]
+    fn gamut_mapping_uses_css_black_and_white_endpoints() {
+        for lightness in [1.0, 1.2, f32::INFINITY] {
+            let mapped = gamut_map(Oklch::new(lightness, 0.4, OklabHue::from_degrees(123.0)));
+
+            assert_eq!(mapped.l, 1.0);
+            assert_eq!(mapped.chroma, 0.0);
+            assert_eq!(super::oklch_to_hex(mapped), "#FFFFFF");
+        }
+
+        for lightness in [0.0, -0.2, f32::NEG_INFINITY, f32::NAN] {
+            let mapped = gamut_map(Oklch::new(lightness, 0.4, OklabHue::from_degrees(123.0)));
+
+            assert_eq!(mapped.l, 0.0);
+            assert_eq!(mapped.chroma, 0.0);
+            assert_eq!(super::oklch_to_hex(mapped), "#000000");
+        }
+    }
+
+    #[test]
+    fn gamut_mapping_sanitizes_invalid_chroma_and_hue() {
+        let mapped = gamut_map(Oklch::new(
+            0.5,
+            f32::INFINITY,
+            OklabHue::from_degrees(f32::NAN),
+        ));
+
+        assert!(mapped.l.is_finite());
+        assert_eq!(mapped.chroma, 0.0);
+        assert_eq!(mapped.hue.into_positive_degrees(), 0.0);
+        assert_eq!(super::oklch_to_hex(mapped), "#636363");
+    }
+
+    #[test]
+    #[ignore = "diagnostic A/B benchmark for gamut mapping strategies"]
+    fn compare_local_minde_to_exact_boundary() {
+        let mut colors = Vec::new();
+
+        for hue in (0..360).step_by(5) {
+            for lightness_step in 1..40 {
+                for chroma_step in 1..=25 {
+                    colors.push(Oklch::new(
+                        lightness_step as f32 / 40.0,
+                        chroma_step as f32 / 50.0,
+                        OklabHue::from_degrees(hue as f32),
+                    ));
+                }
+            }
+        }
+
+        run_gamut_ab("oklch_grid", &colors);
+
+        let seeds = [
+            "#000000", "#FFFFFF", "#808080", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#00FFFF",
+            "#FF00FF", "#FF6B6B", "#4ECDC4", "#264653", "#2A9D8F", "#E9C46A", "#F4A261", "#E76F51",
+            "#5B4B8A", "#D7263D", "#1B998B", "#2E294E", "#F46036", "#C5D86D", "#111827", "#F5F7FA",
+        ];
+        let strategies = [
+            ChromaStrategy::Subtle,
+            ChromaStrategy::Normal,
+            ChromaStrategy::Vibrant,
+            ChromaStrategy::Muted,
+            ChromaStrategy::Industrial,
+        ];
+        let mut palette_colors = Vec::new();
+
+        for seed in seeds {
+            for strategy in strategies {
+                let palette = generate_palette(seed, ThemeMode::Dark, strategy)
+                    .expect("A/B seed should generate");
+
+                for family in palette.families.values() {
+                    for tone in SAMPLE_TONES {
+                        let lightness = f32::from(tone) / 100.0;
+                        let chroma = family.base_chroma
+                            * chroma_curve(lightness).expect("sample tone should be valid");
+
+                        palette_colors.push(Oklch::new(
+                            lightness,
+                            chroma,
+                            OklabHue::from_degrees(family.hue),
+                        ));
+                    }
+                }
+            }
+        }
+
+        run_gamut_ab("generated_palettes", &palette_colors);
+    }
+
+    fn run_gamut_ab(label: &str, colors: &[Oklch]) {
+        const TIMING_PASSES: usize = 10;
+
+        let out_of_gamut = colors
+            .iter()
+            .filter(|color| !super::is_displayable(**color))
+            .count();
+
+        let exact_started = Instant::now();
+        for _ in 0..TIMING_PASSES {
+            for color in colors {
+                black_box(gamut_map_exact_boundary(black_box(*color)));
+            }
+        }
+        let exact_elapsed = exact_started.elapsed();
+
+        let local_started = Instant::now();
+        for _ in 0..TIMING_PASSES {
+            for color in colors {
+                black_box(gamut_map(black_box(*color)));
+            }
+        }
+        let local_elapsed = local_started.elapsed();
+
+        let exact: Vec<_> = colors
+            .iter()
+            .map(|color| gamut_map_exact_boundary(*color))
+            .collect();
+        let local: Vec<_> = colors.iter().map(|color| gamut_map(*color)).collect();
+
+        let mut affected = 0;
+        let mut chroma_improved = 0;
+        let mut chroma_reduced = 0;
+        let mut chroma_gain = 0.0;
+        let mut max_chroma_gain = 0.0_f32;
+        let mut min_chroma_gain = 0.0_f32;
+        let mut total_difference = 0.0;
+        let mut max_difference = 0.0_f32;
+        let mut max_lightness_shift = 0.0_f32;
+        let mut max_hue_shift = 0.0_f32;
+        let mut max_chromatic_hue_shift = 0.0_f32;
+
+        for ((origin, exact), local) in colors.iter().zip(&exact).zip(&local) {
+            let difference = delta_e_ok(*exact, *local);
+
+            if difference > f32::EPSILON {
+                affected += 1;
+                let gain = local.chroma - exact.chroma;
+                chroma_gain += gain;
+                max_chroma_gain = max_chroma_gain.max(gain);
+                min_chroma_gain = min_chroma_gain.min(gain);
+                if gain > f32::EPSILON {
+                    chroma_improved += 1;
+                } else if gain < -f32::EPSILON {
+                    chroma_reduced += 1;
+                }
+                total_difference += difference;
+                max_difference = max_difference.max(difference);
+                max_lightness_shift = max_lightness_shift.max((local.l - origin.l).abs());
+                let hue_shift = hue_difference(
+                    local.hue.into_positive_degrees(),
+                    origin.hue.into_positive_degrees(),
+                );
+                max_hue_shift = max_hue_shift.max(hue_shift);
+                if local.chroma >= 0.02 {
+                    max_chromatic_hue_shift = max_chromatic_hue_shift.max(hue_shift);
+                }
+            }
+        }
+
+        eprintln!(
+            "{label}: samples={} out_of_gamut={} affected={} affected_rate={:.2}% oog_affected_rate={:.2}% chroma_improved={} chroma_reduced={} avg_chroma_gain={:.6} min_chroma_gain={:.6} max_chroma_gain={:.6} avg_delta_e_ok={:.6} max_delta_e_ok={:.6} max_lightness_shift={:.6} max_hue_shift_deg={:.3} max_hue_shift_deg_at_c_ge_0.02={:.3} exact_ms_per_pass={:.3} local_minde_ms_per_pass={:.3}",
+            colors.len(),
+            out_of_gamut,
+            affected,
+            affected as f64 * 100.0 / colors.len() as f64,
+            affected as f64 * 100.0 / out_of_gamut as f64,
+            chroma_improved,
+            chroma_reduced,
+            chroma_gain / affected as f32,
+            min_chroma_gain,
+            max_chroma_gain,
+            total_difference / affected as f32,
+            max_difference,
+            max_lightness_shift,
+            max_hue_shift,
+            max_chromatic_hue_shift,
+            exact_elapsed.as_secs_f64() * 1_000.0 / TIMING_PASSES as f64,
+            local_elapsed.as_secs_f64() * 1_000.0 / TIMING_PASSES as f64,
+        );
+
+        assert!(affected > 0);
+    }
+
+    fn hue_difference(left: f32, right: f32) -> f32 {
+        let difference = (left - right).abs().rem_euclid(360.0);
+
+        difference.min(360.0 - difference)
     }
 
     #[test]
@@ -595,6 +1083,42 @@ mod tests {
 
         assert_eq!(selected.hex, "#111827");
         assert!(selected.score >= MIN_APCA_SCORE);
+    }
+
+    #[test]
+    fn apca_experimental_preserves_reverse_polarity_when_selecting() {
+        let background = "#111827".to_owned();
+        let candidates = vec!["#4ECDC4".to_owned(), "#F5F7FA".to_owned()];
+
+        let selected = select_readable_color_with_strategy(
+            &background,
+            &candidates,
+            ContrastStrategy::ApcaExperimental,
+        )
+        .expect("a readable candidate should be selected");
+
+        assert_eq!(selected.hex, "#F5F7FA");
+        assert!(selected.score <= -MIN_APCA_SCORE);
+        assert!(meets_contrast_threshold(
+            selected.score,
+            ContrastStrategy::ApcaExperimental
+        ));
+    }
+
+    #[test]
+    fn apca_threshold_compares_lc_magnitude() {
+        assert!(meets_contrast_threshold(
+            MIN_APCA_SCORE,
+            ContrastStrategy::ApcaExperimental
+        ));
+        assert!(meets_contrast_threshold(
+            -MIN_APCA_SCORE,
+            ContrastStrategy::ApcaExperimental
+        ));
+        assert!(!meets_contrast_threshold(
+            -(MIN_APCA_SCORE - 0.01),
+            ContrastStrategy::ApcaExperimental
+        ));
     }
 
     #[test]
@@ -660,12 +1184,57 @@ mod tests {
     }
 
     #[test]
-    fn apca_contrast_score_rewards_stronger_separation() {
+    fn apca_contrast_score_matches_official_reference_vectors() {
+        // Generated with apca-w3 0.1.9, which implements the 0.0.98G-4g
+        // constants used by the core algorithm.
+        let vectors = [
+            ("#000000", "#FFFFFF", 106.040_67),
+            ("#FFFFFF", "#000000", -107.884_735),
+            ("#777777", "#FFFFFF", 71.111_1),
+            ("#FFFFFF", "#777777", -76.581_95),
+            ("#123456", "#ABCDEF", 67.495_81),
+            ("#ABCDEF", "#123456", -68.094_25),
+        ];
+
+        for (foreground, background, expected) in vectors {
+            let actual =
+                apca_contrast_score(foreground, background).expect("contrast should compute");
+
+            assert!(
+                (actual - expected).abs() < 0.001,
+                "expected {foreground} on {background} to be {expected}, got {actual}"
+            );
+        }
+    }
+
+    #[test]
+    fn apca_contrast_score_applies_black_soft_clamp_and_low_clip() {
+        let near_black =
+            apca_contrast_score("#000000", "#444444").expect("contrast should compute");
+        let low_normal =
+            apca_contrast_score("#888888", "#999999").expect("contrast should compute");
+        let low_reverse =
+            apca_contrast_score("#999999", "#888888").expect("contrast should compute");
+
+        assert!((near_black - 11.333_981).abs() < 0.001);
+        assert_eq!(low_normal, 0.0);
+        assert!((low_reverse - -7.849_647_5).abs() < 0.001);
+    }
+
+    #[test]
+    fn apca_contrast_score_rewards_stronger_separation_by_magnitude() {
         let high = apca_contrast_score("#111827", "#F5F7FA").expect("contrast should compute");
         let low = apca_contrast_score("#7C8794", "#F5F7FA").expect("contrast should compute");
+        let reverse = apca_contrast_score("#F5F7FA", "#111827").expect("contrast should compute");
 
         assert!(high > low);
         assert!(high >= MIN_APCA_SCORE);
+        assert!(reverse < 0.0);
+        assert!(reverse.abs() >= MIN_APCA_SCORE);
+        assert!(meets_contrast_threshold(
+            reverse,
+            ContrastStrategy::ApcaExperimental
+        ));
     }
 
     #[test]

@@ -111,7 +111,7 @@ The `tokens` command runs the same pipeline as `generate` and `preview`:
 
 3. **Token resolution** — for each of the 17 tokens, the resolver looks up the rule's palette family, computes the final chroma as `(chroma OR family.base_chroma) * chroma_scale`, and converts the OKLCH triplet (family hue, final chroma, rule tone) to a `#RRGGBB` hex color.
 
-4. **Contrast adjustment** — after all tokens are resolved, the resolver checks that `text` is readable against `bg` and that `accent_fg` is readable against `accent`. If a pair fails the contrast threshold, the resolver tries neutral light (`tone=0.98`) and dark (`tone=0.06`) fallbacks and picks the candidate with the best score. This ensures the exported tokens always meet accessibility requirements.
+4. **Contrast adjustment** — after all tokens are resolved, the resolver checks `text` against `bg` and `accent_fg` against `accent`. If a pair falls below the selected contrast target, the resolver tries neutral light (`tone=0.98`) and dark (`tone=0.06`) fallbacks and picks the candidate with the best score. This improves the generated pair from the available candidates, but does not replace a full accessibility review.
 
 ## Contrast strategies
 
@@ -120,9 +120,9 @@ The `--contrast` flag selects the algorithm used in step 4:
 | Strategy | Algorithm | Minimum threshold |
 | --- | --- | --- |
 | `relative-luminance` | WCAG 2.0 relative luminance ratio | 4.5:1 |
-| `apca-experimental` | APCA (Advanced Perceptual Contrast Algorithm) | Score of 60 |
+| `apca-experimental` | APCA 0.0.98G-4g | Lc magnitude of 60 |
 
-The default `relative-luminance` is the widely adopted WCAG standard. The `apca-experimental` option uses a perceptually uniform model that better accounts for how the eye perceives contrast at different luminance levels. It is marked experimental and may change in future versions.
+The default `relative-luminance` is the widely adopted WCAG standard. The `apca-experimental` option calculates signed APCA lightness contrast: positive Lc means dark text on a light background, while negative Lc means light text on a dark background. Chromasync preserves that polarity and compares the Lc magnitude with its target. Because Chromasync does not know the rendered font size, weight, or use case, the fixed Lc 60 target is a palette-generation heuristic rather than an accessibility conformance claim. The strategy remains experimental and may change in future versions.
 
 See [Contrast strategies](./generate.md#contrast-strategies) for more details.
 

@@ -1,0 +1,31 @@
+[package]
+name = "chromasync-wasm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Browser WebAssembly bindings for Chromasync palette generation"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+chromasync-color = { version = "0.4.0", path = "../chromasync-color" }
+chromasync-core = { version = "0.4.0", path = "../chromasync-core" }
+chromasync-extract = { version = "0.4.0", path = "../chromasync-extract" }
+chromasync-types = { version = "0.4.0", path = "../chromasync-types" }
+js-sys.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+wasm-bindgen.workspace = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = [
+  "-Oz",
+  "--enable-bulk-memory",
+  "--enable-nontrapping-float-to-int",
+]

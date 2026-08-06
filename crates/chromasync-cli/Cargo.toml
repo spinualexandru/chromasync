@@ -21,8 +21,8 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
-chromasync-core = { version = "0.3.0", path = "../chromasync-core" }
-chromasync-types = { version = "0.3.0", path = "../chromasync-types" }
+chromasync-core = { version = "0.4.0", path = "../chromasync-core" }
+chromasync-types = { version = "0.4.0", path = "../chromasync-types" }
 clap.workspace = true
 clap_complete = { workspace = true }
 serde.workspace = true

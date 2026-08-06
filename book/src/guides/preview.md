@@ -96,7 +96,7 @@ chromasync preview --seed "#4ecdc4" --template minimal --mode light
 
 ## Contrast strategies
 
-The `--contrast` flag controls how Chromasync ensures readable foreground colors. The default `relative-luminance` uses WCAG 2.x contrast ratio (minimum 4.5:1). The `apca-experimental` option uses the APCA algorithm instead. Preview shows which strategy was used in the header so you can verify the resolved tokens meet your accessibility requirements.
+The `--contrast` flag controls how Chromasync selects foreground colors. The default `relative-luminance` uses WCAG 2.x contrast ratio (minimum 4.5:1). The `apca-experimental` option uses signed APCA 0.0.98G-4g contrast and targets an Lc magnitude of 60. Preview shows which strategy was used in the header. The APCA target is a palette-generation heuristic because Chromasync does not know the rendered font size, weight, or use case; verify final rendered output separately.
 
 ```bash
 chromasync preview \
