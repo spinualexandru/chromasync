@@ -10,4 +10,5 @@ homepage.workspace = true
 
 [dependencies]
 image.workspace = true
+palette.workspace = true
 thiserror.workspace = true

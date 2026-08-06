@@ -9,11 +9,11 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-chromasync-color = { version = "0.3.0", path = "../chromasync-color" }
-chromasync-extract = { version = "0.3.0", path = "../chromasync-extract" }
-chromasync-renderers = { version = "0.3.0", path = "../chromasync-renderers" }
-chromasync-template = { version = "0.3.0", path = "../chromasync-template" }
-chromasync-types = { version = "0.3.0", path = "../chromasync-types" }
+chromasync-color = { version = "0.4.0", path = "../chromasync-color" }
+chromasync-extract = { version = "0.4.0", path = "../chromasync-extract" }
+chromasync-renderers = { version = "0.4.0", path = "../chromasync-renderers" }
+chromasync-template = { version = "0.4.0", path = "../chromasync-template" }
+chromasync-types = { version = "0.4.0", path = "../chromasync-types" }
 directories.workspace = true
 serde.workspace = true
 thiserror.workspace = true

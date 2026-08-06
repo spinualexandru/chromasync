@@ -332,7 +332,13 @@ fn palette_from_wallpaper_request(
     palette_from_extracted_seeds(&extraction.seeds, request.mode, request.chroma)
 }
 
-fn palette_from_extracted_seeds(
+/// Compose a palette from ranked image seed candidates.
+///
+/// The dominant seed drives the full palette. The second and third candidates,
+/// when present, replace the secondary and tertiary families respectively.
+/// This is shared by the native wallpaper pipeline and in-memory consumers such
+/// as the WebAssembly package.
+pub fn palette_from_extracted_seeds(
     seeds: &[ExtractedSeed],
     mode: ThemeMode,
     chroma: ChromaStrategy,

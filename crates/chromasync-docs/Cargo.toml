@@ -15,9 +15,9 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
-chromasync-cli = { package = "chromasync", version = "0.3.0", path = "../chromasync-cli" }
-chromasync-core = { version = "0.3.0", path = "../chromasync-core" }
-chromasync-renderers = { version = "0.3.0", path = "../chromasync-renderers" }
-chromasync-template = { version = "0.3.0", path = "../chromasync-template" }
-chromasync-types = { version = "0.3.0", path = "../chromasync-types" }
+chromasync-cli = { package = "chromasync", version = "0.4.0", path = "../chromasync-cli" }
+chromasync-core = { version = "0.4.0", path = "../chromasync-core" }
+chromasync-renderers = { version = "0.4.0", path = "../chromasync-renderers" }
+chromasync-template = { version = "0.4.0", path = "../chromasync-template" }
+chromasync-types = { version = "0.4.0", path = "../chromasync-types" }
 clap.workspace = true

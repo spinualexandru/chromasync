@@ -9,7 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-chromasync-types = { version = "0.3.0", path = "../chromasync-types" }
+chromasync-types = { version = "0.4.0", path = "../chromasync-types" }
 directories.workspace = true
 serde.workspace = true
 thiserror.workspace = true

@@ -155,6 +155,22 @@ cargo test --workspace
 cargo run -p chromasync-docs -- generate --check
 ```
 
+## WebAssembly library
+
+Chromasync can also be built as a browser ESM library. It accepts encoded PNG,
+JPEG, or WebP bytes and returns JavaScript objects containing extracted colors
+and a complete palette:
+
+```bash
+wasm-pack build crates/chromasync-wasm \
+  --target web \
+  --release \
+  --out-dir ../../dist/wasm
+```
+
+See the [`chromasync-wasm` crate README](https://github.com/spinualexandru/chromasync/tree/main/crates/chromasync-wasm)
+for the typed JavaScript API and browser example.
+
 ## Contributing
 
 Pull requests from first-time or otherwise unvouched contributors are automatically closed until a maintainer vouches for the author. This is in place to reduce spammy or low-signal PRs.

@@ -30,6 +30,19 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
+      - name: Install WebAssembly target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --version 0.15.0 --locked
+
+      - name: Verify WebAssembly library
+        run: >-
+          wasm-pack build crates/chromasync-wasm
+          --target web
+          --release
+          --out-dir ../../dist/wasm
+
       - name: Verify release build
         run: cargo build --release -p chromasync
 
