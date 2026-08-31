@@ -1,0 +1,85 @@
+#:schema ../../../schemas/target.json
+name = "gtk3"
+description = "Built-in GTK 3 stylesheet target."
+preferred_template = "materialish"
+chroma = "subtle"
+
+[[artifacts]]
+file_name = "gtk.css"
+template = """
+@define-color theme_bg_color {{tokens.bg}};
+@define-color theme_fg_color {{tokens.text}};
+@define-color theme_base_color {{tokens.surface}};
+@define-color theme_text_color {{tokens.text}};
+@define-color theme_selected_bg_color {{tokens.selection}};
+@define-color theme_selected_fg_color {{tokens.text}};
+@define-color insensitive_bg_color {{tokens.bg_secondary}};
+@define-color insensitive_fg_color {{tokens.text_muted}};
+@define-color insensitive_base_color {{tokens.surface}};
+@define-color theme_unfocused_bg_color {{tokens.bg_secondary}};
+@define-color theme_unfocused_fg_color {{tokens.text_muted}};
+@define-color theme_unfocused_base_color {{tokens.surface}};
+@define-color theme_unfocused_text_color {{tokens.text_muted}};
+@define-color theme_unfocused_selected_bg_color {{tokens.surface_elevated}};
+@define-color theme_unfocused_selected_fg_color {{tokens.text}};
+@define-color borders {{tokens.border}};
+@define-color unfocused_borders {{tokens.border}};
+@define-color warning_color {{tokens.warning}};
+@define-color error_color {{tokens.error}};
+@define-color success_color {{tokens.success}};
+@define-color link_color {{tokens.link}};
+
+window,
+dialog,
+popover,
+menu {
+  background-color: @theme_bg_color;
+  color: @theme_fg_color;
+}
+
+headerbar,
+toolbar,
+.titlebar {
+  background-color: {{tokens.surface_elevated}};
+  color: @theme_fg_color;
+  border-color: {{tokens.border_strong}};
+}
+
+entry,
+textview,
+treeview,
+.view {
+  background-color: @theme_base_color;
+  color: @theme_text_color;
+  border-color: @borders;
+}
+
+button {
+  background-color: {{tokens.surface}};
+  color: @theme_fg_color;
+  border-color: @borders;
+}
+
+button:hover {
+  background-color: {{tokens.surface_elevated}};
+  border-color: {{tokens.accent_hover}};
+}
+
+button.suggested-action,
+button:checked,
+switch:checked slider {
+  background-color: {{tokens.accent}};
+  color: {{tokens.accent_fg}};
+  border-color: {{tokens.accent}};
+}
+
+selection {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+a,
+link {
+  color: @link_color;
+}
+"""

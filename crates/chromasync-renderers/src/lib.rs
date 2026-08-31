@@ -1,5 +1,4 @@
 mod alacritty;
-mod kitty;
 mod registry;
 
 use chromasync_types::{
@@ -12,20 +11,56 @@ pub use crate::registry::{
     TargetSource, TargetSpec, parse_target_file, user_targets_dir,
 };
 
-pub const BUILTIN_TARGETS: [RenderTarget; 6] = [
+pub const BUILTIN_TARGETS: [RenderTarget; 17] = [
     RenderTarget::Alacritty,
+    RenderTarget::Chromium,
     RenderTarget::Ghostty,
+    RenderTarget::GoogleChrome,
+    RenderTarget::Gtk3,
+    RenderTarget::Gtk4,
+    RenderTarget::HeliumBrowser,
     RenderTarget::Hyprland,
     RenderTarget::HyprlandLua,
+    RenderTarget::KColorScheme,
     RenderTarget::Kitty,
+    RenderTarget::Micro,
+    RenderTarget::Qt5,
+    RenderTarget::Qt6,
+    RenderTarget::VsCode,
+    RenderTarget::VsCodeInsiders,
     RenderTarget::Zed,
 ];
 
-pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 4] = [
+pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 16] = [
+    (
+        "chromium",
+        "chromium.toml",
+        include_str!("../builtin-targets/chromium.toml"),
+    ),
     (
         "ghostty",
         "ghostty.toml",
         include_str!("../builtin-targets/ghostty.toml"),
+    ),
+    (
+        "google-chrome",
+        "google-chrome.toml",
+        include_str!("../builtin-targets/google-chrome.toml"),
+    ),
+    (
+        "gtk3",
+        "gtk3.toml",
+        include_str!("../builtin-targets/gtk3.toml"),
+    ),
+    (
+        "gtk4",
+        "gtk4.toml",
+        include_str!("../builtin-targets/gtk4.toml"),
+    ),
+    (
+        "helium-browser",
+        "helium-browser.toml",
+        include_str!("../builtin-targets/helium-browser.toml"),
     ),
     (
         "hyprland",
@@ -36,6 +71,41 @@ pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 4] = [
         "hyprland-lua",
         "hyprland-lua.toml",
         include_str!("../builtin-targets/hyprland-lua.toml"),
+    ),
+    (
+        "kcolorscheme",
+        "kcolorscheme.toml",
+        include_str!("../builtin-targets/kcolorscheme.toml"),
+    ),
+    (
+        "kitty",
+        "kitty.toml",
+        include_str!("../builtin-targets/kitty.toml"),
+    ),
+    (
+        "micro",
+        "micro.toml",
+        include_str!("../builtin-targets/micro.toml"),
+    ),
+    (
+        "qt5",
+        "qt5.toml",
+        include_str!("../builtin-targets/qt5.toml"),
+    ),
+    (
+        "qt6",
+        "qt6.toml",
+        include_str!("../builtin-targets/qt6.toml"),
+    ),
+    (
+        "vscode",
+        "vscode.toml",
+        include_str!("../builtin-targets/vscode.toml"),
+    ),
+    (
+        "vscode-insiders",
+        "vscode-insiders.toml",
+        include_str!("../builtin-targets/vscode-insiders.toml"),
     ),
     (
         "zed",
@@ -91,6 +161,10 @@ where
 pub enum RendererError {
     #[error("renderer '{target}' is not implemented yet")]
     UnsupportedTarget { target: RenderTarget },
+    #[error(
+        "target '{target}' generates {count} artifacts; use render_targets for multi-artifact targets"
+    )]
+    MultiArtifactTarget { target: RenderTarget, count: usize },
     #[error("target '{requested}' was not found")]
     UnknownTarget { requested: String },
     #[error("color '{value}' must use the #RRGGBB format")]
@@ -167,6 +241,13 @@ pub fn render_target(
     let context = GenerationContext::default();
     let mut artifacts = generator.generate(tokens, &context)?;
 
+    if artifacts.len() > 1 {
+        return Err(RendererError::MultiArtifactTarget {
+            target,
+            count: artifacts.len(),
+        });
+    }
+
     artifacts
         .pop()
         .ok_or(RendererError::UnsupportedTarget { target })
@@ -238,6 +319,12 @@ fn normalized_hex_without_hash(value: &str) -> Result<String, RendererError> {
     let [red, green, blue] = parse_hex_color(value)?;
 
     Ok(format!("{red:02x}{green:02x}{blue:02x}"))
+}
+
+fn rgb_components(value: &str) -> Result<String, RendererError> {
+    let [red, green, blue] = parse_hex_color(value)?;
+
+    Ok(format!("{red}, {green}, {blue}"))
 }
 
 fn terminal_ansi_colors(tokens: &SemanticTokens) -> [HexColor; 16] {

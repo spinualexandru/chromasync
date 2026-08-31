@@ -106,6 +106,41 @@ template = "{{tokens.nope}}"
 }
 
 #[test]
+fn chained_color_transforms_fail_target_loading() {
+    let dir = temp_dir_path("target-registry-chained-transforms");
+    fs::create_dir_all(&dir).expect("temp target directory should be created");
+
+    fs::write(
+        dir.join("invalid.toml"),
+        r#"
+name = "broken_transforms"
+
+[[artifacts]]
+file_name = "broken.conf"
+template = "{{tokens.bg | rgb | hex_no_hash}}"
+"#,
+    )
+    .expect("invalid target should be written");
+
+    let built_in = RendererRegistry::new();
+    let error = TargetRegistry::from_dir(&dir, false, &built_in.built_in_name_set())
+        .expect_err("chained color transforms should fail target loading");
+
+    assert!(matches!(
+        error,
+        RendererError::InvalidPlaceholder {
+            target,
+            file_name,
+            placeholder,
+        } if target == "broken_transforms"
+            && file_name == "broken.conf"
+            && placeholder == "tokens.bg | rgb | hex_no_hash"
+    ));
+
+    fs::remove_dir_all(dir).expect("temp target directory should be removed");
+}
+
+#[test]
 fn built_in_name_collisions_fail_target_loading() {
     let dir = temp_dir_path("target-registry-collision");
     fs::create_dir_all(&dir).expect("temp target directory should be created");

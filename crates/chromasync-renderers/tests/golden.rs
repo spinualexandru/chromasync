@@ -24,7 +24,7 @@ fn hyprland_built_in_target_matches_golden_file() {
 }
 
 #[test]
-fn kitty_renderer_matches_golden_file() {
+fn kitty_built_in_target_matches_golden_file() {
     assert_matches_golden(
         RenderTarget::Kitty,
         include_str!("fixtures/kitty.conf.golden"),
@@ -92,7 +92,7 @@ fn built_in_targets_render_to_generated_artifacts() {
     let artifacts = render_targets(built_in_targets(), &sample_tokens())
         .expect("built-in targets should render");
 
-    assert_eq!(artifacts.len(), 6);
+    assert_eq!(artifacts.len(), 19);
     assert_eq!(
         artifacts
             .iter()
@@ -100,10 +100,23 @@ fn built_in_targets_render_to_generated_artifacts() {
             .collect::<Vec<_>>(),
         vec![
             "alacritty".to_owned(),
+            "chromium".to_owned(),
             "ghostty".to_owned(),
+            "google-chrome".to_owned(),
+            "gtk3".to_owned(),
+            "gtk4".to_owned(),
+            "helium-browser".to_owned(),
             "hyprland".to_owned(),
             "hyprland-lua".to_owned(),
+            "kcolorscheme".to_owned(),
             "kitty".to_owned(),
+            "micro".to_owned(),
+            "qt5".to_owned(),
+            "qt6".to_owned(),
+            "vscode".to_owned(),
+            "vscode".to_owned(),
+            "vscode-insiders".to_owned(),
+            "vscode-insiders".to_owned(),
             "zed".to_owned(),
         ]
     );
@@ -114,13 +127,94 @@ fn built_in_targets_render_to_generated_artifacts() {
             .collect::<Vec<_>>(),
         vec![
             "alacritty.toml",
+            "manifest.json",
             "chromasync.ghostty",
+            "manifest.json",
+            "gtk.css",
+            "gtk.css",
+            "manifest.json",
             "hyprland.conf",
             "hypr-chromasync.lua",
+            "chromasync.colors",
             "kitty.conf",
+            "chromasync.micro",
+            "chromasync.conf",
+            "chromasync.conf",
+            "package.json",
+            "chromasync-color-theme.json",
+            "package.json",
+            "chromasync-color-theme.json",
             "chromasync.json",
         ]
     );
+}
+
+#[test]
+fn browser_and_vscode_built_ins_render_valid_json() {
+    let registry = OutputRegistry::default();
+    let targets = [
+        "chromium".to_owned(),
+        "google-chrome".to_owned(),
+        "helium-browser".to_owned(),
+        "vscode".to_owned(),
+        "vscode-insiders".to_owned(),
+    ];
+    let artifacts = registry
+        .generate(&targets, &sample_tokens(), &sample_context())
+        .expect("JSON targets should render");
+
+    for artifact in &artifacts {
+        serde_json::from_str::<serde_json::Value>(&artifact.content).unwrap_or_else(|error| {
+            panic!(
+                "{} artifact {} should be valid JSON: {error}",
+                artifact.target, artifact.file_name
+            )
+        });
+    }
+
+    let chromium = artifacts
+        .iter()
+        .find(|artifact| artifact.target == "chromium")
+        .expect("Chromium manifest should be generated");
+    assert!(chromium.content.contains("\"frame\": [22, 27, 34]"));
+
+    let vscode_manifest = artifacts
+        .iter()
+        .find(|artifact| artifact.target == "vscode" && artifact.file_name == "package.json")
+        .expect("VS Code package manifest should be generated");
+    assert!(vscode_manifest.content.contains("\"uiTheme\": \"vs-dark\""));
+}
+
+#[test]
+fn vscode_light_mode_uses_light_ui_theme_identifier() {
+    let registry = OutputRegistry::default();
+    let mut context = sample_context();
+    context.mode = ThemeMode::Light;
+    let artifacts = registry
+        .generate(&["vscode".to_owned()], &sample_tokens(), &context)
+        .expect("VS Code target should render");
+    let package = artifacts
+        .iter()
+        .find(|artifact| artifact.file_name == "package.json")
+        .expect("VS Code package manifest should be generated");
+
+    assert!(package.content.contains("\"uiTheme\": \"vs\""));
+}
+
+#[test]
+fn single_artifact_api_rejects_multi_artifact_targets() {
+    for target in [RenderTarget::VsCode, RenderTarget::VsCodeInsiders] {
+        let error = render_target(target, &sample_tokens())
+            .expect_err("single-artifact API should reject VS Code extension targets");
+
+        assert!(matches!(
+            error,
+            chromasync_renderers::RendererError::MultiArtifactTarget {
+                target: error_target,
+                count: 2,
+            } if error_target == target
+        ));
+    }
 }
 
 fn assert_matches_golden(target: RenderTarget, expected: &str) {

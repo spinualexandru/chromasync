@@ -5,8 +5,19 @@
 | Name | Default Artifact |
 | --- | --- |
 | `alacritty` | `alacritty.toml` |
+| `chromium` | `manifest.json` |
 | `ghostty` | `chromasync.ghostty` |
+| `google-chrome` | `manifest.json` |
+| `gtk3` | `gtk.css` |
+| `gtk4` | `gtk.css` |
+| `helium-browser` | `manifest.json` |
 | `hyprland` | `hyprland.conf` |
 | `hyprland-lua` | `hypr-chromasync.lua` |
+| `kcolorscheme` | `chromasync.colors` |
 | `kitty` | `kitty.conf` |
+| `micro` | `chromasync.micro` |
+| `qt5` | `chromasync.conf` |
+| `qt6` | `chromasync.conf` |
+| `vscode` | `package.json` |
+| `vscode-insiders` | `package.json` |
 | `zed` | `chromasync.json` |

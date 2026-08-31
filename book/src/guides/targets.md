@@ -24,10 +24,21 @@ Chromasync ships with built-in targets compiled into the binary:
 | Name | Default artifact | Description |
 | --- | --- | --- |
 | `alacritty` | `alacritty.toml` | Alacritty terminal emulator theme (primary colors, cursor, selection, search, hints, 16-color ANSI palette) |
+| `chromium` | `manifest.json` | Chromium browser theme extension manifest |
 | `ghostty` | `chromasync.ghostty` | Ghostty terminal theme |
+| `google-chrome` | `manifest.json` | Google Chrome browser theme extension manifest |
+| `gtk3` | `gtk.css` | GTK 3 user stylesheet |
+| `gtk4` | `gtk.css` | GTK 4 user stylesheet with libadwaita-compatible symbolic colors |
+| `helium-browser` | `manifest.json` | Helium Browser theme extension manifest |
 | `hyprland` | `hyprland.conf` | Hyprland color configuration |
 | `hyprland-lua` | `hypr-chromasync.lua` | Hyprland Lua color configuration |
+| `kcolorscheme` | `chromasync.colors` | KDE KColorScheme palette |
 | `kitty` | `kitty.conf` | Kitty terminal emulator theme (foreground, background, cursor, selection, borders, tabs, 16-color ANSI palette) |
+| `micro` | `chromasync.micro` | micro editor true-color theme |
+| `qt5` | `chromasync.conf` | Qt 5 qt5ct palette |
+| `qt6` | `chromasync.conf` | Qt 6 qt6ct palette |
+| `vscode` | `package.json`, `chromasync-color-theme.json` | Visual Studio Code theme extension |
+| `vscode-insiders` | `package.json`, `chromasync-color-theme.json` | Visual Studio Code Insiders theme extension |
 | `zed` | `chromasync.json` | Zed editor theme |
 
 Use them by name:
@@ -141,17 +152,24 @@ Reference generation context:
 | `{{ctx.output_dir}}` | Output directory path |
 | `{{ctx.seed}}` | Seed color (if generation used one) |
 
-Context values do not support transforms.
+The mode value also supports `mode(dark=VALUE,light=VALUE)` when an output
+format uses different identifiers for dark and light themes. Other context
+values do not support transforms.
 
 ### Transforms
 
 Transforms modify the output format of token values:
 
+Each placeholder accepts at most one transform. Transform chaining is rejected
+during target validation.
+
 | Syntax | Output | Example |
 | --- | --- | --- |
 | `{{tokens.bg}}` | `#rrggbb` (default hex) | `#1a1b26` |
 | `{{tokens.bg \| hex_no_hash}}` | `rrggbb` (hex without `#`) | `1a1b26` |
+| `{{tokens.bg \| rgb}}` | Decimal RGB components | `26, 27, 38` |
 | `{{tokens.bg \| rgba(FF)}}` | `rgba(RRGGBBAA)` (uppercase hex with alpha) | `rgba(1A1B26FF)` |
+| `{{ctx.mode \| mode(dark=vs-dark,light=vs)}}` | Mode-specific value | `vs-dark` |
 
 The `rgba()` transform accepts any two-digit hex alpha value. Use `FF` for full opacity or lower values like `CC` for transparency.
 
@@ -221,7 +239,8 @@ Chromasync validates targets at load time:
 - Target names must not collide with built-in target names.
 - Artifact file names must be non-empty with no path separators.
 - All placeholders must reference valid token or context names.
-- Transforms must be valid (`hex_no_hash` or `rgba(XX)`).
+- Transforms must be valid (`hex_no_hash`, `rgb`, `rgba(XX)`, or a mode mapping).
+- Each placeholder may apply at most one transform.
 - Unterminated placeholders (missing `}}`) are rejected.
 - Duplicate target names across sources of equal precedence are an error.
 

@@ -111,6 +111,8 @@ impl fmt::Display for ContrastStrategy {
 #[serde(rename_all = "kebab-case")]
 pub enum RenderTarget {
     Gtk,
+    Gtk3,
+    Gtk4,
     Hyprland,
     HyprlandLua,
     Kitty,
@@ -122,6 +124,18 @@ pub enum RenderTarget {
     Ghostty,
     Editor,
     Zed,
+    Chromium,
+    GoogleChrome,
+    HeliumBrowser,
+    #[serde(rename = "kcolorscheme")]
+    KColorScheme,
+    Micro,
+    Qt5,
+    Qt6,
+    #[serde(rename = "vscode")]
+    VsCode,
+    #[serde(rename = "vscode-insiders")]
+    VsCodeInsiders,
 }
 
 impl RenderTarget {
@@ -130,6 +144,8 @@ impl RenderTarget {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Gtk => "gtk",
+            Self::Gtk3 => "gtk3",
+            Self::Gtk4 => "gtk4",
             Self::Hyprland => "hyprland",
             Self::HyprlandLua => "hyprland-lua",
             Self::Kitty => "kitty",
@@ -141,12 +157,22 @@ impl RenderTarget {
             Self::Ghostty => "ghostty",
             Self::Editor => "editor",
             Self::Zed => "zed",
+            Self::Chromium => "chromium",
+            Self::GoogleChrome => "google-chrome",
+            Self::HeliumBrowser => "helium-browser",
+            Self::KColorScheme => "kcolorscheme",
+            Self::Micro => "micro",
+            Self::Qt5 => "qt5",
+            Self::Qt6 => "qt6",
+            Self::VsCode => "vscode",
+            Self::VsCodeInsiders => "vscode-insiders",
         }
     }
 
     pub const fn file_name(self) -> &'static str {
         match self {
             Self::Gtk => "gtk.css",
+            Self::Gtk3 | Self::Gtk4 => "gtk.css",
             Self::Hyprland => "hyprland.conf",
             Self::HyprlandLua => "hypr-chromasync.lua",
             Self::Kitty => "kitty.conf",
@@ -158,6 +184,11 @@ impl RenderTarget {
             Self::Ghostty => "chromasync.ghostty",
             Self::Editor => "theme.json",
             Self::Zed => "chromasync.json",
+            Self::Chromium | Self::GoogleChrome | Self::HeliumBrowser => "manifest.json",
+            Self::KColorScheme => "chromasync.colors",
+            Self::Micro => "chromasync.micro",
+            Self::Qt5 | Self::Qt6 => "chromasync.conf",
+            Self::VsCode | Self::VsCodeInsiders => "package.json",
         }
     }
 }

@@ -1,0 +1,143 @@
+#:schema ../../../schemas/target.json
+name = "kcolorscheme"
+description = "Built-in KDE KColorScheme target."
+preferred_template = "materialish"
+chroma = "subtle"
+
+[[artifacts]]
+file_name = "chromasync.colors"
+template = """
+[ColorEffects:Disabled]
+Color={{tokens.text_muted | rgb}}
+ColorAmount=0.15
+ColorEffect=0
+ContrastAmount=0.25
+ContrastEffect=1
+IntensityAmount=0.10
+IntensityEffect=2
+
+[ColorEffects:Inactive]
+ChangeSelectionColor=true
+Color={{tokens.text_muted | rgb}}
+ColorAmount=0.10
+ColorEffect=0
+ContrastAmount=0.10
+ContrastEffect=1
+Enable=true
+IntensityAmount=0.05
+IntensityEffect=2
+
+[Colors:Button]
+BackgroundAlternate={{tokens.surface_elevated | rgb}}
+BackgroundNormal={{tokens.surface | rgb}}
+DecorationFocus={{tokens.accent | rgb}}
+DecorationHover={{tokens.accent_hover | rgb}}
+ForegroundActive={{tokens.accent_active | rgb}}
+ForegroundInactive={{tokens.text_muted | rgb}}
+ForegroundLink={{tokens.link | rgb}}
+ForegroundNegative={{tokens.error | rgb}}
+ForegroundNeutral={{tokens.warning | rgb}}
+ForegroundNormal={{tokens.text | rgb}}
+ForegroundPositive={{tokens.success | rgb}}
+ForegroundVisited={{tokens.accent_active | rgb}}
+
+[Colors:Complementary]
+BackgroundAlternate={{tokens.bg_secondary | rgb}}
+BackgroundNormal={{tokens.bg | rgb}}
+DecorationFocus={{tokens.accent | rgb}}
+DecorationHover={{tokens.accent_hover | rgb}}
+ForegroundActive={{tokens.accent | rgb}}
+ForegroundInactive={{tokens.text_muted | rgb}}
+ForegroundLink={{tokens.link | rgb}}
+ForegroundNegative={{tokens.error | rgb}}
+ForegroundNeutral={{tokens.warning | rgb}}
+ForegroundNormal={{tokens.text | rgb}}
+ForegroundPositive={{tokens.success | rgb}}
+ForegroundVisited={{tokens.accent_active | rgb}}
+
+[Colors:Header]
+BackgroundAlternate={{tokens.surface | rgb}}
+BackgroundNormal={{tokens.bg_secondary | rgb}}
+DecorationFocus={{tokens.accent | rgb}}
+DecorationHover={{tokens.accent_hover | rgb}}
+ForegroundActive={{tokens.accent | rgb}}
+ForegroundInactive={{tokens.text_muted | rgb}}
+ForegroundLink={{tokens.link | rgb}}
+ForegroundNegative={{tokens.error | rgb}}
+ForegroundNeutral={{tokens.warning | rgb}}
+ForegroundNormal={{tokens.text | rgb}}
+ForegroundPositive={{tokens.success | rgb}}
+ForegroundVisited={{tokens.accent_active | rgb}}
+
+[Colors:Selection]
+BackgroundAlternate={{tokens.accent_active | rgb}}
+BackgroundNormal={{tokens.selection | rgb}}
+DecorationFocus={{tokens.accent | rgb}}
+DecorationHover={{tokens.accent_hover | rgb}}
+ForegroundActive={{tokens.text | rgb}}
+ForegroundInactive={{tokens.text_muted | rgb}}
+ForegroundLink={{tokens.link | rgb}}
+ForegroundNegative={{tokens.error | rgb}}
+ForegroundNeutral={{tokens.warning | rgb}}
+ForegroundNormal={{tokens.text | rgb}}
+ForegroundPositive={{tokens.success | rgb}}
+ForegroundVisited={{tokens.accent_active | rgb}}
+
+[Colors:Tooltip]
+BackgroundAlternate={{tokens.surface | rgb}}
+BackgroundNormal={{tokens.surface_elevated | rgb}}
+DecorationFocus={{tokens.accent | rgb}}
+DecorationHover={{tokens.accent_hover | rgb}}
+ForegroundActive={{tokens.accent | rgb}}
+ForegroundInactive={{tokens.text_muted | rgb}}
+ForegroundLink={{tokens.link | rgb}}
+ForegroundNegative={{tokens.error | rgb}}
+ForegroundNeutral={{tokens.warning | rgb}}
+ForegroundNormal={{tokens.text | rgb}}
+ForegroundPositive={{tokens.success | rgb}}
+ForegroundVisited={{tokens.accent_active | rgb}}
+
+[Colors:View]
+BackgroundAlternate={{tokens.bg_secondary | rgb}}
+BackgroundNormal={{tokens.bg | rgb}}
+DecorationFocus={{tokens.accent | rgb}}
+DecorationHover={{tokens.accent_hover | rgb}}
+ForegroundActive={{tokens.accent | rgb}}
+ForegroundInactive={{tokens.text_muted | rgb}}
+ForegroundLink={{tokens.link | rgb}}
+ForegroundNegative={{tokens.error | rgb}}
+ForegroundNeutral={{tokens.warning | rgb}}
+ForegroundNormal={{tokens.text | rgb}}
+ForegroundPositive={{tokens.success | rgb}}
+ForegroundVisited={{tokens.accent_active | rgb}}
+
+[Colors:Window]
+BackgroundAlternate={{tokens.surface | rgb}}
+BackgroundNormal={{tokens.bg_secondary | rgb}}
+DecorationFocus={{tokens.accent | rgb}}
+DecorationHover={{tokens.accent_hover | rgb}}
+ForegroundActive={{tokens.accent | rgb}}
+ForegroundInactive={{tokens.text_muted | rgb}}
+ForegroundLink={{tokens.link | rgb}}
+ForegroundNegative={{tokens.error | rgb}}
+ForegroundNeutral={{tokens.warning | rgb}}
+ForegroundNormal={{tokens.text | rgb}}
+ForegroundPositive={{tokens.success | rgb}}
+ForegroundVisited={{tokens.accent_active | rgb}}
+
+[General]
+ColorScheme=Chromasync {{ctx.mode}}
+Name=Chromasync {{ctx.mode}}
+shadeSortColumn=true
+
+[KDE]
+contrast=4
+
+[WM]
+activeBackground={{tokens.bg_secondary | rgb}}
+activeBlend={{tokens.accent | rgb}}
+activeForeground={{tokens.text | rgb}}
+inactiveBackground={{tokens.surface | rgb}}
+inactiveBlend={{tokens.border | rgb}}
+inactiveForeground={{tokens.text_muted | rgb}}
+"""

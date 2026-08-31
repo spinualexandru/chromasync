@@ -1,0 +1,14 @@
+#:schema ../../../schemas/target.json
+name = "qt6"
+description = "Built-in Qt 6 qt6ct color scheme target."
+preferred_template = "materialish"
+chroma = "subtle"
+
+[[artifacts]]
+file_name = "chromasync.conf"
+template = """
+[ColorScheme]
+active_colors={{tokens.text}}, {{tokens.surface}}, {{tokens.surface_elevated}}, {{tokens.surface_elevated}}, {{tokens.bg_secondary}}, {{tokens.border}}, {{tokens.text}}, {{tokens.text}}, {{tokens.text}}, {{tokens.bg}}, {{tokens.surface}}, {{tokens.bg_secondary}}, {{tokens.selection}}, {{tokens.text}}, {{tokens.link}}, {{tokens.accent_active}}, {{tokens.bg_secondary}}, {{tokens.bg}}, {{tokens.surface_elevated}}, {{tokens.text}}, {{tokens.text_muted}}
+disabled_colors={{tokens.text_muted}}, {{tokens.surface}}, {{tokens.surface_elevated}}, {{tokens.surface_elevated}}, {{tokens.bg_secondary}}, {{tokens.border}}, {{tokens.text_muted}}, {{tokens.text}}, {{tokens.text_muted}}, {{tokens.bg}}, {{tokens.surface}}, {{tokens.bg_secondary}}, {{tokens.border}}, {{tokens.text_muted}}, {{tokens.link}}, {{tokens.accent_active}}, {{tokens.bg_secondary}}, {{tokens.bg}}, {{tokens.surface_elevated}}, {{tokens.text_muted}}, {{tokens.text_muted}}
+inactive_colors={{tokens.text_muted}}, {{tokens.surface}}, {{tokens.surface_elevated}}, {{tokens.surface_elevated}}, {{tokens.bg_secondary}}, {{tokens.border}}, {{tokens.text_muted}}, {{tokens.text}}, {{tokens.text_muted}}, {{tokens.bg}}, {{tokens.surface}}, {{tokens.bg_secondary}}, {{tokens.accent_active}}, {{tokens.text}}, {{tokens.link}}, {{tokens.accent_active}}, {{tokens.bg_secondary}}, {{tokens.bg}}, {{tokens.surface_elevated}}, {{tokens.text}}, {{tokens.text_muted}}
+"""

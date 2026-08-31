@@ -340,9 +340,10 @@ pub trait Renderer {
 
 # 10. Target Renderers
 
-The repository keeps `kitty` and `alacritty` as built-in renderers. The `gtk`,
-`hyprland`, `css`, `waybar`, `foot`, `ghostty`, and `editor` outputs are now shipped as
-declarative example targets under `examples/targets/`.
+The repository keeps `alacritty` as a native built-in renderer. Other built-ins,
+including browser, GTK, Qt, terminal, desktop, and editor themes, are embedded from
+declarative target specs under `crates/chromasync-renderers/builtin-targets/`.
+Additional generic examples remain under `examples/targets/`.
 
 ## 10.1 GTK Renderer
 

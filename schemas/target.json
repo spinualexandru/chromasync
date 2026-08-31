@@ -50,7 +50,7 @@
         },
         "template": {
           "type": "string",
-          "description": "File content template with placeholders.\n\nToken placeholders:\n  {{tokens.<NAME>}}                — hex value (#rrggbb)\n  {{tokens.<NAME> | hex_no_hash}}  — without # prefix\n  {{tokens.<NAME> | rgba(FF)}}     — RGBA hex with alpha\n\nContext placeholders:\n  {{ctx.mode}}           — dark/light\n  {{ctx.template_name}}  — template name\n  {{ctx.chroma}}         — chroma strategy\n  {{ctx.output_dir}}     — output directory\n  {{ctx.seed}}           — seed color\n\nAvailable tokens: bg, bg_secondary, surface, surface_elevated, text, text_muted, border, border_strong, accent, accent_hover, accent_active, accent_fg, selection, link, success, warning, error"
+          "description": "File content template with placeholders.\n\nToken placeholders:\n  {{tokens.<NAME>}}                — hex value (#rrggbb)\n  {{tokens.<NAME> | hex_no_hash}}  — without # prefix\n  {{tokens.<NAME> | rgb}}          — decimal RGB components (r, g, b)\n  {{tokens.<NAME> | rgba(FF)}}     — RGBA hex with alpha\n\nContext placeholders:\n  {{ctx.mode}}                                      — dark/light\n  {{ctx.mode | mode(dark=VALUE,light=VALUE)}}       — map the mode to format-specific values\n  {{ctx.template_name}}                             — template name\n  {{ctx.chroma}}                                    — chroma strategy\n  {{ctx.output_dir}}                                — output directory\n  {{ctx.seed}}                                      — seed color\n\nAvailable tokens: bg, bg_secondary, surface, surface_elevated, text, text_muted, border, border_strong, accent, accent_hover, accent_active, accent_fg, selection, link, success, warning, error"
         }
       }
     }
