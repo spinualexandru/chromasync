@@ -1022,12 +1022,18 @@ fn compile_placeholder(
     }
 
     let transforms_are_valid = match value {
-        PlaceholderValue::Token(_) => transforms
-            .iter()
-            .all(|transform| !matches!(transform, PlaceholderTransform::ModeMap { .. })),
-        PlaceholderValue::Context(ContextField::Mode) => transforms
-            .iter()
-            .all(|transform| matches!(transform, PlaceholderTransform::ModeMap { .. })),
+        PlaceholderValue::Token(_) => {
+            transforms.len() <= 1
+                && transforms
+                    .iter()
+                    .all(|transform| !matches!(transform, PlaceholderTransform::ModeMap { .. }))
+        }
+        PlaceholderValue::Context(ContextField::Mode) => {
+            transforms.len() <= 1
+                && transforms
+                    .iter()
+                    .all(|transform| matches!(transform, PlaceholderTransform::ModeMap { .. }))
+        }
         PlaceholderValue::Context(_) => transforms.is_empty(),
     };
 

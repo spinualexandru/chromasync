@@ -161,6 +161,10 @@ where
 pub enum RendererError {
     #[error("renderer '{target}' is not implemented yet")]
     UnsupportedTarget { target: RenderTarget },
+    #[error(
+        "target '{target}' generates {count} artifacts; use render_targets for multi-artifact targets"
+    )]
+    MultiArtifactTarget { target: RenderTarget, count: usize },
     #[error("target '{requested}' was not found")]
     UnknownTarget { requested: String },
     #[error("color '{value}' must use the #RRGGBB format")]
@@ -235,11 +239,17 @@ pub fn render_target(
         .get(target.as_str())
         .ok_or(RendererError::UnsupportedTarget { target })?;
     let context = GenerationContext::default();
-    let artifacts = generator.generate(tokens, &context)?;
+    let mut artifacts = generator.generate(tokens, &context)?;
+
+    if artifacts.len() > 1 {
+        return Err(RendererError::MultiArtifactTarget {
+            target,
+            count: artifacts.len(),
+        });
+    }
 
     artifacts
-        .into_iter()
-        .next()
+        .pop()
         .ok_or(RendererError::UnsupportedTarget { target })
 }
 

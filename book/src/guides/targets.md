@@ -160,6 +160,9 @@ values do not support transforms.
 
 Transforms modify the output format of token values:
 
+Each placeholder accepts at most one transform. Transform chaining is rejected
+during target validation.
+
 | Syntax | Output | Example |
 | --- | --- | --- |
 | `{{tokens.bg}}` | `#rrggbb` (default hex) | `#1a1b26` |
@@ -237,6 +240,7 @@ Chromasync validates targets at load time:
 - Artifact file names must be non-empty with no path separators.
 - All placeholders must reference valid token or context names.
 - Transforms must be valid (`hex_no_hash`, `rgb`, `rgba(XX)`, or a mode mapping).
+- Each placeholder may apply at most one transform.
 - Unterminated placeholders (missing `}}`) are rejected.
 - Duplicate target names across sources of equal precedence are an error.
 

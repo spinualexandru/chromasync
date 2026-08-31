@@ -201,6 +201,22 @@ fn vscode_light_mode_uses_light_ui_theme_identifier() {
     assert!(package.content.contains("\"uiTheme\": \"vs\""));
 }
 
+#[test]
+fn single_artifact_api_rejects_multi_artifact_targets() {
+    for target in [RenderTarget::VsCode, RenderTarget::VsCodeInsiders] {
+        let error = render_target(target, &sample_tokens())
+            .expect_err("single-artifact API should reject VS Code extension targets");
+
+        assert!(matches!(
+            error,
+            chromasync_renderers::RendererError::MultiArtifactTarget {
+                target: error_target,
+                count: 2,
+            } if error_target == target
+        ));
+    }
+}
+
 fn assert_matches_golden(target: RenderTarget, expected: &str) {
     let artifact = render_target(target, &sample_tokens()).expect("renderer should succeed");
 
