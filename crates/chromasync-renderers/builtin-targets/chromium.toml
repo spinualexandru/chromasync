@@ -1,0 +1,29 @@
+#:schema ../../../schemas/target.json
+name = "chromium"
+description = "Built-in Chromium browser theme target."
+preferred_template = "materialish"
+chroma = "normal"
+
+[[artifacts]]
+file_name = "manifest.json"
+template = """
+{
+  "manifest_version": 3,
+  "name": "Chromasync Chromium",
+  "version": "1.0",
+  "theme": {
+    "colors": {
+      "frame": [{{tokens.bg_secondary | rgb}}],
+      "frame_inactive": [{{tokens.surface | rgb}}],
+      "toolbar": [{{tokens.bg | rgb}}],
+      "tab_text": [{{tokens.text | rgb}}],
+      "tab_background_text": [{{tokens.text_muted | rgb}}],
+      "bookmark_text": [{{tokens.text | rgb}}],
+      "ntp_background": [{{tokens.bg | rgb}}],
+      "ntp_text": [{{tokens.text | rgb}}],
+      "ntp_link": [{{tokens.link | rgb}}],
+      "button_background": [{{tokens.surface_elevated | rgb}}]
+    }
+  }
+}
+"""

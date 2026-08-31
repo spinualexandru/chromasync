@@ -119,11 +119,11 @@ chromasync sync
 
 ## Built-in Templates & Targets
 
-| Templates                                          | Targets                                                       |
-| -------------------------------------------------- | ------------------------------------------------------------- |
-| `minimal`, `brutalist`, `terminal`, `materialish`  | `kitty`, `alacritty`, `ghostty`, `hyprland`, `hyprland-lua`, `zed` |
+| Templates                                         | Targets |
+| ------------------------------------------------- | ------- |
+| `minimal`, `brutalist`, `terminal`, `materialish` | `alacritty`, `chromium`, `ghostty`, `google-chrome`, `gtk3`, `gtk4`, `helium-browser`, `hyprland`, `hyprland-lua`, `kcolorscheme`, `kitty`, `micro`, `qt5`, `qt6`, `vscode`, `vscode-insiders`, `zed` |
 
-Additional targets (GTK, CSS, Waybar, Foot, Editor) are
+Additional targets (generic GTK, CSS, Waybar, Foot, Editor) are
 available as declarative TOML specs under
 [`examples/targets/`](examples/targets/).
 

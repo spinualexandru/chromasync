@@ -62,14 +62,32 @@ fn targets_lists_built_in_renderers() {
         .assert()
         .success()
         .stdout(predicate::str::contains("alacritty\tbuilt-in\talacritty"))
+        .stdout(predicate::str::contains("chromium\tbuilt-in\tchromium"))
         .stdout(predicate::str::contains("ghostty\tbuilt-in\tghostty"))
+        .stdout(predicate::str::contains(
+            "google-chrome\tbuilt-in\tgoogle-chrome",
+        ))
+        .stdout(predicate::str::contains("gtk3\tbuilt-in\tgtk3"))
+        .stdout(predicate::str::contains("gtk4\tbuilt-in\tgtk4"))
+        .stdout(predicate::str::contains(
+            "helium-browser\tbuilt-in\thelium-browser",
+        ))
         .stdout(predicate::str::contains("hyprland\tbuilt-in\thyprland"))
         .stdout(predicate::str::contains(
             "hyprland-lua\tbuilt-in\thyprland-lua",
         ))
         .stdout(predicate::str::contains("kitty\tbuilt-in\tkitty"))
+        .stdout(predicate::str::contains(
+            "kcolorscheme\tbuilt-in\tkcolorscheme",
+        ))
+        .stdout(predicate::str::contains("micro\tbuilt-in\tmicro"))
+        .stdout(predicate::str::contains("qt5\tbuilt-in\tqt5"))
+        .stdout(predicate::str::contains("qt6\tbuilt-in\tqt6"))
+        .stdout(predicate::str::contains("vscode\tbuilt-in\tvscode"))
+        .stdout(predicate::str::contains(
+            "vscode-insiders\tbuilt-in\tvscode-insiders",
+        ))
         .stdout(predicate::str::contains("zed\tbuilt-in\tzed"))
-        .stdout(predicate::str::contains("gtk").not())
         .stdout(predicate::str::contains("css").not())
         .stdout(predicate::str::contains("foot").not())
         .stdout(predicate::str::contains("waybar").not())

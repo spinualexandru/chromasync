@@ -48,7 +48,7 @@ chromasync templates
 
 ## Choosing targets
 
-Targets can be built-in names (`kitty`, `alacritty`, `ghostty`, `hyprland`, `hyprland-lua`, `zed`), paths to declarative target TOML files, or targets provided by packs. Mix them freely in a comma-separated list:
+Targets can be built-in names (for example, `kitty`, `gtk4`, `vscode`, `chromium`, `hyprland`, or `zed`), paths to declarative target TOML files, or targets provided by packs. Mix them freely in a comma-separated list:
 
 ```bash
 --targets kitty,alacritty,hyprland,examples/targets/gtk.toml,examples/targets/css.toml

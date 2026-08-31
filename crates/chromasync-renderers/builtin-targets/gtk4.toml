@@ -1,0 +1,93 @@
+#:schema ../../../schemas/target.json
+name = "gtk4"
+description = "Built-in GTK 4 stylesheet target."
+preferred_template = "materialish"
+chroma = "subtle"
+
+[[artifacts]]
+file_name = "gtk.css"
+template = """
+@define-color accent_color {{tokens.accent}};
+@define-color accent_bg_color {{tokens.accent}};
+@define-color accent_fg_color {{tokens.accent_fg}};
+@define-color destructive_color {{tokens.error}};
+@define-color destructive_bg_color {{tokens.error}};
+@define-color destructive_fg_color {{tokens.accent_fg}};
+@define-color success_color {{tokens.success}};
+@define-color success_bg_color {{tokens.success}};
+@define-color success_fg_color {{tokens.accent_fg}};
+@define-color warning_color {{tokens.warning}};
+@define-color warning_bg_color {{tokens.warning}};
+@define-color warning_fg_color {{tokens.accent_fg}};
+@define-color error_color {{tokens.error}};
+@define-color error_bg_color {{tokens.error}};
+@define-color error_fg_color {{tokens.accent_fg}};
+@define-color window_bg_color {{tokens.bg}};
+@define-color window_fg_color {{tokens.text}};
+@define-color view_bg_color {{tokens.surface}};
+@define-color view_fg_color {{tokens.text}};
+@define-color headerbar_bg_color {{tokens.surface_elevated}};
+@define-color headerbar_fg_color {{tokens.text}};
+@define-color headerbar_border_color {{tokens.border_strong}};
+@define-color card_bg_color {{tokens.surface}};
+@define-color card_fg_color {{tokens.text}};
+@define-color dialog_bg_color {{tokens.surface_elevated}};
+@define-color dialog_fg_color {{tokens.text}};
+@define-color popover_bg_color {{tokens.surface_elevated}};
+@define-color popover_fg_color {{tokens.text}};
+@define-color shade_color {{tokens.bg_secondary}};
+@define-color scrollbar_outline_color {{tokens.border}};
+
+window,
+dialog,
+popover {
+  background-color: @window_bg_color;
+  color: @window_fg_color;
+}
+
+headerbar {
+  background-color: @headerbar_bg_color;
+  color: @headerbar_fg_color;
+  border-color: @headerbar_border_color;
+}
+
+entry,
+textview,
+listview,
+columnview,
+gridview,
+.view {
+  background-color: @view_bg_color;
+  color: @view_fg_color;
+  border-color: {{tokens.border}};
+}
+
+button {
+  background-color: @card_bg_color;
+  color: @card_fg_color;
+  border-color: {{tokens.border}};
+}
+
+button:hover {
+  background-color: {{tokens.surface_elevated}};
+  border-color: {{tokens.accent_hover}};
+}
+
+button.suggested-action,
+button:checked,
+switch:checked slider {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+  border-color: @accent_color;
+}
+
+selection {
+  background-color: {{tokens.selection}};
+  color: {{tokens.text}};
+}
+
+link,
+.link {
+  color: {{tokens.link}};
+}
+"""

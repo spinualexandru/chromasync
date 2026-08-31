@@ -15,7 +15,7 @@ use serde::Deserialize;
 
 use crate::{
     ArtifactGenerator, BUILTIN_DECLARATIVE_TARGETS, BUILTIN_TARGETS, RendererError,
-    alacritty::AlacrittyRenderer, hyprland_rgba, kitty::KittyRenderer, normalized_hex_without_hash,
+    alacritty::AlacrittyRenderer, hyprland_rgba, normalized_hex_without_hash, rgb_components,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -127,7 +127,9 @@ enum PlaceholderValue {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum PlaceholderTransform {
     HexNoHash,
+    Rgb,
     Rgba { alpha: u8 },
+    ModeMap { dark: String, light: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -175,7 +177,6 @@ impl RendererRegistry {
         };
 
         registry.register(AlacrittyRenderer);
-        registry.register(KittyRenderer);
 
         for (name, file_name, content) in BUILTIN_DECLARATIVE_TARGETS {
             registry.register(built_in_declarative_target(name, file_name, content));
@@ -1020,7 +1021,17 @@ fn compile_placeholder(
         )?);
     }
 
-    if matches!(value, PlaceholderValue::Context(_)) && !transforms.is_empty() {
+    let transforms_are_valid = match value {
+        PlaceholderValue::Token(_) => transforms
+            .iter()
+            .all(|transform| !matches!(transform, PlaceholderTransform::ModeMap { .. })),
+        PlaceholderValue::Context(ContextField::Mode) => transforms
+            .iter()
+            .all(|transform| matches!(transform, PlaceholderTransform::ModeMap { .. })),
+        PlaceholderValue::Context(_) => transforms.is_empty(),
+    };
+
+    if !transforms_are_valid {
         return Err(RendererError::InvalidPlaceholder {
             target: target.to_owned(),
             file_name: file_name.to_owned(),
@@ -1039,6 +1050,36 @@ fn compile_placeholder_transform(
 ) -> Result<PlaceholderTransform, RendererError> {
     if raw_transform == "hex_no_hash" {
         return Ok(PlaceholderTransform::HexNoHash);
+    }
+
+    if raw_transform == "rgb" {
+        return Ok(PlaceholderTransform::Rgb);
+    }
+
+    if let Some(arguments) = raw_transform
+        .strip_prefix("mode(")
+        .and_then(|value| value.strip_suffix(')'))
+    {
+        let mut dark = None;
+        let mut light = None;
+
+        for argument in arguments.split(',') {
+            match argument.trim().split_once('=') {
+                Some(("dark", value)) if !value.is_empty() => dark = Some(value.to_owned()),
+                Some(("light", value)) if !value.is_empty() => light = Some(value.to_owned()),
+                _ => {
+                    return Err(RendererError::InvalidPlaceholder {
+                        target: target.to_owned(),
+                        file_name: file_name.to_owned(),
+                        placeholder: placeholder.to_owned(),
+                    });
+                }
+            }
+        }
+
+        if let (Some(dark), Some(light)) = (dark, light) {
+            return Ok(PlaceholderTransform::ModeMap { dark, light });
+        }
     }
 
     if let Some(alpha) = raw_transform
@@ -1132,8 +1173,15 @@ fn apply_placeholder_transform(value: &str, transform: &PlaceholderTransform) ->
     match transform {
         PlaceholderTransform::HexNoHash => normalized_hex_without_hash(value)
             .expect("color transforms should resolve from valid semantic tokens"),
+        PlaceholderTransform::Rgb => rgb_components(value)
+            .expect("color transforms should resolve from valid semantic tokens"),
         PlaceholderTransform::Rgba { alpha } => hyprland_rgba(value, *alpha)
             .expect("color transforms should resolve from valid semantic tokens"),
+        PlaceholderTransform::ModeMap { dark, light } => match value {
+            "dark" => dark.clone(),
+            "light" => light.clone(),
+            _ => value.to_owned(),
+        },
     }
 }
 
