@@ -573,6 +573,10 @@ fn render_from_palette_with_wallpaper(
 ) -> Result<Vec<GeneratedArtifact>, CoreError> {
     use std::collections::BTreeMap;
 
+    if request.targets.is_empty() {
+        return Ok(Vec::new());
+    }
+
     let wallpaper = request
         .wallpaper
         .as_deref()
@@ -819,6 +823,26 @@ mod tests {
                 .iter()
                 .all(|artifact| !artifact.content.is_empty())
         );
+    }
+
+    #[test]
+    fn wallpaper_generation_with_no_targets_does_not_access_the_image() {
+        let request = GenerationRequest {
+            seed: None,
+            wallpaper: Some(wallpaper_fixture("does-not-exist.png")),
+            template: Some("minimal".to_owned()),
+            mode: ThemeMode::Dark,
+            chroma: ChromaStrategy::Normal,
+            contrast: ContrastStrategy::RelativeLuminance,
+            targets: Vec::new(),
+            output_dir: "chromasync".into(),
+        };
+        let registry = super::OutputRegistry::default();
+
+        let artifacts = super::generate_from_wallpaper_with_output_registry(&request, &registry)
+            .expect("empty target generation should be a no-op");
+
+        assert!(artifacts.is_empty());
     }
 
     #[test]
