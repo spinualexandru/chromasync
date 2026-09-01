@@ -466,49 +466,16 @@ pub fn run_with(cli: Cli) -> Result<()> {
     }
 }
 
-fn generate_artifacts(
-    request: &GenerationRequest,
-    output_registry: &chromasync_core::OutputRegistry,
-) -> Result<Vec<GeneratedArtifact>> {
-    if request.wallpaper.is_some() {
-        chromasync_core::generate_from_wallpaper_with_output_registry(request, output_registry)
-            .map_err(Into::into)
-    } else {
-        chromasync_core::generate_with_output_registry(request, output_registry).map_err(Into::into)
-    }
-}
-
-#[derive(Debug, Clone)]
-struct RoutedArtifact {
-    artifact: GeneratedArtifact,
-    output_dir: PathBuf,
-    force: bool,
-}
-
 fn generate_routed_artifacts(
     request: &GenerationRequest,
     output_registry: &chromasync_core::OutputRegistry,
     config: &chromasync_core::ChromasyncConfig,
     fallback_force: bool,
-) -> Result<Vec<RoutedArtifact>> {
-    let mut routed = Vec::new();
-
-    for target in &request.targets {
-        let (output_dir, force) = output_route_for_target(target, request, fallback_force, config);
-        let mut target_request = request.clone();
-        target_request.output_dir = output_dir.clone();
-        target_request.targets = vec![target.clone()];
-
-        for artifact in generate_artifacts(&target_request, output_registry)? {
-            routed.push(RoutedArtifact {
-                artifact,
-                output_dir: output_dir.clone(),
-                force,
-            });
-        }
-    }
-
-    Ok(routed)
+) -> Result<Vec<chromasync_core::RoutedArtifact>> {
+    chromasync_core::generate_routed_with_output_registry(request, output_registry, |target| {
+        output_route_for_target(target, request, fallback_force, config)
+    })
+    .map_err(Into::into)
 }
 
 fn output_route_for_target(
@@ -934,7 +901,7 @@ where
     Ok(normalized)
 }
 
-fn write_and_print_routed(artifacts: &[RoutedArtifact]) -> Result<WriteReport> {
+fn write_and_print_routed(artifacts: &[chromasync_core::RoutedArtifact]) -> Result<WriteReport> {
     let entries: Vec<chromasync_core::ResolvedArtifact> = artifacts
         .iter()
         .map(|artifact| chromasync_core::ResolvedArtifact {
