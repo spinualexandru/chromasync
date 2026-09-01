@@ -22,8 +22,8 @@ decoration {
 group {
     col.border_active = $accent
     col.border_inactive = $border
-    col.group_border = $border_strong
-    col.group_border_active = $accent_hover
+    col.border_locked_inactive = $border_strong
+    col.border_locked_active = $accent_hover
 }
 
 misc {
