@@ -24,6 +24,17 @@ fn hyprland_built_in_target_matches_golden_file() {
 }
 
 #[test]
+fn hyprland_built_ins_use_supported_group_color_keys() {
+    for target in [RenderTarget::Hyprland, RenderTarget::HyprlandLua] {
+        let artifact = render_target(target, &sample_tokens()).expect("renderer should succeed");
+
+        assert!(artifact.content.contains("border_locked_inactive"));
+        assert!(artifact.content.contains("border_locked_active"));
+        assert!(!artifact.content.contains("group_border"));
+    }
+}
+
+#[test]
 fn kitty_built_in_target_matches_golden_file() {
     assert_matches_golden(
         RenderTarget::Kitty,

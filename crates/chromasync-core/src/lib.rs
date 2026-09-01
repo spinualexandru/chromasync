@@ -213,6 +213,110 @@ pub fn generate_from_wallpaper_with_output_registry(
     render_from_palette_with_wallpaper(request, output_registry)
 }
 
+/// Generate artifacts with a target-specific output route while sharing the
+/// expensive palette preparation across every target.
+///
+/// The route callback is evaluated once per requested target. Its output
+/// directory is also exposed to declarative targets through `ctx.output_dir`.
+pub fn generate_routed_with_output_registry<F>(
+    request: &GenerationRequest,
+    output_registry: &OutputRegistry,
+    mut route: F,
+) -> Result<Vec<RoutedArtifact>, CoreError>
+where
+    F: FnMut(&str) -> (PathBuf, bool),
+{
+    use std::collections::BTreeMap;
+
+    if request.targets.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let extracted_seeds = match request.wallpaper.as_deref() {
+        Some(wallpaper) => Some(chromasync_extract::extract_seed_candidates(wallpaper)?.seeds),
+        None => None,
+    };
+
+    if extracted_seeds.is_none() && request.seed.is_none() {
+        return Err(CoreError::MissingSeed {
+            operation: "theme generation",
+        });
+    }
+
+    let mut palettes = BTreeMap::<ChromaStrategy, GeneratedPalette>::new();
+    let mut render_inputs =
+        BTreeMap::<(String, ChromaStrategy), (ListedTemplate, SemanticTokens)>::new();
+    let mut routed = Vec::new();
+
+    for target in &request.targets {
+        let template_name = request
+            .template
+            .clone()
+            .or_else(|| output_registry.resolve_preferred_template(target))
+            .ok_or_else(|| CoreError::MissingTemplate {
+                operation: "theme generation",
+                target: target.clone(),
+            })?;
+        let chroma = output_registry
+            .resolve_chroma_strategy(target)
+            .unwrap_or(request.chroma);
+        let key = (template_name.clone(), chroma);
+
+        if let std::collections::btree_map::Entry::Vacant(render_input) =
+            render_inputs.entry(key.clone())
+        {
+            if let std::collections::btree_map::Entry::Vacant(palette_entry) =
+                palettes.entry(chroma)
+            {
+                let palette = match &extracted_seeds {
+                    Some(seeds) => palette_from_extracted_seeds(seeds, request.mode, chroma)?,
+                    None => generate_palette(
+                        request.seed.as_deref().expect("seed checked above"),
+                        request.mode,
+                        chroma,
+                    )?,
+                };
+                palette_entry.insert(palette);
+            }
+
+            let template = load_template(&template_name, request.mode)?;
+            let tokens = resolve_tokens_with_strategy(
+                palettes
+                    .get(&chroma)
+                    .expect("palette inserted before token resolution"),
+                &template.definition,
+                request.contrast,
+            )?;
+            render_input.insert((template, tokens));
+        }
+
+        let (template, tokens) = render_inputs
+            .get(&key)
+            .expect("render input inserted before target generation");
+        let (output_dir, force) = route(target);
+        let context = GenerationContext {
+            mode: request.mode,
+            template_name: template.definition.name.clone(),
+            chroma,
+            output_dir: output_dir.clone(),
+            seed: request.seed.clone(),
+        };
+
+        for artifact in output_registry
+            .generate(std::slice::from_ref(target), tokens, &context)
+            .map_err(CoreError::from)?
+        {
+            routed.push(RoutedArtifact {
+                artifact,
+                output_dir: output_dir.clone(),
+                force,
+            });
+        }
+    }
+
+    Ok(routed)
+}
+
 /// Write generated artifacts into `output_dir`.
 ///
 /// Returns the full paths of every file written (in artifact order), suitable for
@@ -258,6 +362,14 @@ pub struct ResolvedArtifact {
     pub output_dir: PathBuf,
     pub file_name: String,
     pub content: String,
+    pub force: bool,
+}
+
+/// A generated artifact paired with its target-specific write policy.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RoutedArtifact {
+    pub artifact: GeneratedArtifact,
+    pub output_dir: PathBuf,
     pub force: bool,
 }
 
@@ -316,20 +428,6 @@ fn palette_from_request(
         .ok_or(CoreError::MissingSeed { operation })?;
 
     generate_palette(seed, request.mode, request.chroma)
-}
-
-fn palette_from_wallpaper_request(
-    request: &GenerationRequest,
-) -> Result<GeneratedPalette, CoreError> {
-    let wallpaper = request
-        .wallpaper
-        .as_deref()
-        .ok_or(CoreError::MissingWallpaper {
-            operation: "wallpaper theme generation",
-        })?;
-    let extraction = chromasync_extract::extract_seed_candidates(wallpaper)?;
-
-    palette_from_extracted_seeds(&extraction.seeds, request.mode, request.chroma)
 }
 
 /// Compose a palette from ranked image seed candidates.
@@ -475,6 +573,18 @@ fn render_from_palette_with_wallpaper(
 ) -> Result<Vec<GeneratedArtifact>, CoreError> {
     use std::collections::BTreeMap;
 
+    if request.targets.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let wallpaper = request
+        .wallpaper
+        .as_deref()
+        .ok_or(CoreError::MissingWallpaper {
+            operation: "wallpaper theme generation",
+        })?;
+    let extraction = chromasync_extract::extract_seed_candidates(wallpaper)?;
+
     // Grouping by (template, chroma) to handle overrides
     let mut groups: BTreeMap<(String, ChromaStrategy), Vec<String>> = BTreeMap::new();
 
@@ -501,13 +611,7 @@ fn render_from_palette_with_wallpaper(
 
     for ((template_name, chroma), targets) in &groups {
         let template = load_template(template_name, request.mode)?;
-        let palette = if *chroma == request.chroma {
-            palette_from_wallpaper_request(request)?
-        } else {
-            let mut req = request.clone();
-            req.chroma = *chroma;
-            palette_from_wallpaper_request(&req)?
-        };
+        let palette = palette_from_extracted_seeds(&extraction.seeds, request.mode, *chroma)?;
 
         let tokens =
             resolve_tokens_with_strategy(&palette, &template.definition, request.contrast)?;
@@ -619,7 +723,7 @@ mod tests {
         ChromaStrategy, ContrastStrategy, GenerationRequest, PaletteFamilyName, ThemeMode,
     };
 
-    use super::{export_tokens, generate_palette, palette_from_wallpaper_request, preview};
+    use super::{export_tokens, generate_palette, palette_from_extracted_seeds, preview};
 
     #[test]
     fn palette_generation_is_available_without_renderer_code() {
@@ -722,20 +826,36 @@ mod tests {
     }
 
     #[test]
-    fn wallpaper_generation_assigns_metadata_and_multi_seed_families() {
+    fn wallpaper_generation_with_no_targets_does_not_access_the_image() {
         let request = GenerationRequest {
             seed: None,
-            wallpaper: Some(wallpaper_fixture("wallpaper-blocks.png")),
+            wallpaper: Some(wallpaper_fixture("does-not-exist.png")),
             template: Some("minimal".to_owned()),
             mode: ThemeMode::Dark,
             chroma: ChromaStrategy::Normal,
             contrast: ContrastStrategy::RelativeLuminance,
-            targets: vec![example_target_path("css.toml")],
+            targets: Vec::new(),
             output_dir: "chromasync".into(),
         };
+        let registry = super::OutputRegistry::default();
 
-        let palette = palette_from_wallpaper_request(&request)
-            .expect("wallpaper palette generation should succeed");
+        let artifacts = super::generate_from_wallpaper_with_output_registry(&request, &registry)
+            .expect("empty target generation should be a no-op");
+
+        assert!(artifacts.is_empty());
+    }
+
+    #[test]
+    fn wallpaper_generation_assigns_metadata_and_multi_seed_families() {
+        let extraction =
+            chromasync_extract::extract_seed_candidates(&wallpaper_fixture("wallpaper-blocks.png"))
+                .expect("wallpaper extraction should succeed");
+        let palette = palette_from_extracted_seeds(
+            &extraction.seeds,
+            ThemeMode::Dark,
+            ChromaStrategy::Normal,
+        )
+        .expect("wallpaper palette generation should succeed");
 
         let primary = palette
             .families

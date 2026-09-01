@@ -38,8 +38,8 @@ return {
         col = {
             border_active = "{{tokens.accent | rgba(FF)}}",
             border_inactive = "{{tokens.border | rgba(FF)}}",
-            group_border = "{{tokens.border_strong | rgba(FF)}}",
-            group_border_active = "{{tokens.accent_hover | rgba(FF)}}"
+            border_locked_inactive = "{{tokens.border_strong | rgba(FF)}}",
+            border_locked_active = "{{tokens.accent_hover | rgba(FF)}}"
         }
     }
 }
