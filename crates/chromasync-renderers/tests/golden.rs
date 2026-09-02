@@ -35,6 +35,60 @@ fn hyprland_built_ins_use_supported_group_color_keys() {
 }
 
 #[test]
+fn kcolorscheme_selection_uses_readable_selection_colors() {
+    let artifact = render_target(RenderTarget::KColorScheme, &sample_tokens())
+        .expect("renderer should succeed");
+    let selection = artifact
+        .content
+        .split_once("[Colors:Selection]\n")
+        .and_then(|(_, remaining)| remaining.split_once("\n[Colors:Tooltip]"))
+        .map(|(section, _)| section)
+        .expect("selection color group should render");
+
+    assert!(selection.contains("BackgroundAlternate=31, 95, 102"));
+    assert!(selection.contains("BackgroundNormal=31, 95, 102"));
+    assert!(selection.contains("ForegroundInactive=180, 190, 201"));
+
+    for role in [
+        "ForegroundActive",
+        "ForegroundLink",
+        "ForegroundNegative",
+        "ForegroundNeutral",
+        "ForegroundNormal",
+        "ForegroundPositive",
+        "ForegroundVisited",
+    ] {
+        assert!(
+            selection.contains(&format!("{role}=245, 247, 250")),
+            "{role} should use readable selected text"
+        );
+    }
+}
+
+#[test]
+fn zed_readable_text_colors_are_opaque() {
+    let artifact =
+        render_target(RenderTarget::Zed, &sample_tokens()).expect("renderer should succeed");
+    let theme: serde_json::Value =
+        serde_json::from_str(&artifact.content).expect("Zed theme should be valid JSON");
+    let style = &theme["themes"][0]["style"];
+
+    for pointer in [
+        "/editor.line_number",
+        "/predictive",
+        "/syntax/comment/color",
+        "/syntax/hint/color",
+        "/syntax/predictive/color",
+    ] {
+        let color = style
+            .pointer(pointer)
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_else(|| panic!("Zed color should exist at {pointer}"));
+        assert!(color.ends_with("ff"), "{pointer} should be opaque");
+    }
+}
+
+#[test]
 fn kitty_built_in_target_matches_golden_file() {
     assert_matches_golden(
         RenderTarget::Kitty,

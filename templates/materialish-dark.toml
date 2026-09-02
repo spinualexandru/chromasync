@@ -53,7 +53,7 @@ chroma_scale = 0.94
 
 [tokens.accent_active]
 family = "primary"
-tone = 0.58
+tone = 0.68
 chroma_scale = 0.88
 
 [tokens.accent_fg]

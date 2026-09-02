@@ -48,7 +48,7 @@ chroma_scale = 0.88
 
 [tokens.accent_hover]
 family = "primary"
-tone = 0.54
+tone = 0.44
 chroma_scale = 0.92
 
 [tokens.accent_active]
@@ -77,7 +77,7 @@ chroma_scale = 0.88
 
 [tokens.warning]
 family = "warning"
-tone = 0.54
+tone = 0.50
 chroma_scale = 0.86
 
 [tokens.error]

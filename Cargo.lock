@@ -232,6 +232,8 @@ dependencies = [
 name = "chromasync-renderers"
 version = "0.5.0"
 dependencies = [
+ "chromasync-color",
+ "chromasync-template",
  "chromasync-types",
  "directories",
  "serde",

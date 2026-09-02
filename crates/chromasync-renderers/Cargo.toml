@@ -16,4 +16,6 @@ thiserror.workspace = true
 toml.workspace = true
 
 [dev-dependencies]
+chromasync-color = { version = "0.5.0", path = "../chromasync-color" }
+chromasync-template = { version = "0.5.0", path = "../chromasync-template" }
 serde_json.workspace = true
