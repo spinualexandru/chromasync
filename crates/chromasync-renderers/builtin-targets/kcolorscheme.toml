@@ -70,18 +70,18 @@ ForegroundPositive={{tokens.success | rgb}}
 ForegroundVisited={{tokens.accent_active | rgb}}
 
 [Colors:Selection]
-BackgroundAlternate={{tokens.accent_active | rgb}}
+BackgroundAlternate={{tokens.selection | rgb}}
 BackgroundNormal={{tokens.selection | rgb}}
 DecorationFocus={{tokens.accent | rgb}}
 DecorationHover={{tokens.accent_hover | rgb}}
 ForegroundActive={{tokens.text | rgb}}
 ForegroundInactive={{tokens.text_muted | rgb}}
-ForegroundLink={{tokens.link | rgb}}
-ForegroundNegative={{tokens.error | rgb}}
-ForegroundNeutral={{tokens.warning | rgb}}
+ForegroundLink={{tokens.text | rgb}}
+ForegroundNegative={{tokens.text | rgb}}
+ForegroundNeutral={{tokens.text | rgb}}
 ForegroundNormal={{tokens.text | rgb}}
-ForegroundPositive={{tokens.success | rgb}}
-ForegroundVisited={{tokens.accent_active | rgb}}
+ForegroundPositive={{tokens.text | rgb}}
+ForegroundVisited={{tokens.text | rgb}}
 
 [Colors:Tooltip]
 BackgroundAlternate={{tokens.surface | rgb}}
