@@ -9,7 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-chromasync-types = { version = "0.5.0", path = "../chromasync-types" }
+chromasync-types = { version = "0.5.1", path = "../chromasync-types" }
 palette.workspace = true
 thiserror.workspace = true
 
