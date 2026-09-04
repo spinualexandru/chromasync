@@ -33,6 +33,9 @@ chromasync sync
 # Run a named sync profile
 chromasync sync work
 
+# Override the saved profile mode for this sync
+chromasync sync --mode light
+
 # Install a custom target and record where its artifacts should be written
 chromasync target install --target examples/targets/gtk.toml --outdir ~/.config/gtk-4.0
 
@@ -81,6 +84,7 @@ Run it with:
 ```bash
 chromasync sync          # uses the profile named "default"
 chromasync sync work     # uses the profile named "work"
+chromasync sync --mode light # overrides the profile mode for this run
 ```
 
 `mode = "auto"` follows the desktop color-scheme when it can be detected, and

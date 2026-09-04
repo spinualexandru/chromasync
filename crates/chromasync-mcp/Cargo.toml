@@ -13,8 +13,8 @@ name = "chromasync-mcp"
 path = "src/main.rs"
 
 [dependencies]
-chromasync-core = { version = "0.5.0", path = "../chromasync-core" }
-chromasync-types = { version = "0.5.0", path = "../chromasync-types" }
+chromasync-core = { version = "0.5.1", path = "../chromasync-core" }
+chromasync-types = { version = "0.5.1", path = "../chromasync-types" }
 rmcp.workspace = true
 schemars.workspace = true
 serde.workspace = true

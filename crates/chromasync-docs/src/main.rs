@@ -148,7 +148,13 @@ fn render_command_section(
     let heading = "#".repeat(heading_level);
     let full_name = path.join(" ");
     let mut rendered = command.clone();
-    let help = rendered.render_long_help().to_string();
+    let help = rendered
+        .render_long_help()
+        .to_string()
+        .lines()
+        .map(str::trim_end)
+        .collect::<Vec<_>>()
+        .join("\n");
 
     let _ = writeln!(output, "{heading} `{full_name}`");
     let _ = writeln!(output);

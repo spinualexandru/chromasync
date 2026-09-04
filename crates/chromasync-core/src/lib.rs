@@ -302,10 +302,11 @@ where
             seed: request.seed.clone(),
         };
 
-        for artifact in output_registry
+        let generated = output_registry
             .generate(std::slice::from_ref(target), tokens, &context)
-            .map_err(CoreError::from)?
-        {
+            .map_err(CoreError::from)?;
+
+        for artifact in generated {
             routed.push(RoutedArtifact {
                 artifact,
                 output_dir: output_dir.clone(),
@@ -822,6 +823,67 @@ mod tests {
             artifacts
                 .iter()
                 .all(|artifact| !artifact.content.is_empty())
+        );
+    }
+
+    #[test]
+    fn gtk4_generation_emits_one_unguarded_stylesheet() {
+        let request = GenerationRequest {
+            seed: Some("#4ecdc4".to_owned()),
+            wallpaper: None,
+            template: Some("materialish".to_owned()),
+            mode: ThemeMode::Dark,
+            chroma: ChromaStrategy::Normal,
+            contrast: ContrastStrategy::RelativeLuminance,
+            targets: vec!["gtk4".to_owned()],
+            output_dir: "chromasync".into(),
+        };
+
+        let artifacts = super::generate(&request).expect("GTK4 generation should succeed");
+        assert_eq!(artifacts.len(), 2);
+        assert_eq!(artifacts[0].file_name, "gtk.css");
+        assert_eq!(artifacts[0].content, "@import url(\"chromasync.css\");\n");
+
+        let stylesheet = &artifacts[1];
+        assert_eq!(stylesheet.file_name, "chromasync.css");
+        assert!(!stylesheet.content.contains("prefers-color-scheme"));
+        assert_eq!(
+            stylesheet
+                .content
+                .matches("@define-color window_bg_color")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn gtk4_filesystem_template_does_not_invent_an_alternate_mode() {
+        let template =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../templates/materialish-dark.toml");
+        let request = GenerationRequest {
+            seed: Some("#4ecdc4".to_owned()),
+            wallpaper: None,
+            template: Some(template.display().to_string()),
+            mode: ThemeMode::Dark,
+            chroma: ChromaStrategy::Normal,
+            contrast: ContrastStrategy::RelativeLuminance,
+            targets: vec!["gtk4".to_owned()],
+            output_dir: "chromasync".into(),
+        };
+
+        let artifacts = super::generate(&request).expect("GTK4 generation should succeed");
+        let stylesheet = artifacts
+            .iter()
+            .find(|artifact| artifact.file_name == "chromasync.css")
+            .expect("GTK4 stylesheet should be generated");
+
+        assert!(!stylesheet.content.contains("prefers-color-scheme"));
+        assert_eq!(
+            stylesheet
+                .content
+                .matches("@define-color window_bg_color")
+                .count(),
+            1
         );
     }
 

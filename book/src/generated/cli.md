@@ -50,19 +50,19 @@ Options:
 
       --mode <MODE>
           Theme mode to generate
-          
+
           [default: dark]
           [possible values: dark, light]
 
       --contrast <CONTRAST>
           Contrast selection heuristic used when resolving readable foregrounds
-          
+
           [default: relative-luminance]
           [possible values: relative-luminance, apca-experimental]
 
       --chroma <CHROMA>
           Chroma strategy used when generating palette families
-          
+
           [default: normal]
           [possible values: subtle, normal, vibrant, muted, industrial]
 
@@ -71,7 +71,7 @@ Options:
 
       --output <OUTPUT>
           Output directory for generated artifacts
-          
+
           [default: chromasync]
 
       --force
@@ -97,19 +97,19 @@ Options:
 
       --mode <MODE>
           Theme mode to generate
-          
+
           [default: dark]
           [possible values: dark, light]
 
       --contrast <CONTRAST>
           Contrast selection heuristic used when resolving readable foregrounds
-          
+
           [default: relative-luminance]
           [possible values: relative-luminance, apca-experimental]
 
       --chroma <CHROMA>
           Chroma strategy used when generating palette families
-          
+
           [default: normal]
           [possible values: subtle, normal, vibrant, muted, industrial]
 
@@ -118,7 +118,7 @@ Options:
 
       --output <OUTPUT>
           Output directory for generated artifacts
-          
+
           [default: chromasync]
 
       --force
@@ -148,13 +148,18 @@ Options:
 ```text
 Run a named sync profile from the user config
 
-Usage: sync [PROFILE]
+Usage: sync [OPTIONS] [PROFILE]
 
 Arguments:
   [PROFILE]
           Profile name under [[configs]]. Defaults to "default"
 
 Options:
+      --mode <MODE>
+          Override the theme mode configured by the selected profile
+
+          [possible values: dark, light]
+
   -h, --help
           Print help
 ```
@@ -280,19 +285,19 @@ Options:
 
       --mode <MODE>
           Theme mode to preview
-          
+
           [default: dark]
           [possible values: dark, light]
 
       --contrast <CONTRAST>
           Contrast selection heuristic used when resolving readable foregrounds
-          
+
           [default: relative-luminance]
           [possible values: relative-luminance, apca-experimental]
 
       --chroma <CHROMA>
           Chroma strategy used when generating palette families
-          
+
           [default: normal]
           [possible values: subtle, normal, vibrant, muted, industrial]
 
@@ -316,25 +321,25 @@ Options:
 
       --mode <MODE>
           Theme mode to resolve
-          
+
           [default: dark]
           [possible values: dark, light]
 
       --contrast <CONTRAST>
           Contrast selection heuristic used when resolving readable foregrounds
-          
+
           [default: relative-luminance]
           [possible values: relative-luminance, apca-experimental]
 
       --chroma <CHROMA>
           Chroma strategy used when generating palette families
-          
+
           [default: normal]
           [possible values: subtle, normal, vibrant, muted, industrial]
 
       --format <FORMAT>
           Serialization format for token export
-          
+
           [default: json]
           [possible values: json]
 
@@ -352,7 +357,7 @@ Usage: completions <SHELL>
 Arguments:
   <SHELL>
           Shell to generate completions for
-          
+
           [possible values: bash, elvish, fish, powershell, zsh]
 
 Options:

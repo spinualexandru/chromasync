@@ -471,6 +471,58 @@ overwrite = true
 }
 
 #[test]
+fn sync_mode_option_overrides_profile_mode() {
+    let workspace = temp_dir_path("sync-mode-override");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    let targets_dir = config_root.join("targets");
+    let output_dir = workspace.join("sync-out");
+
+    fs::create_dir_all(&targets_dir).expect("user targets directory should be created");
+    fs::write(
+        targets_dir.join("sync_probe.toml"),
+        r#"
+name = "sync_probe"
+
+[[artifacts]]
+file_name = "mode.txt"
+template = "mode={{ctx.mode}}"
+"#,
+    )
+    .expect("sync probe target should be written");
+    fs::write(
+        config_root.join("config.toml"),
+        format!(
+            r##"
+[[configs]]
+name = "default"
+seed = "#4ecdc4"
+template = "minimal"
+mode = "dark"
+targets = ["sync_probe"]
+
+[[targets]]
+name = "sync_probe"
+output_dir = "{}"
+source = "targets/sync_probe.toml"
+overwrite = true
+"##,
+            output_dir.display(),
+        ),
+    )
+    .expect("sync config should be written");
+
+    let mut command = isolated_command(&workspace);
+    command.args(["sync", "--mode", "light"]);
+    command.assert().success();
+
+    let content =
+        fs::read_to_string(output_dir.join("mode.txt")).expect("sync probe should be readable");
+    assert!(content.contains("mode=light"));
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+#[test]
 fn sync_profile_fetches_wallpaper_image_from_command() {
     let workspace = temp_dir_path("sync-image-fetch-command");
     let config_root = workspace.join("xdg-config").join("chromasync");

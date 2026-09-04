@@ -18,6 +18,14 @@ chromasync sync personalGreen
 
 This runs the profile named `personalGreen`.
 
+```bash
+chromasync sync --mode dark
+```
+
+This overrides the profile's configured mode for one sync. The override is
+useful for desktop appearance hooks that know the incoming mode before the
+desktop setting has changed.
+
 ## Config format
 
 Sync profiles live under `[[configs]]`:
