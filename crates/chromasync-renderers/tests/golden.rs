@@ -115,6 +115,8 @@ fn gtk4_popover_only_paints_its_inner_surface() {
             .contains("popover > arrow,\npopover > contents,\nmenu,\ncontext-menu {")
     );
     assert!(!artifact.content.contains("dialog,\npopover {"));
+    assert!(!artifact.content.contains(":root"));
+    assert!(!artifact.content.contains("--accent-bg-color"));
 }
 
 #[test]

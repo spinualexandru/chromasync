@@ -32,12 +32,6 @@ pub struct PackInfo {
     pub targets: Vec<ListedTarget>,
 }
 
-#[derive(Clone, Copy)]
-enum ThemeColorSource<'a> {
-    Seed(&'a str),
-    Extracted(&'a [ExtractedSeed]),
-}
-
 #[derive(Debug, Error)]
 pub enum CoreError {
     #[error("{feature} is not implemented yet")]
@@ -46,11 +40,6 @@ pub enum CoreError {
     MissingSeed { operation: &'static str },
     #[error("{operation} requires an image path via --image")]
     MissingWallpaper { operation: &'static str },
-    #[error("renderer target '{target}' did not generate expected artifact '{file_name}'")]
-    MissingRendererArtifact {
-        target: &'static str,
-        file_name: &'static str,
-    },
     #[error(
         "{operation} requires a template via --template (target '{target}' does not specify a preferred_template)"
     )]
@@ -313,26 +302,9 @@ where
             seed: request.seed.clone(),
         };
 
-        let generated = if target == "gtk4" {
-            let source = match extracted_seeds.as_deref() {
-                Some(seeds) => ThemeColorSource::Extracted(seeds),
-                None => {
-                    ThemeColorSource::Seed(request.seed.as_deref().expect("seed checked above"))
-                }
-            };
-            generate_mode_aware_gtk4(
-                request,
-                output_registry,
-                &template_name,
-                source,
-                tokens,
-                &context,
-            )?
-        } else {
-            output_registry
-                .generate(std::slice::from_ref(target), tokens, &context)
-                .map_err(CoreError::from)?
-        };
+        let generated = output_registry
+            .generate(std::slice::from_ref(target), tokens, &context)
+            .map_err(CoreError::from)?;
 
         for artifact in generated {
             routed.push(RoutedArtifact {
@@ -586,29 +558,11 @@ fn render_from_palette(
             seed: request.seed.clone(),
         };
 
-        for target in targets {
-            if target == "gtk4" {
-                artifacts.extend(generate_mode_aware_gtk4(
-                    request,
-                    output_registry,
-                    template_name,
-                    ThemeColorSource::Seed(
-                        request
-                            .seed
-                            .as_deref()
-                            .expect("seed checked by palette generation"),
-                    ),
-                    &tokens,
-                    &context,
-                )?);
-            } else {
-                artifacts.extend(
-                    output_registry
-                        .generate(std::slice::from_ref(target), &tokens, &context)
-                        .map_err(CoreError::from)?,
-                );
-            }
-        }
+        artifacts.extend(
+            output_registry
+                .generate(targets, &tokens, &context)
+                .map_err(CoreError::from)?,
+        );
     }
 
     Ok(artifacts)
@@ -670,109 +624,14 @@ fn render_from_palette_with_wallpaper(
             seed: request.seed.clone(),
         };
 
-        for target in targets {
-            if target == "gtk4" {
-                artifacts.extend(generate_mode_aware_gtk4(
-                    request,
-                    output_registry,
-                    template_name,
-                    ThemeColorSource::Extracted(&extraction.seeds),
-                    &tokens,
-                    &context,
-                )?);
-            } else {
-                artifacts.extend(
-                    output_registry
-                        .generate(std::slice::from_ref(target), &tokens, &context)
-                        .map_err(CoreError::from)?,
-                );
-            }
-        }
+        artifacts.extend(
+            output_registry
+                .generate(targets, &tokens, &context)
+                .map_err(CoreError::from)?,
+        );
     }
 
     Ok(artifacts)
-}
-
-fn generate_mode_aware_gtk4(
-    request: &GenerationRequest,
-    output_registry: &OutputRegistry,
-    template_name: &str,
-    source: ThemeColorSource<'_>,
-    current_tokens: &SemanticTokens,
-    current_context: &GenerationContext,
-) -> Result<Vec<GeneratedArtifact>, CoreError> {
-    let mut loader = None;
-    let mut current_stylesheet = None;
-    for artifact in output_registry
-        .generate(&["gtk4".to_owned()], current_tokens, current_context)
-        .map_err(CoreError::from)?
-    {
-        match artifact.file_name.as_str() {
-            "gtk.css" => loader = Some(artifact),
-            "chromasync.css" => current_stylesheet = Some(artifact.content),
-            _ => {}
-        }
-    }
-
-    let alternate_mode = match request.mode {
-        ThemeMode::Light => ThemeMode::Dark,
-        ThemeMode::Dark => ThemeMode::Light,
-    };
-    let alternate_palette = match source {
-        ThemeColorSource::Seed(seed) => {
-            generate_palette(seed, alternate_mode, current_context.chroma)?
-        }
-        ThemeColorSource::Extracted(seeds) => {
-            palette_from_extracted_seeds(seeds, alternate_mode, current_context.chroma)?
-        }
-    };
-    let alternate_template = load_template(template_name, alternate_mode)?;
-    let alternate_tokens = resolve_tokens_with_strategy(
-        &alternate_palette,
-        &alternate_template.definition,
-        request.contrast,
-    )?;
-    let alternate_context = GenerationContext {
-        mode: alternate_mode,
-        template_name: alternate_template.definition.name.clone(),
-        chroma: current_context.chroma,
-        output_dir: current_context.output_dir.clone(),
-        seed: request.seed.clone(),
-    };
-    let alternate_stylesheet = output_registry
-        .generate(&["gtk4".to_owned()], &alternate_tokens, &alternate_context)
-        .map_err(CoreError::from)?
-        .into_iter()
-        .find(|artifact| artifact.file_name == "chromasync.css")
-        .map(|artifact| artifact.content)
-        .ok_or(CoreError::MissingRendererArtifact {
-            target: "gtk4",
-            file_name: "chromasync.css",
-        })?;
-
-    let loader = loader.ok_or(CoreError::MissingRendererArtifact {
-        target: "gtk4",
-        file_name: "gtk.css",
-    })?;
-    let current_stylesheet = current_stylesheet.ok_or(CoreError::MissingRendererArtifact {
-        target: "gtk4",
-        file_name: "chromasync.css",
-    })?;
-    let (light, dark) = match request.mode {
-        ThemeMode::Light => (current_stylesheet, alternate_stylesheet),
-        ThemeMode::Dark => (alternate_stylesheet, current_stylesheet),
-    };
-
-    Ok(vec![
-        loader,
-        GeneratedArtifact {
-            target: "gtk4".to_owned(),
-            file_name: "chromasync.css".to_owned(),
-            content: format!(
-                "@media (prefers-color-scheme: light) {{\n{light}\n}}\n\n@media (prefers-color-scheme: dark) {{\n{dark}\n}}\n"
-            ),
-        },
-    ])
 }
 
 fn load_template(requested: &str, mode: ThemeMode) -> Result<ListedTemplate, CoreError> {
@@ -968,7 +827,7 @@ mod tests {
     }
 
     #[test]
-    fn gtk4_generation_embeds_light_and_dark_stylesheets() {
+    fn gtk4_generation_emits_one_unguarded_stylesheet() {
         let request = GenerationRequest {
             seed: Some("#4ecdc4".to_owned()),
             wallpaper: None,
@@ -987,14 +846,44 @@ mod tests {
 
         let stylesheet = &artifacts[1];
         assert_eq!(stylesheet.file_name, "chromasync.css");
-        assert!(stylesheet.content.contains("prefers-color-scheme: light"));
-        assert!(stylesheet.content.contains("prefers-color-scheme: dark"));
+        assert!(!stylesheet.content.contains("prefers-color-scheme"));
         assert_eq!(
             stylesheet
                 .content
                 .matches("@define-color window_bg_color")
                 .count(),
-            2
+            1
+        );
+    }
+
+    #[test]
+    fn gtk4_filesystem_template_does_not_invent_an_alternate_mode() {
+        let template =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../templates/materialish-dark.toml");
+        let request = GenerationRequest {
+            seed: Some("#4ecdc4".to_owned()),
+            wallpaper: None,
+            template: Some(template.display().to_string()),
+            mode: ThemeMode::Dark,
+            chroma: ChromaStrategy::Normal,
+            contrast: ContrastStrategy::RelativeLuminance,
+            targets: vec!["gtk4".to_owned()],
+            output_dir: "chromasync".into(),
+        };
+
+        let artifacts = super::generate(&request).expect("GTK4 generation should succeed");
+        let stylesheet = artifacts
+            .iter()
+            .find(|artifact| artifact.file_name == "chromasync.css")
+            .expect("GTK4 stylesheet should be generated");
+
+        assert!(!stylesheet.content.contains("prefers-color-scheme"));
+        assert_eq!(
+            stylesheet
+                .content
+                .matches("@define-color window_bg_color")
+                .count(),
+            1
         );
     }
 
