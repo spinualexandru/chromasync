@@ -2,10 +2,15 @@
 name = "gtk4"
 description = "Built-in GTK 4 stylesheet target."
 preferred_template = "materialish"
-chroma = "subtle"
+chroma = "vibrant"
 
 [[artifacts]]
 file_name = "gtk.css"
+template = '''@import url("chromasync.css");
+'''
+
+[[artifacts]]
+file_name = "chromasync.css"
 template = """
 @define-color accent_color {{tokens.accent}};
 @define-color accent_bg_color {{tokens.accent}};
@@ -22,47 +27,261 @@ template = """
 @define-color error_color {{tokens.error}};
 @define-color error_bg_color {{tokens.error}};
 @define-color error_fg_color {{tokens.accent_fg}};
-@define-color window_bg_color {{tokens.bg}};
+@define-color window_bg_color {{tokens.bg_secondary}};
 @define-color window_fg_color {{tokens.text}};
-@define-color view_bg_color {{tokens.surface}};
+@define-color view_bg_color {{tokens.bg}};
 @define-color view_fg_color {{tokens.text}};
-@define-color headerbar_bg_color {{tokens.surface_elevated}};
+@define-color headerbar_bg_color {{tokens.surface}};
 @define-color headerbar_fg_color {{tokens.text}};
 @define-color headerbar_border_color {{tokens.border_strong}};
-@define-color card_bg_color {{tokens.surface}};
+@define-color headerbar_backdrop_color {{tokens.bg_secondary}};
+@define-color headerbar_shade_color {{ctx.mode | mode(dark=#0000005C,light=#0000001F)}};
+@define-color headerbar_darker_shade_color {{ctx.mode | mode(dark=#000000E6,light=#0000001F)}};
+@define-color sidebar_bg_color {{tokens.surface}};
+@define-color sidebar_fg_color {{tokens.text}};
+@define-color sidebar_backdrop_color {{tokens.surface}};
+@define-color sidebar_border_color {{tokens.border_strong}};
+@define-color sidebar_shade_color {{ctx.mode | mode(dark=#00000040,light=#00000012)}};
+@define-color secondary_sidebar_bg_color {{tokens.bg_secondary}};
+@define-color secondary_sidebar_fg_color {{tokens.text}};
+@define-color secondary_sidebar_backdrop_color {{tokens.bg_secondary}};
+@define-color secondary_sidebar_border_color {{tokens.border}};
+@define-color secondary_sidebar_shade_color {{ctx.mode | mode(dark=#00000040,light=#00000012)}};
+@define-color card_bg_color {{tokens.surface_elevated}};
 @define-color card_fg_color {{tokens.text}};
+@define-color card_shade_color {{ctx.mode | mode(dark=#0000005C,light=#00000012)}};
 @define-color dialog_bg_color {{tokens.surface_elevated}};
 @define-color dialog_fg_color {{tokens.text}};
 @define-color popover_bg_color {{tokens.surface_elevated}};
 @define-color popover_fg_color {{tokens.text}};
-@define-color shade_color {{tokens.bg_secondary}};
-@define-color scrollbar_outline_color {{tokens.border}};
+@define-color popover_shade_color {{ctx.mode | mode(dark=#00000040,light=#00000012)}};
+@define-color overview_bg_color {{tokens.bg_secondary}};
+@define-color overview_fg_color {{tokens.text}};
+@define-color thumbnail_bg_color {{tokens.surface_elevated}};
+@define-color thumbnail_fg_color {{tokens.text}};
+@define-color active_toggle_bg_color {{tokens.surface_elevated}};
+@define-color active_toggle_fg_color {{tokens.text}};
+@define-color shade_color {{ctx.mode | mode(dark=#00000040,light=#00000012)}};
+@define-color scrollbar_outline_color {{ctx.mode | mode(dark=#00000080,light=#FFFFFF)}};
+
+:root {
+  --accent-bg-color: @accent_bg_color;
+  --accent-fg-color: @accent_fg_color;
+  --accent-color: @accent_color;
+  --destructive-bg-color: @destructive_bg_color;
+  --destructive-fg-color: @destructive_fg_color;
+  --destructive-color: @destructive_color;
+  --success-bg-color: @success_bg_color;
+  --success-fg-color: @success_fg_color;
+  --success-color: @success_color;
+  --warning-bg-color: @warning_bg_color;
+  --warning-fg-color: @warning_fg_color;
+  --warning-color: @warning_color;
+  --error-bg-color: @error_bg_color;
+  --error-fg-color: @error_fg_color;
+  --error-color: @error_color;
+  --window-bg-color: @window_bg_color;
+  --window-fg-color: @window_fg_color;
+  --view-bg-color: @view_bg_color;
+  --view-fg-color: @view_fg_color;
+  --headerbar-bg-color: @headerbar_bg_color;
+  --headerbar-fg-color: @headerbar_fg_color;
+  --headerbar-border-color: @headerbar_border_color;
+  --headerbar-backdrop-color: @headerbar_backdrop_color;
+  --headerbar-shade-color: @headerbar_shade_color;
+  --headerbar-darker-shade-color: @headerbar_darker_shade_color;
+  --sidebar-bg-color: @sidebar_bg_color;
+  --sidebar-fg-color: @sidebar_fg_color;
+  --sidebar-backdrop-color: @sidebar_backdrop_color;
+  --sidebar-border-color: @sidebar_border_color;
+  --sidebar-shade-color: @sidebar_shade_color;
+  --secondary-sidebar-bg-color: @secondary_sidebar_bg_color;
+  --secondary-sidebar-fg-color: @secondary_sidebar_fg_color;
+  --secondary-sidebar-backdrop-color: @secondary_sidebar_backdrop_color;
+  --secondary-sidebar-border-color: @secondary_sidebar_border_color;
+  --secondary-sidebar-shade-color: @secondary_sidebar_shade_color;
+  --card-bg-color: @card_bg_color;
+  --card-fg-color: @card_fg_color;
+  --card-shade-color: @card_shade_color;
+  --dialog-bg-color: @dialog_bg_color;
+  --dialog-fg-color: @dialog_fg_color;
+  --popover-bg-color: @popover_bg_color;
+  --popover-fg-color: @popover_fg_color;
+  --popover-shade-color: @popover_shade_color;
+  --overview-bg-color: @overview_bg_color;
+  --overview-fg-color: @overview_fg_color;
+  --thumbnail-bg-color: @thumbnail_bg_color;
+  --thumbnail-fg-color: @thumbnail_fg_color;
+  --active-toggle-bg-color: @active_toggle_bg_color;
+  --active-toggle-fg-color: @active_toggle_fg_color;
+  --shade-color: @shade_color;
+  --scrollbar-outline-color: @scrollbar_outline_color;
+}
 
 window,
-dialog,
-popover {
+dialog {
   background-color: @window_bg_color;
   color: @window_fg_color;
 }
 
-headerbar {
+dialog {
+  background-color: @dialog_bg_color;
+  color: @dialog_fg_color;
+}
+
+popover.background {
+  background-color: transparent;
+}
+
+popover > arrow,
+popover > contents,
+menu,
+context-menu {
+  background-color: @popover_bg_color;
+  color: @popover_fg_color;
+  border-color: {{tokens.border_strong}};
+}
+
+tooltip.background {
+  background-color: @popover_bg_color;
+  color: @popover_fg_color;
+  border-color: {{tokens.border_strong}};
+}
+
+headerbar,
+searchbar,
+actionbar,
+tabbar,
+.toolbar {
   background-color: @headerbar_bg_color;
   color: @headerbar_fg_color;
   border-color: @headerbar_border_color;
 }
 
-entry,
-textview,
-listview,
-columnview,
-gridview,
-.view {
+searchbar.inline {
   background-color: @view_bg_color;
   color: @view_fg_color;
   border-color: {{tokens.border}};
 }
 
+sidebar,
+.sidebar,
+navigation-split-view sidebar-view,
+overlay-split-view sidebar-view {
+  background-color: @sidebar_bg_color;
+  color: @sidebar_fg_color;
+  border-color: @sidebar_border_color;
+}
+
+.secondary-sidebar,
+secondary-sidebar-view,
+navigation-split-view content-view {
+  background-color: @secondary_sidebar_bg_color;
+  color: @secondary_sidebar_fg_color;
+  border-color: @secondary_sidebar_border_color;
+}
+
+textview,
+listview,
+columnview,
+gridview,
+treeview,
+.view,
+content-view {
+  background-color: @view_bg_color;
+  color: @view_fg_color;
+  border-color: {{tokens.border}};
+}
+
+/* AdwComboRow uses an inline list view to display its current value. It is
+   part of the row, not a standalone content surface. */
+row.combo listview.inline,
+row.combo listview.inline:disabled {
+  background-color: transparent;
+  color: inherit;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+entry,
+searchentry {
+  background-color: {{tokens.bg_secondary}};
+  color: {{tokens.text}};
+  border-color: {{tokens.border}};
+  caret-color: {{tokens.accent}};
+}
+
+headerbar entry,
+headerbar searchentry,
+searchbar entry,
+searchbar searchentry {
+  background-color: @view_bg_color;
+  color: @view_fg_color;
+  border-color: {{tokens.border_strong}};
+}
+
+entry:focus,
+searchentry:focus {
+  border-color: {{tokens.accent}};
+  outline-color: {{tokens.accent}};
+}
+
+entry placeholder,
+searchentry placeholder {
+  color: {{tokens.text_muted}};
+  opacity: 1;
+}
+
+entry:disabled,
+searchentry:disabled {
+  background-color: {{tokens.bg_secondary}};
+  color: {{tokens.text_muted}};
+}
+
+entry selection,
+searchentry selection,
+textview selection,
+.view selection {
+  background-color: {{tokens.selection}};
+  color: {{tokens.text}};
+}
+
+vte-terminal,
+terminal-window,
+.terminal,
+console {
+  background-color: @view_bg_color;
+  color: @view_fg_color;
+}
+
+.card,
+card,
+list.boxed-list,
+.boxed-list {
+  background-color: @card_bg_color;
+  color: @card_fg_color;
+  border-color: {{tokens.border}};
+}
+
+taboverview {
+  background-color: @overview_bg_color;
+  color: @overview_fg_color;
+}
+
+thumbnail {
+  background-color: @thumbnail_bg_color;
+  color: @thumbnail_fg_color;
+  border-color: {{tokens.border}};
+}
+
 button {
+  background-color: {{tokens.surface}};
+  color: {{tokens.text}};
+  border-color: {{tokens.border}};
+}
+
+headerbar button,
+searchbar button {
   background-color: @card_bg_color;
   color: @card_fg_color;
   border-color: {{tokens.border}};
@@ -73,12 +292,62 @@ button:hover {
   border-color: {{tokens.accent_hover}};
 }
 
+button:active {
+  background-color: {{tokens.accent_active}};
+  color: {{tokens.accent_fg}};
+  border-color: {{tokens.accent_active}};
+}
+
+button:disabled {
+  background-color: {{tokens.bg_secondary}};
+  color: {{tokens.text_muted}};
+  border-color: {{tokens.border}};
+}
+
 button.suggested-action,
 button:checked,
-switch:checked slider {
+switch:checked,
+scale highlight,
+progressbar progress {
   background-color: @accent_bg_color;
   color: @accent_fg_color;
   border-color: @accent_color;
+}
+
+switch:checked slider {
+  background-color: @accent_fg_color;
+  color: @accent_bg_color;
+  border-color: transparent;
+}
+
+button.destructive-action {
+  background-color: @destructive_bg_color;
+  color: @destructive_fg_color;
+  border-color: @destructive_color;
+}
+
+.infobar.info,
+.info {
+  background-color: {{tokens.accent}};
+  color: {{tokens.accent_fg}};
+}
+
+.infobar.success,
+.success {
+  background-color: {{tokens.success}};
+  color: {{tokens.accent_fg}};
+}
+
+.infobar.warning,
+.warning {
+  background-color: {{tokens.warning}};
+  color: {{tokens.accent_fg}};
+}
+
+.infobar.error,
+.error {
+  background-color: {{tokens.error}};
+  color: {{tokens.accent_fg}};
 }
 
 selection {
@@ -89,5 +358,15 @@ selection {
 link,
 .link {
   color: {{tokens.link}};
+}
+
+.dim,
+dim-label,
+.subtitle {
+  color: {{tokens.text_muted}};
+}
+
+*:focus {
+  outline-color: {{tokens.accent}};
 }
 """

@@ -27,8 +27,8 @@ Chromasync ships with built-in targets compiled into the binary:
 | `chromium` | `manifest.json` | Chromium browser theme extension manifest |
 | `ghostty` | `chromasync.ghostty` | Ghostty terminal theme |
 | `google-chrome` | `manifest.json` | Google Chrome browser theme extension manifest |
-| `gtk3` | `gtk.css` | GTK 3 user stylesheet |
-| `gtk4` | `gtk.css` | GTK 4 user stylesheet with libadwaita-compatible symbolic colors |
+| `gtk3` | `gtk.css`, `chromasync.css` | GTK 3 loader and generated user stylesheet |
+| `gtk4` | `gtk.css`, `chromasync.css` | GTK 4 loader and dual-mode libadwaita-compatible stylesheet |
 | `helium-browser` | `manifest.json` | Helium Browser theme extension manifest |
 | `hyprland` | `hyprland.conf` | Hyprland color configuration |
 | `hyprland-lua` | `hypr-chromasync.lua` | Hyprland Lua color configuration |

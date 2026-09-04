@@ -89,6 +89,53 @@ fn zed_readable_text_colors_are_opaque() {
 }
 
 #[test]
+fn gtk4_popover_only_paints_its_inner_surface() {
+    let artifacts = OutputRegistry::default()
+        .generate(&["gtk4".to_owned()], &sample_tokens(), &sample_context())
+        .expect("renderer should succeed");
+    let loader = artifacts
+        .iter()
+        .find(|artifact| artifact.file_name == "gtk.css")
+        .expect("GTK4 loader should be generated");
+    let artifact = artifacts
+        .iter()
+        .find(|artifact| artifact.file_name == "chromasync.css")
+        .expect("GTK4 theme should be generated");
+
+    assert_eq!(loader.content, "@import url(\"chromasync.css\");\n");
+
+    assert!(
+        artifact
+            .content
+            .contains("popover.background {\n  background-color: transparent;")
+    );
+    assert!(
+        artifact
+            .content
+            .contains("popover > arrow,\npopover > contents,\nmenu,\ncontext-menu {")
+    );
+    assert!(!artifact.content.contains("dialog,\npopover {"));
+}
+
+#[test]
+fn gtk4_preserves_embedded_control_surfaces() {
+    let artifacts = OutputRegistry::default()
+        .generate(&["gtk4".to_owned()], &sample_tokens(), &sample_context())
+        .expect("renderer should succeed");
+    let artifact = artifacts
+        .iter()
+        .find(|artifact| artifact.file_name == "chromasync.css")
+        .expect("GTK4 theme should be generated");
+
+    assert!(artifact.content.contains(
+        "row.combo listview.inline,\nrow.combo listview.inline:disabled {\n  background-color: transparent;"
+    ));
+    assert!(artifact.content.contains(
+        "switch:checked slider {\n  background-color: @accent_fg_color;\n  color: @accent_bg_color;"
+    ));
+}
+
+#[test]
 fn kitty_built_in_target_matches_golden_file() {
     assert_matches_golden(
         RenderTarget::Kitty,
@@ -157,7 +204,7 @@ fn built_in_targets_render_to_generated_artifacts() {
     let artifacts = render_targets(built_in_targets(), &sample_tokens())
         .expect("built-in targets should render");
 
-    assert_eq!(artifacts.len(), 19);
+    assert_eq!(artifacts.len(), 21);
     assert_eq!(
         artifacts
             .iter()
@@ -169,6 +216,8 @@ fn built_in_targets_render_to_generated_artifacts() {
             "ghostty".to_owned(),
             "google-chrome".to_owned(),
             "gtk3".to_owned(),
+            "gtk3".to_owned(),
+            "gtk4".to_owned(),
             "gtk4".to_owned(),
             "helium-browser".to_owned(),
             "hyprland".to_owned(),
@@ -196,7 +245,9 @@ fn built_in_targets_render_to_generated_artifacts() {
             "chromasync.ghostty",
             "manifest.json",
             "gtk.css",
+            "chromasync.css",
             "gtk.css",
+            "chromasync.css",
             "manifest.json",
             "hyprland.conf",
             "hypr-chromasync.lua",

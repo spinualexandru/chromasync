@@ -202,6 +202,9 @@ struct BatchArgs {
 struct SyncArgs {
     /// Profile name under [[configs]]. Defaults to "default".
     profile: Option<String>,
+    /// Override the theme mode configured by the selected profile.
+    #[arg(long, value_enum)]
+    mode: Option<CliMode>,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -565,7 +568,7 @@ fn run_sync(
     })?;
 
     let force = profile.force;
-    let request = sync_profile_into_request(profile, config_dir)?;
+    let request = sync_profile_into_request(profile, config_dir, args.mode.map(ThemeMode::from))?;
     let artifacts = generate_routed_artifacts(&request, output_registry, config, force)
         .with_context(|| {
             format!(
@@ -582,6 +585,7 @@ fn run_sync(
 fn sync_profile_into_request(
     profile: &chromasync_core::SyncProfile,
     config_dir: &Path,
+    mode_override: Option<ThemeMode>,
 ) -> Result<GenerationRequest> {
     let color_source_count = usize::from(profile.seed.is_some())
         + usize::from(profile.image.is_some())
@@ -608,7 +612,7 @@ fn sync_profile_into_request(
             .template
             .as_ref()
             .map(|template| resolve_template_reference(config_dir, template)),
-        mode: resolve_sync_mode(profile.mode),
+        mode: mode_override.unwrap_or_else(|| resolve_sync_mode(profile.mode)),
         contrast: profile.contrast,
         chroma: profile.chroma,
         targets: normalize_targets_relative_to(config_dir, profile.targets.clone())?,
