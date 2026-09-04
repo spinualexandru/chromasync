@@ -133,6 +133,12 @@ fn gtk4_preserves_embedded_control_surfaces() {
     assert!(artifact.content.contains(
         "switch:checked slider {\n  background-color: @accent_fg_color;\n  color: @accent_bg_color;"
     ));
+    assert!(artifact.content.contains(
+        "columnview > header > button,\ncolumnview > header > button:hover,\ncolumnview > header > button:active,"
+    ));
+    assert!(artifact.content.contains(
+        "columnview > header > button:disabled {\n  background-color: transparent;\n  background-image: none;"
+    ));
 }
 
 #[test]

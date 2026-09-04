@@ -304,6 +304,24 @@ button:disabled {
   border-color: {{tokens.border}};
 }
 
+/* GtkColumnView headers are flat title widgets rather than raised buttons. */
+columnview > header > button,
+columnview > header > button:hover,
+columnview > header > button:active,
+columnview > header > button:checked,
+columnview > header > button:disabled {
+  background-color: transparent;
+  background-image: none;
+  color: @view_fg_color;
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+columnview.column-separators > header > button:not(:first-child) {
+  border-left-color: {{tokens.border}};
+}
+
 button.suggested-action,
 button:checked,
 switch:checked,
