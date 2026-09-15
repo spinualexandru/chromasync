@@ -16,6 +16,19 @@ fn gtk_example_target_matches_golden_file() {
 }
 
 #[test]
+fn gtk3_built_in_target_matches_golden_file() {
+    let artifacts = OutputRegistry::default()
+        .generate(&["gtk3".to_owned()], &sample_tokens(), &sample_context())
+        .expect("renderer should succeed");
+    let stylesheet = artifacts
+        .iter()
+        .find(|artifact| artifact.file_name == "chromasync.css")
+        .expect("GTK3 theme should be generated");
+
+    assert_eq!(stylesheet.content, include_str!("fixtures/gtk3.css.golden"));
+}
+
+#[test]
 fn hyprland_built_in_target_matches_golden_file() {
     assert_matches_golden(
         RenderTarget::Hyprland,
