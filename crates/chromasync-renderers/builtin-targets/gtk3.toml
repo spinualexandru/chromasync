@@ -75,6 +75,38 @@ context-menu {
   border-color: {{tokens.border_strong}};
 }
 
+/* Popover model buttons use their own CSS node, not the button rules. */
+modelbutton,
+menuitem {
+  background-color: transparent;
+  background-image: none;
+  color: @theme_fg_color;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+  box-shadow: none;
+}
+
+modelbutton label,
+modelbutton image,
+menuitem label,
+menuitem image {
+  color: inherit;
+}
+
+modelbutton:hover:not(:disabled),
+modelbutton:focus:not(:disabled),
+modelbutton:active:not(:disabled),
+menuitem:hover:not(:disabled),
+menuitem:selected:not(:disabled) {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+modelbutton:disabled,
+menuitem:disabled {
+  color: @insensitive_fg_color;
+}
+
 tooltip {
   background-color: {{tokens.surface_elevated}};
   color: @theme_fg_color;
@@ -89,6 +121,7 @@ GtkToolbar,
 .searchbar-container,
 GtkSearchBar {
   background-color: @titlebar_bg_color;
+  background-image: none;
   color: @titlebar_fg_color;
   border-color: {{tokens.border_strong}};
 }
@@ -120,10 +153,39 @@ NautilusWindow .view {
   border-color: @borders;
 }
 
+/* List boxes and their rows have their own foreground in the base theme. */
+list {
+  background-color: @theme_base_color;
+  color: @theme_text_color;
+}
+
+list > row {
+  color: inherit;
+}
+
+list > row.activatable:hover {
+  background-color: {{tokens.surface_elevated}};
+}
+
+list > row:selected,
+list > row:selected:hover,
+treeview.view:selected,
+iconview.view:selected {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+list > row:disabled,
+list > row label:disabled,
+list > row image:disabled {
+  color: @insensitive_fg_color;
+}
+
 entry,
 GtkEntry,
 searchentry {
   background-color: @theme_entry_background;
+  background-image: none;
   color: @theme_entry_foreground;
   border-color: @borders;
   caret-color: {{tokens.accent}};
@@ -180,8 +242,13 @@ list.boxed-list {
 button,
 GtkButton {
   background-color: @theme_button_background_normal;
+  /* GTK paints the base theme's gradient over background-color. */
+  background-image: none;
   color: @theme_button_foreground_normal;
   border-color: @borders;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+  box-shadow: none;
 }
 
 headerbar button,
@@ -209,11 +276,55 @@ button:disabled {
 }
 
 button.suggested-action,
-button:checked,
-switch:checked slider {
+button:checked {
   background-color: {{tokens.accent}};
   color: {{tokens.accent_fg}};
   border-color: {{tokens.accent}};
+}
+
+/* Theme both switch nodes and clear the base theme's gradients. */
+switch {
+  background-color: {{tokens.surface_elevated}};
+  background-image: none;
+  color: {{tokens.text_muted}};
+  border-color: {{tokens.border_strong}};
+  box-shadow: none;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+}
+
+switch slider {
+  background-color: {{tokens.text_muted}};
+  background-image: none;
+  color: {{tokens.surface_elevated}};
+  border-color: transparent;
+  box-shadow: none;
+}
+
+switch:hover {
+  border-color: {{tokens.accent_hover}};
+}
+
+switch:checked {
+  background-color: {{tokens.accent}};
+  /* Keep the track from showing through the handle's antialiased edge. */
+  background-clip: padding-box;
+  color: {{tokens.accent_fg}};
+  border-color: transparent;
+}
+
+switch:checked:hover {
+  background-color: {{tokens.accent_hover}};
+  border-color: transparent;
+}
+
+switch:checked slider {
+  background-color: @theme_fg_color;
+  color: {{tokens.accent}};
+}
+
+switch:disabled {
+  opacity: 0.5;
 }
 
 button.destructive-action {

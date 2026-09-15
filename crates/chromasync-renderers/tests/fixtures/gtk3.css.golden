@@ -1,0 +1,359 @@
+@define-color theme_bg_color #161B22;
+@define-color theme_fg_color #F5F7FA;
+@define-color theme_base_color #0F1115;
+@define-color theme_text_color #F5F7FA;
+@define-color theme_selected_bg_color #1F5F66;
+@define-color theme_selected_fg_color #F5F7FA;
+@define-color insensitive_bg_color #161B22;
+@define-color insensitive_fg_color #B4BEC9;
+@define-color insensitive_base_color #0F1115;
+@define-color theme_unfocused_bg_color #161B22;
+@define-color theme_unfocused_fg_color #B4BEC9;
+@define-color theme_unfocused_base_color #0F1115;
+@define-color theme_unfocused_text_color #B4BEC9;
+@define-color theme_unfocused_selected_bg_color #252D38;
+@define-color theme_unfocused_selected_fg_color #F5F7FA;
+@define-color borders #2F3947;
+@define-color unfocused_borders #2F3947;
+@define-color warning_color #F4A261;
+@define-color error_color #E76F51;
+@define-color success_color #57CC99;
+@define-color link_color #7CC6FF;
+@define-color titlebar_bg_color #1D232C;
+@define-color titlebar_fg_color #F5F7FA;
+@define-color theme_titlebar_bg_color #1D232C;
+@define-color theme_titlebar_fg_color #F5F7FA;
+@define-color menubar_bg_color #161B22;
+@define-color menubar_fg_color #F5F7FA;
+@define-color toolbar_bg_color #1D232C;
+@define-color toolbar_fg_color #F5F7FA;
+@define-color sidebar_bg_color #1D232C;
+@define-color sidebar_fg_color #F5F7FA;
+@define-color content_view_bg #0F1115;
+@define-color text_view_bg #0F1115;
+@define-color terminal_bg_color #0F1115;
+@define-color terminal_fg_color #F5F7FA;
+@define-color theme_button_background_normal #1D232C;
+@define-color theme_button_foreground_normal #F5F7FA;
+@define-color theme_button_background_hover #252D38;
+@define-color theme_entry_background #161B22;
+@define-color theme_entry_foreground #F5F7FA;
+
+window,
+dialog,
+popover,
+menu {
+  background-color: @theme_bg_color;
+  color: @theme_fg_color;
+}
+
+dialog {
+  background-color: #252D38;
+  color: @theme_fg_color;
+}
+
+popover,
+menu,
+menubar,
+context-menu {
+  background-color: #252D38;
+  color: @theme_fg_color;
+  border-color: #445264;
+}
+
+/* Popover model buttons use their own CSS node, not the button rules. */
+modelbutton,
+menuitem {
+  background-color: transparent;
+  background-image: none;
+  color: @theme_fg_color;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+  box-shadow: none;
+}
+
+modelbutton label,
+modelbutton image,
+menuitem label,
+menuitem image {
+  color: inherit;
+}
+
+modelbutton:hover:not(:disabled),
+modelbutton:focus:not(:disabled),
+modelbutton:active:not(:disabled),
+menuitem:hover:not(:disabled),
+menuitem:selected:not(:disabled) {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+modelbutton:disabled,
+menuitem:disabled {
+  color: @insensitive_fg_color;
+}
+
+tooltip {
+  background-color: #252D38;
+  color: @theme_fg_color;
+  border-color: #445264;
+}
+
+headerbar,
+.titlebar,
+toolbar,
+GtkHeaderBar,
+GtkToolbar,
+.searchbar-container,
+GtkSearchBar {
+  background-color: @titlebar_bg_color;
+  background-image: none;
+  color: @titlebar_fg_color;
+  border-color: #445264;
+}
+
+.searchbar-container.inline,
+GtkSearchBar.inline {
+  background-color: @theme_base_color;
+  color: @theme_text_color;
+  border-color: @borders;
+}
+
+NautilusWindow .sidebar,
+NemoWindow .sidebar,
+.sidebar,
+GtkPlacesSidebar,
+placessidebar {
+  background-color: @sidebar_bg_color;
+  color: @sidebar_fg_color;
+  border-color: #445264;
+}
+
+textview,
+treeview,
+.view,
+.content-view,
+NautilusWindow .view {
+  background-color: @theme_base_color;
+  color: @theme_text_color;
+  border-color: @borders;
+}
+
+/* List boxes and their rows have their own foreground in the base theme. */
+list {
+  background-color: @theme_base_color;
+  color: @theme_text_color;
+}
+
+list > row {
+  color: inherit;
+}
+
+list > row.activatable:hover {
+  background-color: #252D38;
+}
+
+list > row:selected,
+list > row:selected:hover,
+treeview.view:selected,
+iconview.view:selected {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+list > row:disabled,
+list > row label:disabled,
+list > row image:disabled {
+  color: @insensitive_fg_color;
+}
+
+entry,
+GtkEntry,
+searchentry {
+  background-color: @theme_entry_background;
+  background-image: none;
+  color: @theme_entry_foreground;
+  border-color: @borders;
+  caret-color: #4ECDC4;
+}
+
+headerbar entry,
+.titlebar entry,
+.searchbar-container entry,
+GtkSearchBar entry,
+headerbar GtkEntry {
+  background-color: @theme_base_color;
+  color: @theme_text_color;
+  border-color: #445264;
+}
+
+entry:focus,
+GtkEntry:focus {
+  border-color: #4ECDC4;
+}
+
+entry placeholder {
+  color: #B4BEC9;
+}
+
+entry:disabled {
+  background-color: #161B22;
+  color: #B4BEC9;
+}
+
+entry selection,
+textview selection,
+.view selection {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+VteTerminal,
+vte-terminal,
+TerminalWindow,
+.terminal,
+console {
+  background-color: @terminal_bg_color;
+  color: @terminal_fg_color;
+}
+
+.card,
+.card-view,
+list.boxed-list {
+  background-color: #252D38;
+  color: @theme_fg_color;
+  border-color: @borders;
+}
+
+button,
+GtkButton {
+  background-color: @theme_button_background_normal;
+  /* GTK paints the base theme's gradient over background-color. */
+  background-image: none;
+  color: @theme_button_foreground_normal;
+  border-color: @borders;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+  box-shadow: none;
+}
+
+headerbar button,
+.titlebar button {
+  background-color: #252D38;
+  color: @theme_fg_color;
+  border-color: @borders;
+}
+
+button:hover {
+  background-color: @theme_button_background_hover;
+  border-color: #68D8D1;
+}
+
+button:active {
+  background-color: #2FB6AE;
+  color: #081411;
+  border-color: #2FB6AE;
+}
+
+button:disabled {
+  background-color: #161B22;
+  color: #B4BEC9;
+  border-color: @borders;
+}
+
+button.suggested-action,
+button:checked {
+  background-color: #4ECDC4;
+  color: #081411;
+  border-color: #4ECDC4;
+}
+
+/* Theme both switch nodes and clear the base theme's gradients. */
+switch {
+  background-color: #252D38;
+  background-image: none;
+  color: #B4BEC9;
+  border-color: #445264;
+  box-shadow: none;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+}
+
+switch slider {
+  background-color: #B4BEC9;
+  background-image: none;
+  color: #252D38;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+switch:hover {
+  border-color: #68D8D1;
+}
+
+switch:checked {
+  background-color: #4ECDC4;
+  /* Keep the track from showing through the handle's antialiased edge. */
+  background-clip: padding-box;
+  color: #081411;
+  border-color: transparent;
+}
+
+switch:checked:hover {
+  background-color: #68D8D1;
+  border-color: transparent;
+}
+
+switch:checked slider {
+  background-color: @theme_fg_color;
+  color: #4ECDC4;
+}
+
+switch:disabled {
+  opacity: 0.5;
+}
+
+button.destructive-action {
+  background-color: #E76F51;
+  color: #081411;
+  border-color: #E76F51;
+}
+
+.info {
+  background-color: #4ECDC4;
+  color: #081411;
+}
+
+.success {
+  background-color: #57CC99;
+  color: #081411;
+}
+
+.warning {
+  background-color: #F4A261;
+  color: #081411;
+}
+
+.error {
+  background-color: #E76F51;
+  color: #081411;
+}
+
+selection {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+a,
+link {
+  color: @link_color;
+}
+
+.dim-label,
+.subtitle {
+  color: #B4BEC9;
+}
+
+*:focus {
+  outline-color: #4ECDC4;
+}
