@@ -2,7 +2,7 @@
 
 A Rust CLI that generates consistent theme files for desktop apps and editors from a seed color or wallpaper image.
 
-**Seed/Wallpaper → OKLCH Palette → Template Rules → Theme Files**
+**Seed/Wallpaper > OKLCH Palette > Template Rules > Theme Files**
 
 ## Install
 

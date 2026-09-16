@@ -32,6 +32,28 @@ cargo build --release -p chromasync
 
 The GitHub Actions workflow mirrors those checks.
 
+## GitHub Releases And Cargo Publishing
+
+Run **Actions → Release → Run workflow**. The workflow accepts:
+
+- **Source branch or tag**: the source to build and publish, such as `main` or `v0.5.3`. Leave it blank to use the workflow's selected ref. Use `refs/heads/...` or `refs/tags/...` to disambiguate names.
+- **Release tag**: defaults to `v<workspace version>` and must match the selected source's workspace version.
+- **Cargo Publish?**: unchecked by default. Check it to publish the workspace crates to crates.io before creating or updating the GitHub Release. Leaving it unchecked still builds and releases the Linux binaries.
+
+To publish an existing release, run the updated workflow from the default branch and enter the existing tag as the source. The workflow uses its own release tools even when the source tag predates them. All jobs use the same resolved source commit. An existing release tag is reused only if it points to that commit; mismatched tags fail before building or publishing. Missing tags are created after successful builds and any requested Cargo publishing.
+
+For Cargo publishing, add a repository Actions secret named `CARGO_REGISTRY_TOKEN` containing a crates.io token authorized to publish all eight public workspace crates, including creating any that have never been published. The docs and WASM crates have `publish = false` and are excluded. Each crate's version comes from its Cargo manifest. Versions already present on crates.io are skipped, allowing a partially completed publish to resume; a yanked version causes a failure and requires a version bump.
+
+The workflow uses stable Rust and Cargo's native multi-package publishing (Cargo 1.90 or newer) to verify packages and publish dependencies before their dependents. This includes the CLI's transitive library dependencies and the MCP server. Release runs are serialized to avoid competing publishes. A publishing failure prevents creation or updating of the GitHub Release; crates already uploaded remain published.
+
+To verify packaging locally without uploading, run from a clean checkout with Cargo 1.90 or newer and Python 3.11 or newer:
+
+```bash
+python3 .github/scripts/release.py publish --dry-run
+```
+
+This checks crates.io for existing versions and verifies the remaining packages together, including unpublished workspace dependencies. It requires network access but no publishing token. See [Cargo's publishing documentation](https://doc.rust-lang.org/cargo/commands/cargo-publish.html) for package verification and registry behavior.
+
 ## Template Shipping Decision
 
 Chromasync ships templates in both forms:
