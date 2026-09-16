@@ -53,6 +53,7 @@ template = """
 @define-color theme_entry_background {{tokens.bg_secondary}};
 @define-color theme_entry_foreground {{tokens.text}};
 
+.background,
 window,
 dialog,
 popover,
@@ -61,12 +62,14 @@ menu {
   color: @theme_fg_color;
 }
 
-dialog {
+dialog,
+dialog.background {
   background-color: {{tokens.surface_elevated}};
   color: @theme_fg_color;
 }
 
 popover,
+popover.background,
 menu,
 menubar,
 context-menu {
@@ -107,15 +110,24 @@ menuitem:disabled {
   color: @insensitive_fg_color;
 }
 
-tooltip {
+tooltip,
+tooltip.background {
   background-color: {{tokens.surface_elevated}};
   color: @theme_fg_color;
   border-color: {{tokens.border_strong}};
+  text-shadow: none;
+}
+
+tooltip label {
+  color: inherit;
 }
 
 headerbar,
 .titlebar,
 toolbar,
+searchbar,
+searchbar > revealer > box,
+actionbar > revealer > box,
 GtkHeaderBar,
 GtkToolbar,
 .searchbar-container,
@@ -144,7 +156,11 @@ placessidebar {
 }
 
 textview,
+textview text,
+textview border,
 treeview,
+iconview,
+flowbox,
 .view,
 .content-view,
 NautilusWindow .view {
@@ -167,6 +183,8 @@ list > row.activatable:hover {
   background-color: {{tokens.surface_elevated}};
 }
 
+flowboxchild:selected,
+flowboxchild:selected:hover,
 list > row:selected,
 list > row:selected:hover,
 treeview.view:selected,
@@ -216,7 +234,7 @@ entry:disabled {
 }
 
 entry selection,
-textview selection,
+textview text selection,
 .view selection {
   background-color: @theme_selected_bg_color;
   color: @theme_selected_fg_color;
@@ -366,6 +384,401 @@ link {
 .dim-label,
 .subtitle {
   color: {{tokens.text_muted}};
+}
+
+/* GTK 3.24 CSS nodes: https://docs.gtk.org/gtk3/css-overview.html
+ * Recolor the base theme's surfaces, retaining its geometry and icon shapes.
+ * An app can request Adwaita-dark even when the generated palette is light.
+ */
+notebook,
+notebook > stack {
+  background-color: @theme_bg_color;
+  color: @theme_fg_color;
+  border-color: @borders;
+}
+
+notebook > header {
+  background-color: {{tokens.surface}};
+  background-image: none;
+  color: @theme_fg_color;
+  border-color: @borders;
+}
+
+notebook > header > tabs > tab {
+  background-color: transparent;
+  background-image: none;
+  color: @insensitive_fg_color;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+notebook > header > tabs > tab:hover {
+  background-color: {{tokens.surface_elevated}};
+  color: @theme_fg_color;
+}
+
+notebook > header > tabs > tab:checked {
+  background-color: @theme_bg_color;
+  color: @theme_fg_color;
+}
+
+notebook > header.top > tabs > tab:checked {
+  box-shadow: inset 0 -2px {{tokens.accent}};
+}
+
+notebook > header.bottom > tabs > tab:checked {
+  box-shadow: inset 0 2px {{tokens.accent}};
+}
+
+notebook > header.left > tabs > tab:checked {
+  box-shadow: inset -2px 0 {{tokens.accent}};
+}
+
+notebook > header.right > tabs > tab:checked {
+  box-shadow: inset 2px 0 {{tokens.accent}};
+}
+
+notebook > header > tabs > arrow {
+  background-color: transparent;
+  background-image: none;
+  color: @theme_fg_color;
+  border-color: transparent;
+  box-shadow: none;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+}
+
+notebook > header > tabs > arrow:hover {
+  background-color: {{tokens.surface_elevated}};
+}
+
+/* Check/radio nodes are also used by menus and tree-view cell renderers. */
+check,
+radio {
+  background-color: @theme_base_color;
+  background-image: none;
+  color: @theme_text_color;
+  border-color: {{tokens.text_muted}};
+  box-shadow: none;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+}
+
+check:hover,
+radio:hover {
+  border-color: {{tokens.accent_hover}};
+}
+
+check:checked,
+check:indeterminate,
+radio:checked,
+radio:indeterminate {
+  background-color: {{tokens.accent}};
+  color: {{tokens.accent_fg}};
+  border-color: {{tokens.accent}};
+}
+
+spinbutton {
+  background-color: @theme_entry_background;
+  background-image: none;
+  color: @theme_entry_foreground;
+  border-color: @borders;
+  box-shadow: none;
+}
+
+spinbutton:focus {
+  border-color: {{tokens.accent}};
+}
+
+/* Do not recolor color chooser hue/alpha troughs: their gradients are data. */
+scale,
+progressbar {
+  color: @theme_fg_color;
+}
+
+scale value,
+scale marks,
+progressbar text {
+  color: @insensitive_fg_color;
+}
+
+scale marks indicator {
+  background-color: @insensitive_fg_color;
+  color: @insensitive_fg_color;
+}
+
+scale:not(.color) trough,
+progressbar trough,
+levelbar trough {
+  background-color: @theme_base_color;
+  background-image: none;
+  border-color: @borders;
+  box-shadow: none;
+}
+
+scale:not(.color) highlight,
+progressbar progress,
+entry progress {
+  background-color: {{tokens.accent}};
+  background-image: none;
+  border-color: {{tokens.accent}};
+  box-shadow: none;
+}
+
+scale:not(.color) fill {
+  background-color: @theme_selected_bg_color;
+  background-image: none;
+  border-color: @borders;
+}
+
+scale:not(.color) slider {
+  background-color: {{tokens.accent}};
+  background-image: none;
+  color: {{tokens.accent_fg}};
+  border-color: {{tokens.accent}};
+  border-radius: 100%;
+  box-shadow: none;
+}
+
+scale:not(.color) slider:hover {
+  background-color: {{tokens.accent_hover}};
+  border-color: {{tokens.accent_hover}};
+}
+
+scale:not(.color) slider:active {
+  background-color: {{tokens.accent_active}};
+  border-color: {{tokens.accent_active}};
+}
+
+scrollbar,
+scrollbar trough,
+scrolledwindow junction {
+  background-color: @theme_bg_color;
+  background-image: none;
+  color: @theme_fg_color;
+  border-color: @borders;
+  box-shadow: none;
+}
+
+scrollbar slider {
+  background-color: {{tokens.text_muted}};
+  background-image: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+scrollbar slider:hover,
+scrollbar slider:active {
+  background-color: {{tokens.accent}};
+}
+
+/* Retain scroll-edge feedback with palette-derived colors. */
+scrolledwindow overshoot.top,
+scrolledwindow undershoot.top {
+  background-image: linear-gradient(to bottom, alpha(@theme_fg_color, 0.15), transparent);
+}
+
+scrolledwindow overshoot.bottom,
+scrolledwindow undershoot.bottom {
+  background-image: linear-gradient(to top, alpha(@theme_fg_color, 0.15), transparent);
+}
+
+scrolledwindow overshoot.left,
+scrolledwindow undershoot.left {
+  background-image: linear-gradient(to right, alpha(@theme_fg_color, 0.15), transparent);
+}
+
+scrolledwindow overshoot.right,
+scrolledwindow undershoot.right {
+  background-image: linear-gradient(to left, alpha(@theme_fg_color, 0.15), transparent);
+}
+
+levelbar block {
+  background-color: {{tokens.accent}};
+  background-image: none;
+  border-color: {{tokens.accent}};
+  color: {{tokens.accent_fg}};
+  box-shadow: none;
+}
+
+levelbar block.low {
+  background-color: {{tokens.warning}};
+  border-color: {{tokens.warning}};
+}
+
+levelbar block.high,
+levelbar block.full {
+  background-color: {{tokens.success}};
+  border-color: {{tokens.success}};
+}
+
+levelbar block.empty {
+  background-color: @theme_base_color;
+  border-color: @borders;
+  color: @theme_text_color;
+}
+
+frame > border,
+.frame,
+scrolledwindow {
+  border-color: @borders;
+}
+
+separator,
+paned > separator {
+  background-color: @borders;
+  background-image: none;
+  color: @borders;
+}
+
+paned > separator:hover {
+  background-color: {{tokens.accent}};
+}
+
+expander > title {
+  color: @theme_fg_color;
+}
+
+expander > title > arrow {
+  color: {{tokens.text_muted}};
+}
+
+expander > title > arrow:hover,
+expander > title > arrow:checked {
+  color: {{tokens.accent}};
+}
+
+calendar {
+  background-color: @theme_base_color;
+  color: @theme_text_color;
+  border-color: @borders;
+}
+
+calendar.header {
+  background-color: {{tokens.surface}};
+  background-image: none;
+  color: @theme_fg_color;
+  border-color: @borders;
+}
+
+calendar.button {
+  color: @theme_fg_color;
+}
+
+calendar.button:hover {
+  color: {{tokens.accent}};
+}
+
+calendar.highlight {
+  color: {{tokens.accent}};
+}
+
+calendar:selected {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+calendar:indeterminate {
+  color: @insensitive_fg_color;
+}
+
+rubberband {
+  background-color: alpha({{tokens.accent}}, 0.2);
+  border-color: {{tokens.accent}};
+}
+
+/* Semantic input errors remain inputs, rather than solid message banners. */
+entry.error,
+entry.warning {
+  background-color: @theme_entry_background;
+  color: @theme_entry_foreground;
+}
+
+entry.error { border-color: {{tokens.error}}; }
+entry.warning { border-color: {{tokens.warning}}; }
+
+infobar,
+infobar > revealer > box {
+  background-color: {{tokens.surface_elevated}};
+  background-image: none;
+  color: @theme_fg_color;
+  border-color: @borders;
+}
+
+infobar.info,
+infobar.info > revealer > box,
+infobar.question,
+infobar.question > revealer > box {
+  background-color: {{tokens.accent}};
+  color: {{tokens.accent_fg}};
+}
+
+infobar.warning,
+infobar.warning > revealer > box {
+  background-color: {{tokens.warning}};
+  color: {{tokens.accent_fg}};
+}
+
+infobar.error,
+infobar.error > revealer > box {
+  background-color: {{tokens.error}};
+  color: {{tokens.accent_fg}};
+}
+
+/* These nodes can carry base-theme foregrounds instead of inheriting. */
+button label,
+button image,
+button arrow,
+button cellview,
+notebook tab label,
+flowboxchild,
+flowboxchild label,
+infobar label {
+  color: inherit;
+}
+
+spinner {
+  color: @theme_fg_color;
+}
+
+button:link,
+button:visited {
+  background-color: transparent;
+  color: @link_color;
+}
+
+label:disabled,
+image:disabled,
+checkbutton:disabled,
+radiobutton:disabled,
+expander > title:disabled,
+expander > title > arrow:disabled,
+notebook > header > tabs > tab:disabled,
+notebook > header > tabs > arrow:disabled,
+calendar:disabled,
+scale value:disabled,
+scale marks:disabled {
+  color: @insensitive_fg_color;
+}
+
+button:disabled,
+check:disabled,
+radio:disabled,
+spinbutton:disabled,
+scale:not(.color) slider:disabled,
+scale:not(.color) highlight:disabled {
+  background-color: @insensitive_bg_color;
+  color: @insensitive_fg_color;
+  border-color: @borders;
+}
+
+check:checked:disabled,
+check:indeterminate:disabled,
+radio:checked:disabled,
+radio:indeterminate:disabled,
+scrollbar slider:disabled {
+  background-color: {{tokens.text_muted}};
+  color: @theme_bg_color;
 }
 
 *:focus {

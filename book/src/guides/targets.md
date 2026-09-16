@@ -49,6 +49,21 @@ chromasync generate --seed "#4ecdc4" --template minimal --targets kitty,alacritt
 
 Built-in targets cannot be overridden or extended by user-defined targets.
 
+### GTK 3 coverage
+
+The `gtk3` target recolors standard GTK 3.24 surfaces and controls, including
+notebooks and tabs, checkboxes and radio buttons, spin buttons, sliders,
+scrollbars, progress and level bars, calendars, lists, text views, menus,
+tooltips, and info bars. It uses the generated mode even when an application
+requests the opposite base-theme variant. Restart GTK3 applications after
+regenerating their stylesheet if they retain the previous colors.
+
+The base theme still supplies layout, icons, and animations. Color-picker
+gradients, image content, and application-rendered graphics retain their own
+colors; fixed-color images such as Pitivi's white favorite stars cannot be
+recolored through ordinary CSS foreground rules. Custom application widgets
+may need additional selectors.
+
 ## Target sources
 
 Targets are discovered from multiple locations. When multiple sources provide the same name, the highest-precedence source wins:
