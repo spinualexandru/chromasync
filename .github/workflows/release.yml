@@ -168,7 +168,8 @@ jobs:
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           name: ${{ needs.prepare.outputs.tag }}
-          target_commitish: ${{ needs.prepare.outputs.sha }}
+          # The tag step already pins the commit. Preserve an existing release's
+          # target_commitish to avoid a separate, permission-sensitive retarget.
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
