@@ -152,6 +152,8 @@ cargo run -p chromasync-docs -- generate
 
 ## Development
 
+Building from source requires Rust 1.88 or newer.
+
 ```bash
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings

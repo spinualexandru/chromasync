@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use rmcp::{
     ErrorData as McpError, handler::server::wrapper::Parameters, model::CallToolResult,
-    model::Content, tool, tool_router,
+    model::ContentBlock, tool, tool_router,
 };
 
 use crate::ChromasyncServer;
@@ -44,7 +44,7 @@ impl ChromasyncServer {
         let json = serde_json::to_string_pretty(&written)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        Ok(CallToolResult::success(vec![Content::text(json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(json)]))
     }
 
     #[tool(description = "Generate theme artifacts from a wallpaper image and write them to disk")]
@@ -72,7 +72,7 @@ impl ChromasyncServer {
         let json = serde_json::to_string_pretty(&written)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        Ok(CallToolResult::success(vec![Content::text(json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(json)]))
     }
 
     #[tool(description = "Execute a TOML batch manifest containing multiple generation jobs")]
@@ -154,7 +154,7 @@ impl ChromasyncServer {
         let json = serde_json::to_string_pretty(&all_results)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        Ok(CallToolResult::success(vec![Content::text(json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(json)]))
     }
 
     #[tool(description = "Preview palette families and resolved semantic tokens for a seed color")]
@@ -178,7 +178,7 @@ impl ChromasyncServer {
 
         let output = chromasync_core::preview(&request).map_err(core_error_to_mcp)?;
 
-        Ok(CallToolResult::success(vec![Content::text(output)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(output)]))
     }
 
     #[tool(description = "Export the 17 resolved semantic token hex values as JSON")]
@@ -204,7 +204,7 @@ impl ChromasyncServer {
         let json = serde_json::to_string_pretty(&tokens)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        Ok(CallToolResult::success(vec![Content::text(json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(json)]))
     }
 
     #[tool(
@@ -221,7 +221,7 @@ impl ChromasyncServer {
         let json = serde_json::to_string_pretty(&palette)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        Ok(CallToolResult::success(vec![Content::text(json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(json)]))
     }
 
     #[tool(
@@ -245,7 +245,7 @@ impl ChromasyncServer {
         let json = serde_json::to_string_pretty(&entries)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        Ok(CallToolResult::success(vec![Content::text(json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(json)]))
     }
 
     #[tool(description = "List all available render targets with their name, source, and location")]
@@ -265,7 +265,7 @@ impl ChromasyncServer {
         let json = serde_json::to_string_pretty(&entries)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        Ok(CallToolResult::success(vec![Content::text(json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(json)]))
     }
 
     #[tool(description = "List all discovered theme packs")]
@@ -286,7 +286,7 @@ impl ChromasyncServer {
         let json = serde_json::to_string_pretty(&entries)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        Ok(CallToolResult::success(vec![Content::text(json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(json)]))
     }
 
     #[tool(description = "Get metadata, templates, and targets for a specific theme pack")]
@@ -335,7 +335,7 @@ impl ChromasyncServer {
         let json = serde_json::to_string_pretty(&result)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        Ok(CallToolResult::success(vec![Content::text(json)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(json)]))
     }
 }
 
