@@ -3,20 +3,58 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Release tag (e.g. v0.1.0)"
-        required: true
+      source_ref:
+        description: "Source branch or tag (blank uses the selected workflow ref)"
+        required: false
         type: string
+      tag:
+        description: "Release tag (blank uses v<workspace version>)"
+        required: false
+        type: string
+      cargo_publish:
+        description: "Cargo Publish?"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  prepare:
+    name: Resolve release source
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.prepare.outputs.sha }}
+      tag: ${{ steps.prepare.outputs.tag }}
+    steps:
+      # Keep workflow tools separate so older tags can use the new publisher.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref || github.ref }}
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate release tag and capture commit
+        id: prepare
+        working-directory: source
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: python3 ../.github/scripts/release.py prepare
+
   build:
     name: Build (${{ matrix.target }})
+    needs: prepare
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -27,6 +65,9 @@ jobs:
             arch: arm64
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
 
       - name: Install Rust toolchain
         run: |
@@ -53,7 +94,7 @@ jobs:
           key: ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --release -p chromasync --target ${{ matrix.target }}
+        run: cargo build --locked --release -p chromasync --target ${{ matrix.target }}
 
       - name: Rename binary
         run: |
@@ -65,22 +106,70 @@ jobs:
           name: chromasync-linux-${{ matrix.arch }}
           path: chromasync-linux-${{ matrix.arch }}
 
-  release:
-    name: Create Release
-    needs: build
+  cargo-publish:
+    name: Publish crates.io packages
+    needs: [prepare, build]
+    if: inputs.cargo_publish
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          path: source
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: source
+      - name: Publish unpublished workspace versions
+        working-directory: source
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: python3 ../.github/scripts/release.py publish
+
+  release:
+    name: Create or update GitHub Release
+    needs: [prepare, build, cargo-publish]
+    if: >-
+      ${{ !cancelled() && needs.prepare.result == 'success' &&
+          needs.build.result == 'success' &&
+          (needs.cargo-publish.result == 'success' || needs.cargo-publish.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          path: source
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v4
         with:
+          pattern: chromasync-linux-*
           path: artifacts
           merge-multiple: true
 
-      - name: Create GitHub Release
+      - name: Reuse or create release tag
+        working-directory: source
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: python3 ../.github/scripts/release.py tag
+
+      - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag }}
-          name: ${{ inputs.tag }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.tag }}
+          target_commitish: ${{ needs.prepare.outputs.sha }}
           generate_release_notes: true
+          fail_on_unmatched_files: true
           files: |
             artifacts/chromasync-linux-amd64
             artifacts/chromasync-linux-arm64
