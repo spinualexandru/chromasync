@@ -14,12 +14,10 @@ def output(*args):
     return subprocess.check_output(args, text=True).strip()
 
 
-def release_target():
+def release_target(prefer_existing_tag=False):
     with open("Cargo.toml", "rb") as manifest:
         version = tomllib.load(manifest)["workspace"]["package"]["version"]
     tag = os.environ.get("RELEASE_TAG") or f"v{version}"
-    if tag != f"v{version}":
-        raise ValueError(f"Release tag {tag!r} must match workspace version v{version}")
     subprocess.run(["git", "check-ref-format", f"refs/tags/{tag}"], check=True)
     sha = output("git", "rev-parse", "HEAD")
     exists = subprocess.run(
@@ -31,7 +29,18 @@ def release_target():
     if exists.returncode == 0:
         tagged_sha = output("git", "rev-parse", f"refs/tags/{tag}^{{commit}}")
         if tagged_sha != sha:
-            raise ValueError(f"Tag {tag} points to {tagged_sha}, but source is {sha}")
+            if not prefer_existing_tag:
+                raise ValueError(
+                    f"Tag {tag} points to {tagged_sha}, but source is {sha}. "
+                    f"Select refs/tags/{tag} (or leave source_ref blank) to reuse the release; "
+                    "bump the workspace version to release different code."
+                )
+            print(f"No source_ref selected; using existing tag {tag} at {tagged_sha}")
+            sha = tagged_sha
+            manifest = tomllib.loads(output("git", "show", f"{sha}:Cargo.toml"))
+            version = manifest["workspace"]["package"]["version"]
+    if tag != f"v{version}":
+        raise ValueError(f"Release tag {tag!r} must match workspace version v{version}")
     return tag, sha, exists.returncode == 0
 
 
@@ -108,7 +117,9 @@ def main():
     if args.command == "publish":
         publish(args.dry_run)
         return
-    tag, sha, exists = release_target()
+    tag, sha, exists = release_target(
+        prefer_existing_tag=args.command == "prepare" and not os.environ.get("SOURCE_REF")
+    )
     print(f"Release {tag} from {sha}; tag {'already exists' if exists else 'will be created'}")
     if args.command == "prepare":
         if path := os.environ.get("GITHUB_OUTPUT"):

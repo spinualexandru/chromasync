@@ -98,7 +98,7 @@ class TagTests(unittest.TestCase):
     def setUp(self):
         self.temp = self.enterContext(tempfile.TemporaryDirectory())
         self.enterContext(contextlib.chdir(self.temp))
-        self.enterContext(patch.dict(os.environ, {"RELEASE_TAG": ""}))
+        self.enterContext(patch.dict(os.environ, {"RELEASE_TAG": "", "SOURCE_REF": ""}))
         self.git("init", "-q")
         self.git("config", "user.email", "test@example.com")
         self.git("config", "user.name", "Release Test")
@@ -130,6 +130,47 @@ class TagTests(unittest.TestCase):
         with patch.dict(os.environ, {"RELEASE_TAG": "v9.0.0"}):
             with self.assertRaisesRegex(ValueError, "must match"):
                 release.release_target()
+
+    def prepare(self, source_ref="", tag=""):
+        result = Path(self.temp) / "prepare-output"
+        with patch("sys.argv", ["release.py", "prepare"]), patch.dict(
+            os.environ, {"GITHUB_OUTPUT": str(result), "SOURCE_REF": source_ref, "RELEASE_TAG": tag}
+        ):
+            release.main()
+        return result.read_text()
+
+    def test_blank_inputs_reuse_original_tag_after_workflow_changes(self):
+        self.git("tag", "v1.2.3")
+        self.git("commit", "--allow-empty", "-qm", "Update workflow")
+        workflow_sha = self.git("rev-parse", "HEAD")
+        self.assertEqual(self.prepare(), f"tag=v1.2.3\nsha={self.sha}\n")
+        # Only the output selects a different commit; the helper checkout stays intact.
+        self.assertEqual(self.git("rev-parse", "HEAD"), workflow_sha)
+
+    def test_explicit_branch_does_not_silently_switch_to_existing_tag(self):
+        self.git("tag", "v1.2.3")
+        self.git("commit", "--allow-empty", "-qm", "Update workflow")
+        with self.assertRaisesRegex(ValueError, "Select refs/tags/v1.2.3"):
+            self.prepare(source_ref="main")
+
+    def test_explicit_older_annotated_tag_uses_its_own_manifest_version(self):
+        self.git("tag", "-a", "v1.2.3", "-m", "Release")
+        Path("Cargo.toml").write_text('[workspace.package]\nversion = "1.3.0"\n')
+        self.git("commit", "-qam", "Bump version")
+        self.assertEqual(self.prepare(tag="v1.2.3"), f"tag=v1.2.3\nsha={self.sha}\n")
+
+    def test_new_version_keeps_workflow_commit_when_tag_is_missing(self):
+        self.git("tag", "v1.2.3")
+        Path("Cargo.toml").write_text('[workspace.package]\nversion = "1.3.0"\n')
+        self.git("commit", "-qam", "Bump version")
+        sha = self.git("rev-parse", "HEAD").strip()
+        self.assertEqual(self.prepare(), f"tag=v1.3.0\nsha={sha}\n")
+
+    def test_reused_tag_must_match_its_manifest_version(self):
+        self.git("tag", "v9.0.0")
+        self.git("commit", "--allow-empty", "-qm", "Update workflow")
+        with self.assertRaisesRegex(ValueError, "must match workspace version"):
+            self.prepare(tag="v9.0.0")
 
     def test_prepare_outputs_and_tag_creation_are_repeatable(self):
         remote = str(Path(self.temp) / "remote.git")

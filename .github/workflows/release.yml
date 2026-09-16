@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: "Source branch or tag (blank uses the selected workflow ref)"
+        description: "Source branch or tag (blank reuses an existing release tag, otherwise the workflow ref)"
         required: false
         type: string
       tag:
@@ -50,6 +50,7 @@ jobs:
         working-directory: source
         env:
           RELEASE_TAG: ${{ inputs.tag }}
+          SOURCE_REF: ${{ inputs.source_ref }}
         run: python3 ../.github/scripts/release.py prepare
 
   build:
