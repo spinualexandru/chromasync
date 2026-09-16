@@ -9,6 +9,8 @@ use js_sys::Reflect;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
+mod theme;
+
 const DEFAULT_MAX_SEEDS: usize = 3;
 
 #[derive(Debug, Clone, Copy)]

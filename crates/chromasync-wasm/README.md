@@ -76,3 +76,29 @@ locally; the library does not access the network or browser DOM.
 
 Options default to `{ mode: "dark", chroma: "normal", maxSeeds: 3 }`. Invalid
 input throws a JavaScript `Error` with the Rust validation message.
+
+## Theme previews
+
+`generateTheme(seed, options?)` and `generateThemeFromImage(bytes, options?)`
+resolve an embedded style and return the palette, template rules, requested
+colors, resolved semantic tokens, and complete Kitty, Zed, GTK4, and Hyprland
+artifacts. Everything is generated in memory; no files are read or written.
+
+```ts
+const theme = generateTheme("#4ecdc4", {
+  template: "materialish",
+  mode: "dark",
+  chroma: "normal",
+});
+console.log(theme.tokens.accent, theme.artifacts);
+```
+
+`template` defaults to `minimal` and accepts the four embedded style names.
+The optional `textTone` overrides the requested text lightness (`0..=1`), useful
+for inspecting contrast fallback. `requestedTokens` contains the colors before
+foreground adjustment; `contrast` reports requested and resolved ratios for
+the text/background and accent foreground/accent pairs.
+
+All preview artifacts use the explicitly selected shared palette and template.
+They do not apply the CLI router's target-specific chroma or preferred-template
+defaults. The preview API is intended for controlled visual comparisons.

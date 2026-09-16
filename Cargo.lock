@@ -258,6 +258,8 @@ dependencies = [
  "chromasync-color",
  "chromasync-core",
  "chromasync-extract",
+ "chromasync-renderers",
+ "chromasync-template",
  "chromasync-types",
  "js-sys",
  "serde",
