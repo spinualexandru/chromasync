@@ -4,12 +4,17 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   rust:
     runs-on: ubuntu-latest
+    outputs:
+      docs-outcome: ${{ steps.docs-check.outcome }}
 
     steps:
       - name: Check out repository
@@ -64,19 +69,44 @@ jobs:
         continue-on-error: true
         run: cargo run -p chromasync-docs -- generate --check
 
-      - name: Create issue if docs are out of date
+      - name: Warn if docs are out of date
         if: steps.docs-check.outcome == 'failure'
-        uses: actions/github-script@v7
+        run: echo '::warning::Generated docs are out of date — run cargo run -p chromasync-docs -- generate'
+
+      - name: Build mdBook
+        run: mdbook build
+
+  docs-issue:
+    name: Report outdated docs
+    needs: rust
+    # PRs (including forks) only emit the warning above. This job never checks out code.
+    if: >-
+      ${{ !cancelled() && needs.rust.outputs.docs-outcome == 'failure' &&
+          github.event_name == 'push' &&
+          github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+          github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    concurrency:
+      group: docs-issue
+      cancel-in-progress: false
+    steps:
+      - name: Create issue if docs are out of date
+        uses: actions/github-script@v9
         with:
           script: |
             const title = 'CHORE | mdBook generated docs require an update';
-            const { data: issues } = await github.rest.issues.listForRepo({
+            const headers = { 'X-GitHub-Api-Version': '2026-03-10' };
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
               labels: 'docs',
+              per_page: 100,
+              headers,
             });
-            if (issues.some(i => i.title === title)) {
+            if (issues.some(i => !i.pull_request && i.title === title)) {
               core.warning('Issue already exists, skipping creation');
             } else {
               await github.rest.issues.create({
@@ -85,9 +115,6 @@ jobs:
                 title,
                 body: 'The generated mdBook docs are out of date. Run:\n\n```bash\ncargo run -p chromasync-docs -- generate\n```\n\nThen commit the updated files.',
                 labels: ['docs'],
+                headers,
               });
             }
-            core.warning('Generated docs are out of date — run `cargo run -p chromasync-docs -- generate`');
-
-      - name: Build mdBook
-        run: mdbook build
