@@ -9,6 +9,7 @@ and rendered widgets. Composite widgets reuse their constituent controls.
 | --- | --- |
 | Windows, dialogs, drawing surfaces | Window nodes and the opt-in `.background` class; arbitrary canvases are untouched |
 | [Notebooks](https://docs.gtk.org/gtk3/class.Notebook.html) | Stack, header, tab states, scroll arrows; selected indicator on all four sides |
+| Chromium/Helium GTK integration | Synthetic `.chromium` window and headerbar/menubar samples; active/inactive tab contrast with focused and backdrop windows |
 | Buttons, toggles, links, switches | Normal, hover, active, checked, disabled; foreground inheritance for child labels/icons |
 | [Check buttons](https://docs.gtk.org/gtk3/class.CheckButton.html), [radio buttons](https://docs.gtk.org/gtk3/class.RadioButton.html) | Indicator nodes, checked, indeterminate, disabled; also used by menu items and tree cells |
 | Entries, [spin buttons](https://docs.gtk.org/gtk3/class.SpinButton.html), [combo boxes](https://docs.gtk.org/gtk3/class.ComboBox.html) | Input surface, focus, error/warning borders, progress, selection; combo entry/button/popup reuse |
@@ -39,7 +40,7 @@ python3 crates/chromasync-renderers/tests/gtk3/verify.py
 The script generates isolated light/dark themes (it never writes user theme
 configuration), renders four widget galleries under both Adwaita variants, and
 checks parsing, notebook pixels, text/indicator contrast, foreground inheritance,
-and internal surfaces. It compares colors and painted backgrounds for 480
+and internal surfaces. It compares colors and painted backgrounds for 484
 node/state combinations between the base variants. Results are written to
 `target/gtk3-audit/`; `--output` and `--binary` override these locations.
 CI runs the same script under Xvfb. The Rust golden test independently locks down

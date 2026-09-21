@@ -78,6 +78,27 @@ context-menu {
   border-color: {{tokens.border_strong}};
 }
 
+/* Chromium samples window for the active tab/toolbar and headerbar (or
+ * menubar with native decorations) for the inactive tab strip. These are
+ * synthetic .chromium nodes, not GtkNotebook tabs. */
+window.background.chromium {
+  background-color: mix(@theme_bg_color, @theme_fg_color, 0.25);
+  background-image: none;
+  color: @theme_fg_color;
+}
+
+window.background.chromium headerbar.chromium,
+window.background.chromium menubar.chromium {
+  background-color: @theme_base_color;
+  background-image: none;
+  color: @theme_fg_color;
+}
+
+window.background.chromium headerbar.chromium:backdrop,
+window.background.chromium menubar.chromium:backdrop {
+  color: @theme_unfocused_fg_color;
+}
+
 /* Popover model buttons use their own CSS node, not the button rules. */
 modelbutton,
 menuitem {
