@@ -1,0 +1,77 @@
+#:schema ../../../schemas/target.json
+name = "codex"
+description = "Codex CLI TextMate syntax theme for code blocks and diffs."
+chroma = "normal"
+
+[[artifacts]]
+file_name = "chromasync.tmTheme"
+template = '''
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>name</key><string>Chromasync</string>
+  <key>settings</key>
+  <array>
+    <dict>
+      <key>settings</key>
+      <dict>
+        <key>background</key><string>{{tokens.bg}}</string>
+        <key>foreground</key><string>{{tokens.text}}</string>
+        <key>caret</key><string>{{tokens.accent}}</string>
+        <key>selection</key><string>{{tokens.selection}}</string>
+        <key>lineHighlight</key><string>{{tokens.bg_secondary}}</string>
+      </dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>comment</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.text_muted}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>string</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.success}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>constant.numeric, constant.language</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.warning}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>keyword, storage</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.accent}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>entity.name.function, support.function</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.link}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>entity.name.type, entity.name.class, support.type</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.accent_active}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>variable, entity.name.tag</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.text}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>keyword.operator, punctuation</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.text_muted}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>markup.heading</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.accent}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>markup.inserted</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.success}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>markup.deleted, invalid</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.error}}</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>markup.changed</string>
+      <key>settings</key><dict><key>foreground</key><string>{{tokens.warning}}</string></dict>
+    </dict>
+  </array>
+</dict>
+</plist>
+'''

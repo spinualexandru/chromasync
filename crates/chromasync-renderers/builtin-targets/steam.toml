@@ -1,0 +1,115 @@
+#:schema ../../../schemas/target.json
+name = "steam"
+description = "Steam desktop shared controls and dialogs via Millennium (required)."
+preferred_template = "materialish"
+chroma = "subtle"
+
+[[artifacts]]
+file_name = "skin.json"
+template = '''
+{
+  "name": "Chromasync",
+  "author": "Chromasync",
+  "description": "Palette colors for Steam desktop dialogs and shared controls. Requires Millennium.",
+  "version": "1.0.0",
+  "Patches": [
+    {
+      "MatchRegexString": "^Steam$|^Supernav$|Menu$|.ModalDialogPopup|.FullModalOverlay",
+      "TargetCss": "chromasync.css"
+    }
+  ]
+}
+'''
+
+[[artifacts]]
+file_name = "chromasync.css"
+template = '''
+/* Steam desktop shared controls; loaded by Millennium skin.json. */
+:root {
+  --chromasync-bg: {{tokens.bg}};
+  --chromasync-bg-secondary: {{tokens.bg_secondary}};
+  --chromasync-surface: {{tokens.surface}};
+  --chromasync-surface-elevated: {{tokens.surface_elevated}};
+  --chromasync-text: {{tokens.text}};
+  --chromasync-text-muted: {{tokens.text_muted}};
+  --chromasync-border: {{tokens.border}};
+  --chromasync-accent: {{tokens.accent}};
+  --chromasync-accent-hover: {{tokens.accent_hover}};
+  --chromasync-accent-fg: {{tokens.accent_fg}};
+  --chromasync-selection: {{tokens.selection}};
+  --chromasync-link: {{tokens.link}};
+  --chromasync-error: {{tokens.error}};
+}
+body.DesktopUI,
+.DesktopUI .DialogContent,
+.DesktopUI .DialogBody,
+.DesktopUI .ModalDialogBody,
+.ModalDialogPopup .DialogContent,
+.FullModalOverlay .DialogContent {
+  background: var(--chromasync-bg) !important;
+  color: var(--chromasync-text) !important;
+}
+.DialogHeader,
+.DialogLabel,
+.DialogLabelStrong,
+.DialogBodyText {
+  color: var(--chromasync-text) !important;
+}
+.DialogHeaderSubtitle,
+.DialogLabelExplainer,
+.DialogSubHeader {
+  color: var(--chromasync-text-muted) !important;
+}
+.DialogFooter,
+.DialogControlsSection {
+  background: var(--chromasync-bg-secondary) !important;
+  color: var(--chromasync-text) !important;
+}
+button.DialogButton,
+.DialogDropDown {
+  background: var(--chromasync-surface) !important;
+  color: var(--chromasync-text) !important;
+  border-color: var(--chromasync-border) !important;
+}
+button.DialogButton:hover,
+.DialogDropDown:hover {
+  background: var(--chromasync-surface-elevated) !important;
+  color: var(--chromasync-text) !important;
+}
+button.DialogButton.Primary {
+  background: var(--chromasync-accent) !important;
+  color: var(--chromasync-accent-fg) !important;
+}
+button.DialogButton.Primary:hover {
+  background: var(--chromasync-accent-hover) !important;
+  color: var(--chromasync-accent-fg) !important;
+}
+button.DialogButton.Destructive {
+  background: var(--chromasync-error) !important;
+  color: var(--chromasync-accent-fg) !important;
+}
+button.DialogButton:disabled {
+  background: var(--chromasync-surface) !important;
+  color: var(--chromasync-text-muted) !important;
+}
+.DialogInput,
+.DialogTextInputBase {
+  background: var(--chromasync-bg) !important;
+  color: var(--chromasync-text) !important;
+  border-color: var(--chromasync-border) !important;
+}
+.DialogInput:focus,
+.DialogTextInputBase:focus,
+button.DialogButton:focus-visible {
+  outline: 1px solid var(--chromasync-accent) !important;
+}
+.DialogBody a,
+.DialogBodyText a {
+  color: var(--chromasync-link) !important;
+}
+.DialogBody ::selection,
+.DialogInput::selection {
+  background: var(--chromasync-selection) !important;
+  color: var(--chromasync-text) !important;
+}
+'''

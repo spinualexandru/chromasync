@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>name</key><string>Chromasync</string>
+  <key>settings</key>
+  <array>
+    <dict>
+      <key>settings</key>
+      <dict>
+        <key>background</key><string>#0F1115</string>
+        <key>foreground</key><string>#F5F7FA</string>
+        <key>caret</key><string>#4ECDC4</string>
+        <key>selection</key><string>#1F5F66</string>
+        <key>lineHighlight</key><string>#161B22</string>
+      </dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>comment</string>
+      <key>settings</key><dict><key>foreground</key><string>#B4BEC9</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>string</string>
+      <key>settings</key><dict><key>foreground</key><string>#57CC99</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>constant.numeric, constant.language</string>
+      <key>settings</key><dict><key>foreground</key><string>#F4A261</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>keyword, storage</string>
+      <key>settings</key><dict><key>foreground</key><string>#4ECDC4</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>entity.name.function, support.function</string>
+      <key>settings</key><dict><key>foreground</key><string>#7CC6FF</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>entity.name.type, entity.name.class, support.type</string>
+      <key>settings</key><dict><key>foreground</key><string>#2FB6AE</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>variable, entity.name.tag</string>
+      <key>settings</key><dict><key>foreground</key><string>#F5F7FA</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>keyword.operator, punctuation</string>
+      <key>settings</key><dict><key>foreground</key><string>#B4BEC9</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>markup.heading</string>
+      <key>settings</key><dict><key>foreground</key><string>#4ECDC4</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>markup.inserted</string>
+      <key>settings</key><dict><key>foreground</key><string>#57CC99</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>markup.deleted, invalid</string>
+      <key>settings</key><dict><key>foreground</key><string>#E76F51</string></dict>
+    </dict>
+    <dict>
+      <key>scope</key><string>markup.changed</string>
+      <key>settings</key><dict><key>foreground</key><string>#F4A261</string></dict>
+    </dict>
+  </array>
+</dict>
+</plist>

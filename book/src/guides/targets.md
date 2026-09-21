@@ -25,18 +25,27 @@ Chromasync ships with built-in targets compiled into the binary:
 | --- | --- | --- |
 | `alacritty` | `alacritty.toml` | Alacritty terminal emulator theme (primary colors, cursor, selection, search, hints, 16-color ANSI palette) |
 | `chromium` | `manifest.json` | Chromium browser theme extension manifest |
+| `claude` | `chromasync.json` | Claude Code custom JSON theme |
+| `codex` | `chromasync.tmTheme` | Codex CLI syntax highlighting theme |
 | `ghostty` | `chromasync.ghostty` | Ghostty terminal theme |
 | `google-chrome` | `manifest.json` | Google Chrome browser theme extension manifest |
 | `gtk3` | `gtk.css`, `chromasync.css` | GTK 3 loader and generated user stylesheet |
 | `gtk4` | `gtk.css`, `chromasync.css` | GTK 4 loader and libadwaita-compatible stylesheet for the requested mode |
 | `helium-browser` | `manifest.json` | Helium Browser theme extension manifest |
+| `herdr` | `chromasync-herdr.toml` | Herdr custom theme fragment |
 | `hyprland` | `hyprland.conf` | Hyprland color configuration |
 | `hyprland-lua` | `hypr-chromasync.lua` | Hyprland Lua color configuration |
+| `hyprtoolkit` | `chromasync-hyprtoolkit.conf` | Hyprtoolkit palette include |
 | `kcolorscheme` | `chromasync.colors` | KDE KColorScheme palette |
 | `kitty` | `kitty.conf` | Kitty terminal emulator theme (foreground, background, cursor, selection, borders, tabs, 16-color ANSI palette) |
+| `kvantum` | `chromasync.kvconfig`, `chromasync.svg` | Kvantum configuration and matching widget artwork |
+| `limine` | `chromasync-limine.conf` | Limine graphical boot menu color fragment |
 | `micro` | `chromasync.micro` | micro editor true-color theme |
+| `neovim` | `chromasync.lua` | Neovim colorscheme, Tree-sitter, LSP, diagnostics, and terminal palette |
 | `qt5` | `chromasync.conf` | Qt 5 qt5ct palette |
 | `qt6` | `chromasync.conf` | Qt 6 qt6ct palette |
+| `steam` | `skin.json`, `chromasync.css` | Steam desktop shared dialogs and controls; requires Millennium |
+| `vim` | `chromasync.vim` | Vim true-color colorscheme and terminal palette |
 | `vscode` | `package.json`, `chromasync-color-theme.json` | Visual Studio Code theme extension |
 | `vscode-insiders` | `package.json`, `chromasync-color-theme.json` | Visual Studio Code Insiders theme extension |
 | `zed` | `chromasync.json` | Zed editor theme |
@@ -48,6 +57,146 @@ chromasync generate --seed "#4ecdc4" --template minimal --targets kitty,alacritt
 ```
 
 Built-in targets cannot be overridden or extended by user-defined targets.
+
+### Application setup
+
+Generation writes theme artifacts; select or include them in the application
+once. Give each target its own output directory: several targets intentionally
+use the same application-required filename, such as `chromasync.json`.
+For example, generate a Vim theme with:
+
+```bash
+chromasync generate --seed "#4ecdc4" --template minimal --mode dark \
+  --targets vim --output ~/.vim/colors
+```
+
+Use `--force` when replacing a previously generated theme. Persistent
+`[[targets]]` entries in the Chromasync configuration can route each built-in
+directly to its application directory; see [the config example below](#the-chromasync-config).
+
+#### Kvantum
+
+Generate both files into `~/.config/Kvantum/chromasync/`, then select
+`chromasync` in Kvantum Manager and select the Kvantum widget style in your Qt
+platform theme settings. The directory, `.kvconfig`, and `.svg` basenames must
+match. Restart Qt applications to load changes.
+
+The target supplies a flat widget theme with matching palette, surfaces,
+buttons, inputs, selections, check/radio indicators, and arrows. Kvantum's
+default theme supplies unspecified metrics and decorations. Keep the SVG and
+configuration together: changing only the palette cannot recolor SVG artwork.
+See [Kvantum's theme configuration reference](https://github.com/tsujan/Kvantum/blob/master/Kvantum/doc/Theme-Config).
+
+#### Steam (Millennium)
+
+Install [Millennium](https://docs.steambrew.app/) first. Generate both files into
+`~/.steam/steam/steamui/skins/chromasync/` on Linux, or your installation's
+Millennium theme directory, then select Chromasync in Millennium's theme
+settings. Reload the theme or restart Steam after generation.
+
+This target recolors shared **desktop dialogs, inputs, buttons, and labels**.
+It does not provide a complete library, friends, store, or Big Picture skin.
+Steam's internal CSS classes change between client releases; this target uses
+the shared `Dialog*` classes instead of pinning opaque library class names.
+Its manifest loads only local CSS and requires no JavaScript. See Millennium's
+[theme structure](https://docs.steambrew.app/themes/basics/structure) and
+[patch configuration](https://docs.steambrew.app/themes/intermediate/custom-structure).
+
+#### hyprqt6engine and hyprtoolkit
+
+**hyprqt6engine does not need another target.** It reads the existing `qt6`
+palette format, and builds with KDE Frameworks support also read `kcolorscheme`
+files. Generate `qt6` into a chosen directory and reference its absolute path
+in `~/.config/hypr/hyprqt6engine.conf`:
+
+```ini
+theme {
+    color_scheme = /home/you/.config/qt6ct/colors/chromasync.conf
+}
+```
+
+Use `QT_QPA_PLATFORMTHEME=hyprqt6engine` for applications that should use it.
+KDE-enabled builds can instead point `color_scheme` to `chromasync.colors`.
+Do not add a `source` directive: this engine's parser does not register one.
+See the engine's [palette loader](https://github.com/hyprwm/hyprqt6engine/blob/main/common/common.cpp).
+
+**hyprtoolkit has a separate palette**, so use `--targets hyprtoolkit`. Generate
+into `~/.config/hypr/` and add to `~/.config/hypr/hyprtoolkit.conf`:
+
+```ini
+source = ~/.config/hypr/chromasync-hyprtoolkit.conf
+```
+
+The generated fragment contains only the eight supported color keys, in
+`0xAARRGGBB` format, preserving your font and sizing settings. Restart applications
+after generation, or touch the main `hyprtoolkit.conf` to trigger its file
+watcher; the inspected implementation watches the main file rather than sourced
+files. See [hyprtoolkit's palette configuration](https://github.com/hyprwm/hyprtoolkit/blob/main/src/palette/ConfigManager.cpp).
+
+#### Herdr
+
+Generate `--targets herdr` to a staging directory. Merge the emitted `[theme]`
+and `[theme.custom]` settings into `~/.config/herdr/config.toml`, replacing
+existing keys in those tables. Preserve the rest of your configuration. Use
+Herdr's reload-config binding (default `prefix+Shift+R`) or restart it.
+
+Herdr accepts custom color overrides but has no theme-file include in the
+inspected loader. Merely placing the generated fragment next to `config.toml`
+will not load it. For repeated syncing, use a TOML-aware merge in your own
+post-generation hook. The fragment disables Herdr's automatic preset switching
+so the current Chromasync palette stays in control. See Herdr's
+[theme configuration](https://github.com/herdrdev/herdr/blob/main/src/config/theme.rs).
+
+#### Codex CLI and Claude Code
+
+- **Codex:** generate `--targets codex` into `$CODEX_HOME/themes` (normally
+  `~/.codex/themes`), then select Chromasync with `/theme`. This controls syntax
+  highlighting in code blocks and diffs; use a terminal target for the terminal
+  palette. See [OpenAI's CLI customization documentation](https://learn.chatgpt.com/docs/cli-customization).
+- **Claude Code:** generate `--targets claude` into `~/.claude/themes`, then
+  select Chromasync with `/theme` (`custom:chromasync`). The JSON uses the
+  requested light/dark base and documented color overrides. A version with
+  custom JSON themes is required; older preset-only versions cannot load it.
+  Claude watches changes to this directory; restart once if you created the
+  directory after starting Claude. The terminal background and syntax/diff
+  colors not overridden by the target retain their application defaults.
+  See [Claude's custom-theme reference](https://code.claude.com/docs/en/terminal-config#create-a-custom-theme).
+
+**Nanocoder:** no target is provided. The inspected checkout loads its bundled
+`source/config/themes.json` and selects a preset by name; it does not load user
+theme files or custom color overrides. Generating an unused JSON file, or
+overwriting the application's bundled theme catalog, would not be a supported
+integration. A user-theme loader is needed upstream first.
+
+#### Vim and Neovim
+
+- **Vim:** generate `--targets vim` into `~/.vim/colors/`, then add
+  `set termguicolors` and `colorscheme chromasync` to your vimrc. GUI Vim can
+  use the GUI colors directly.
+- **Neovim:** generate `--targets neovim` into `~/.config/nvim/colors/`, then
+  set `vim.opt.termguicolors = true` and `vim.cmd.colorscheme("chromasync")`
+  in `init.lua`.
+
+Both themes set the requested background mode, standard syntax/UI groups,
+spell indicators, diffs, and all 16 terminal colors. Neovim additionally maps
+Tree-sitter captures, LSP groups, and diagnostics. Run `:colorscheme chromasync`
+again after regenerating. See [Vim's colorscheme reference](https://vimhelp.org/syntax.txt.html#color-schemes)
+and [Neovim's highlighting API](https://neovim.io/doc/user/api/#nvim_set_hl()).
+
+#### Limine
+
+Generate `--targets limine` into a staging directory. Merge its keys into the
+**global section before the first menu entry** of the active `limine.conf`,
+replacing existing color keys while preserving every boot entry and path.
+The fragment is not a complete bootloader configuration and is not automatically
+included. Do not replace `limine.conf` with it.
+
+The target follows the current lowercase `key: value` format and emits the two
+eight-color palettes, text/background colors, and branding/help colors for the
+graphical terminal. Colors omit `#`; `term_background` uses `00RRGGBB` for an
+opaque background (Limine's leading byte is transparency). Text-mode firmware
+does not use these graphical palette settings. See the upstream
+[Limine configuration reference](https://github.com/limine-bootloader/limine/blob/trunk/CONFIG.md).
 
 ### GTK 3 coverage
 

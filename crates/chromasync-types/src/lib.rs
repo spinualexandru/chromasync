@@ -136,6 +136,15 @@ pub enum RenderTarget {
     VsCode,
     #[serde(rename = "vscode-insiders")]
     VsCodeInsiders,
+    Claude,
+    Codex,
+    Herdr,
+    Hyprtoolkit,
+    Kvantum,
+    Limine,
+    Neovim,
+    Steam,
+    Vim,
 }
 
 impl RenderTarget {
@@ -166,6 +175,15 @@ impl RenderTarget {
             Self::Qt6 => "qt6",
             Self::VsCode => "vscode",
             Self::VsCodeInsiders => "vscode-insiders",
+            Self::Claude => "claude",
+            Self::Codex => "codex",
+            Self::Herdr => "herdr",
+            Self::Hyprtoolkit => "hyprtoolkit",
+            Self::Kvantum => "kvantum",
+            Self::Limine => "limine",
+            Self::Neovim => "neovim",
+            Self::Steam => "steam",
+            Self::Vim => "vim",
         }
     }
 
@@ -189,6 +207,15 @@ impl RenderTarget {
             Self::Micro => "chromasync.micro",
             Self::Qt5 | Self::Qt6 => "chromasync.conf",
             Self::VsCode | Self::VsCodeInsiders => "package.json",
+            Self::Claude => "chromasync.json",
+            Self::Codex => "chromasync.tmTheme",
+            Self::Herdr => "chromasync-herdr.toml",
+            Self::Hyprtoolkit => "chromasync-hyprtoolkit.conf",
+            Self::Kvantum => "chromasync.kvconfig",
+            Self::Limine => "chromasync-limine.conf",
+            Self::Neovim => "chromasync.lua",
+            Self::Steam => "skin.json",
+            Self::Vim => "chromasync.vim",
         }
     }
 }

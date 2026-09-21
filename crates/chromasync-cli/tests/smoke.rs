@@ -88,6 +88,17 @@ fn targets_lists_built_in_renderers() {
             "vscode-insiders\tbuilt-in\tvscode-insiders",
         ))
         .stdout(predicate::str::contains("zed\tbuilt-in\tzed"))
+        .stdout(predicate::str::contains("claude\tbuilt-in\tclaude"))
+        .stdout(predicate::str::contains("codex\tbuilt-in\tcodex"))
+        .stdout(predicate::str::contains("herdr\tbuilt-in\therdr"))
+        .stdout(predicate::str::contains(
+            "hyprtoolkit\tbuilt-in\thyprtoolkit",
+        ))
+        .stdout(predicate::str::contains("kvantum\tbuilt-in\tkvantum"))
+        .stdout(predicate::str::contains("limine\tbuilt-in\tlimine"))
+        .stdout(predicate::str::contains("neovim\tbuilt-in\tneovim"))
+        .stdout(predicate::str::contains("steam\tbuilt-in\tsteam"))
+        .stdout(predicate::str::contains("vim\tbuilt-in\tvim"))
         .stdout(predicate::str::contains("css").not())
         .stdout(predicate::str::contains("foot").not())
         .stdout(predicate::str::contains("waybar").not())

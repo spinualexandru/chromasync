@@ -330,10 +330,6 @@ def run_gallery(css, base, output):
                         rgba(ctx, "background-color"),
                         paint(ctx),
                     ]
-            output.with_suffix(".json").write_text(
-                json.dumps(snapshots, indent=2) + "\n"
-            )
-
             # Contrast checks catch mismatched foreground/background pairs across variants.
             def luminance(color):
                 linear = [
@@ -350,7 +346,27 @@ def run_gallery(css, base, output):
                 lo, hi = sorted([luminance(a), luminance(b)])
                 return (hi + 0.05) / (lo + 0.05)
 
+            # Chromium samples these synthetic CSS nodes instead of notebook tabs.
+            for state in [Gtk.StateFlags.NORMAL, Gtk.StateFlags.BACKDROP]:
+                browser = context(window.get_style_context(), "window",
+                                  ["background", "chromium"], state)
+                active = rgba(browser, "background-color")
+                assert contrast(rgba(browser, "color"), active) >= 4.5, "browser tab text"
+                for node, classes in [("headerbar", ["header-bar", "titlebar", "chromium"]),
+                                      ("menubar", ["chromium"])]:
+                    frame = context(browser, node, classes, state)
+                    inactive = rgba(frame, "background-color")
+                    assert contrast(active, inactive) >= 1.5, "browser active tab visibility"
+                    assert contrast(rgba(frame, "color"), inactive) >= 4.5, "browser inactive tab text"
+                    # Render too: inherited gradients must not hide these colors.
+                    assert paint(browser) != paint(frame), "browser painted tab visibility"
+                    snapshots[f"chromium:{node}:{int(state)}"] = [paint(browser), paint(frame)]
+                    checks.append(f"browser {node} {int(state)} tab contrast")
+
             assert contrast(fg, bg) >= 4.5, "notebook text contrast"
+            output.with_suffix(".json").write_text(
+                json.dumps(snapshots, indent=2) + "\n"
+            )
             # Compare widget colors, not a fixed palette or CSS implementation.
             for name, widget, node, active in [
                 ("check", first_radio, "radio", Gtk.StateFlags.CHECKED),

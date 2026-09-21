@@ -11,31 +11,50 @@ pub use crate::registry::{
     TargetSource, TargetSpec, parse_target_file, user_targets_dir,
 };
 
-pub const BUILTIN_TARGETS: [RenderTarget; 17] = [
+pub const BUILTIN_TARGETS: [RenderTarget; 26] = [
     RenderTarget::Alacritty,
     RenderTarget::Chromium,
+    RenderTarget::Claude,
+    RenderTarget::Codex,
     RenderTarget::Ghostty,
     RenderTarget::GoogleChrome,
     RenderTarget::Gtk3,
     RenderTarget::Gtk4,
     RenderTarget::HeliumBrowser,
+    RenderTarget::Herdr,
     RenderTarget::Hyprland,
     RenderTarget::HyprlandLua,
+    RenderTarget::Hyprtoolkit,
     RenderTarget::KColorScheme,
     RenderTarget::Kitty,
+    RenderTarget::Kvantum,
+    RenderTarget::Limine,
     RenderTarget::Micro,
+    RenderTarget::Neovim,
     RenderTarget::Qt5,
     RenderTarget::Qt6,
+    RenderTarget::Steam,
+    RenderTarget::Vim,
     RenderTarget::VsCode,
     RenderTarget::VsCodeInsiders,
     RenderTarget::Zed,
 ];
 
-pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 16] = [
+pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 25] = [
     (
         "chromium",
         "chromium.toml",
         include_str!("../builtin-targets/chromium.toml"),
+    ),
+    (
+        "claude",
+        "claude.toml",
+        include_str!("../builtin-targets/claude.toml"),
+    ),
+    (
+        "codex",
+        "codex.toml",
+        include_str!("../builtin-targets/codex.toml"),
     ),
     (
         "ghostty",
@@ -63,6 +82,11 @@ pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 16] = [
         include_str!("../builtin-targets/helium-browser.toml"),
     ),
     (
+        "herdr",
+        "herdr.toml",
+        include_str!("../builtin-targets/herdr.toml"),
+    ),
+    (
         "hyprland",
         "hyprland.toml",
         include_str!("../builtin-targets/hyprland.toml"),
@@ -71,6 +95,11 @@ pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 16] = [
         "hyprland-lua",
         "hyprland-lua.toml",
         include_str!("../builtin-targets/hyprland-lua.toml"),
+    ),
+    (
+        "hyprtoolkit",
+        "hyprtoolkit.toml",
+        include_str!("../builtin-targets/hyprtoolkit.toml"),
     ),
     (
         "kcolorscheme",
@@ -83,9 +112,24 @@ pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 16] = [
         include_str!("../builtin-targets/kitty.toml"),
     ),
     (
+        "kvantum",
+        "kvantum.toml",
+        include_str!("../builtin-targets/kvantum.toml"),
+    ),
+    (
+        "limine",
+        "limine.toml",
+        include_str!("../builtin-targets/limine.toml"),
+    ),
+    (
         "micro",
         "micro.toml",
         include_str!("../builtin-targets/micro.toml"),
+    ),
+    (
+        "neovim",
+        "neovim.toml",
+        include_str!("../builtin-targets/neovim.toml"),
     ),
     (
         "qt5",
@@ -96,6 +140,16 @@ pub(crate) const BUILTIN_DECLARATIVE_TARGETS: [(&str, &str, &str); 16] = [
         "qt6",
         "qt6.toml",
         include_str!("../builtin-targets/qt6.toml"),
+    ),
+    (
+        "steam",
+        "steam.toml",
+        include_str!("../builtin-targets/steam.toml"),
+    ),
+    (
+        "vim",
+        "vim.toml",
+        include_str!("../builtin-targets/vim.toml"),
     ),
     (
         "vscode",

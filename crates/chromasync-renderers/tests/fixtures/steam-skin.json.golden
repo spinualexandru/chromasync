@@ -1,0 +1,12 @@
+{
+  "name": "Chromasync",
+  "author": "Chromasync",
+  "description": "Palette colors for Steam desktop dialogs and shared controls. Requires Millennium.",
+  "version": "1.0.0",
+  "Patches": [
+    {
+      "MatchRegexString": "^Steam$|^Supernav$|Menu$|.ModalDialogPopup|.FullModalOverlay",
+      "TargetCss": "chromasync.css"
+    }
+  ]
+}
