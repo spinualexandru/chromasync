@@ -1,0 +1,33 @@
+#:schema ../../../schemas/target.json
+name = "herdr"
+description = "Herdr theme configuration fragment; merge into config.toml."
+chroma = "normal"
+
+[[artifacts]]
+file_name = "chromasync-herdr.toml"
+template = '''
+# Merge these tables into herdr/config.toml; preserve other settings.
+[theme]
+auto_switch = false
+
+[theme.custom]
+accent = "{{tokens.accent}}"
+panel_bg = "{{tokens.bg}}"
+sidebar_bg = "{{tokens.bg_secondary}}"
+active_row_bg = "{{tokens.selection}}"
+selection_bg = "{{tokens.selection}}"
+surface0 = "{{tokens.surface}}"
+surface1 = "{{tokens.surface_elevated}}"
+surface_dim = "{{tokens.bg_secondary}}"
+overlay0 = "{{tokens.text_muted}}"
+overlay1 = "{{tokens.text_muted}}"
+text = "{{tokens.text}}"
+subtext0 = "{{tokens.text_muted}}"
+mauve = "{{tokens.accent}}"
+green = "{{tokens.success}}"
+yellow = "{{tokens.warning}}"
+red = "{{tokens.error}}"
+blue = "{{tokens.link}}"
+teal = "{{tokens.accent_hover}}"
+peach = "{{tokens.warning}}"
+'''

@@ -225,63 +225,44 @@ fn built_in_targets_render_to_generated_artifacts() {
     let artifacts = render_targets(built_in_targets(), &sample_tokens())
         .expect("built-in targets should render");
 
-    assert_eq!(artifacts.len(), 21);
     assert_eq!(
         artifacts
             .iter()
-            .map(|artifact| artifact.target.clone())
+            .map(|artifact| (artifact.target.as_str(), artifact.file_name.as_str()))
             .collect::<Vec<_>>(),
         vec![
-            "alacritty".to_owned(),
-            "chromium".to_owned(),
-            "ghostty".to_owned(),
-            "google-chrome".to_owned(),
-            "gtk3".to_owned(),
-            "gtk3".to_owned(),
-            "gtk4".to_owned(),
-            "gtk4".to_owned(),
-            "helium-browser".to_owned(),
-            "hyprland".to_owned(),
-            "hyprland-lua".to_owned(),
-            "kcolorscheme".to_owned(),
-            "kitty".to_owned(),
-            "micro".to_owned(),
-            "qt5".to_owned(),
-            "qt6".to_owned(),
-            "vscode".to_owned(),
-            "vscode".to_owned(),
-            "vscode-insiders".to_owned(),
-            "vscode-insiders".to_owned(),
-            "zed".to_owned(),
-        ]
-    );
-    assert_eq!(
-        artifacts
-            .iter()
-            .map(|artifact| artifact.file_name.as_str())
-            .collect::<Vec<_>>(),
-        vec![
-            "alacritty.toml",
-            "manifest.json",
-            "chromasync.ghostty",
-            "manifest.json",
-            "gtk.css",
-            "chromasync.css",
-            "gtk.css",
-            "chromasync.css",
-            "manifest.json",
-            "hyprland.conf",
-            "hypr-chromasync.lua",
-            "chromasync.colors",
-            "kitty.conf",
-            "chromasync.micro",
-            "chromasync.conf",
-            "chromasync.conf",
-            "package.json",
-            "chromasync-color-theme.json",
-            "package.json",
-            "chromasync-color-theme.json",
-            "chromasync.json",
+            ("alacritty", "alacritty.toml"),
+            ("chromium", "manifest.json"),
+            ("claude", "chromasync.json"),
+            ("codex", "chromasync.tmTheme"),
+            ("ghostty", "chromasync.ghostty"),
+            ("google-chrome", "manifest.json"),
+            ("gtk3", "gtk.css"),
+            ("gtk3", "chromasync.css"),
+            ("gtk4", "gtk.css"),
+            ("gtk4", "chromasync.css"),
+            ("helium-browser", "manifest.json"),
+            ("herdr", "chromasync-herdr.toml"),
+            ("hyprland", "hyprland.conf"),
+            ("hyprland-lua", "hypr-chromasync.lua"),
+            ("hyprtoolkit", "chromasync-hyprtoolkit.conf"),
+            ("kcolorscheme", "chromasync.colors"),
+            ("kitty", "kitty.conf"),
+            ("kvantum", "chromasync.kvconfig"),
+            ("kvantum", "chromasync.svg"),
+            ("limine", "chromasync-limine.conf"),
+            ("micro", "chromasync.micro"),
+            ("neovim", "chromasync.lua"),
+            ("qt5", "chromasync.conf"),
+            ("qt6", "chromasync.conf"),
+            ("steam", "skin.json"),
+            ("steam", "chromasync.css"),
+            ("vim", "chromasync.vim"),
+            ("vscode", "package.json"),
+            ("vscode", "chromasync-color-theme.json"),
+            ("vscode-insiders", "package.json"),
+            ("vscode-insiders", "chromasync-color-theme.json"),
+            ("zed", "chromasync.json"),
         ]
     );
 }
@@ -340,9 +321,14 @@ fn vscode_light_mode_uses_light_ui_theme_identifier() {
 
 #[test]
 fn single_artifact_api_rejects_multi_artifact_targets() {
-    for target in [RenderTarget::VsCode, RenderTarget::VsCodeInsiders] {
+    for target in [
+        RenderTarget::VsCode,
+        RenderTarget::VsCodeInsiders,
+        RenderTarget::Kvantum,
+        RenderTarget::Steam,
+    ] {
         let error = render_target(target, &sample_tokens())
-            .expect_err("single-artifact API should reject VS Code extension targets");
+            .expect_err("single-artifact API should reject multi-artifact targets");
 
         assert!(matches!(
             error,
@@ -419,5 +405,32 @@ fn sample_tokens() -> SemanticTokens {
         success: "#57CC99".to_owned(),
         warning: "#F4A261".to_owned(),
         error: "#E76F51".to_owned(),
+    }
+}
+
+#[test]
+fn additional_built_in_targets_match_golden_files() {
+    let registry = OutputRegistry::default();
+    for name in [
+        "claude",
+        "codex",
+        "herdr",
+        "hyprtoolkit",
+        "kvantum",
+        "limine",
+        "neovim",
+        "steam",
+        "vim",
+    ] {
+        let artifacts = registry
+            .generate(&[name.to_owned()], &sample_tokens(), &sample_context())
+            .expect("target should render");
+        for artifact in artifacts {
+            let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures")
+                .join(format!("{name}-{}.golden", artifact.file_name));
+            let expected = std::fs::read_to_string(path).expect("golden fixture should exist");
+            assert_eq!(artifact.content, expected, "{name}/{}", artifact.file_name);
+        }
     }
 }

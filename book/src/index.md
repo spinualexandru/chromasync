@@ -125,7 +125,7 @@ chromasync sync
 
 | Templates                                         | Targets |
 | ------------------------------------------------- | ------- |
-| `minimal`, `brutalist`, `terminal`, `materialish` | `alacritty`, `chromium`, `ghostty`, `google-chrome`, `gtk3`, `gtk4`, `helium-browser`, `hyprland`, `hyprland-lua`, `kcolorscheme`, `kitty`, `micro`, `qt5`, `qt6`, `vscode`, `vscode-insiders`, `zed` |
+| `minimal`, `brutalist`, `terminal`, `materialish` | `alacritty`, `chromium`, `claude`, `codex`, `ghostty`, `google-chrome`, `gtk3`, `gtk4`, `helium-browser`, `herdr`, `hyprland`, `hyprland-lua`, `hyprtoolkit`, `kcolorscheme`, `kitty`, `kvantum`, `limine`, `micro`, `neovim`, `qt5`, `qt6`, `steam`, `vim`, `vscode`, `vscode-insiders`, `zed` |
 
 Additional targets (generic GTK, CSS, Waybar, Foot, Editor) are
 available as declarative TOML specs under

@@ -1,0 +1,24 @@
+# Merge these tables into herdr/config.toml; preserve other settings.
+[theme]
+auto_switch = false
+
+[theme.custom]
+accent = "#4ECDC4"
+panel_bg = "#0F1115"
+sidebar_bg = "#161B22"
+active_row_bg = "#1F5F66"
+selection_bg = "#1F5F66"
+surface0 = "#1D232C"
+surface1 = "#252D38"
+surface_dim = "#161B22"
+overlay0 = "#B4BEC9"
+overlay1 = "#B4BEC9"
+text = "#F5F7FA"
+subtext0 = "#B4BEC9"
+mauve = "#4ECDC4"
+green = "#57CC99"
+yellow = "#F4A261"
+red = "#E76F51"
+blue = "#7CC6FF"
+teal = "#68D8D1"
+peach = "#F4A261"

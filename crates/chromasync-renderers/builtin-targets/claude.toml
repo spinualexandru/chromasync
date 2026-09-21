@@ -1,0 +1,48 @@
+#:schema ../../../schemas/target.json
+name = "claude"
+description = "Claude Code custom theme (requires custom JSON theme support)."
+chroma = "normal"
+
+[[artifacts]]
+file_name = "chromasync.json"
+template = '''
+{
+  "name": "Chromasync",
+  "base": "{{ctx.mode}}",
+  "overrides": {
+    "claude": "{{tokens.accent}}",
+    "claudeShimmer": "{{tokens.accent_hover}}",
+    "text": "{{tokens.text}}",
+    "inverseText": "{{tokens.accent_fg}}",
+    "inactive": "{{tokens.text_muted}}",
+    "inactiveShimmer": "{{tokens.text}}",
+    "subtle": "{{tokens.text_muted}}",
+    "suggestion": "{{tokens.accent}}",
+    "permission": "{{tokens.accent}}",
+    "permissionShimmer": "{{tokens.accent_hover}}",
+    "remember": "{{tokens.accent_active}}",
+    "success": "{{tokens.success}}",
+    "error": "{{tokens.error}}",
+    "warning": "{{tokens.warning}}",
+    "warningShimmer": "{{tokens.warning}}",
+    "merged": "{{tokens.accent_active}}",
+    "promptBorder": "{{tokens.border_strong}}",
+    "promptBorderShimmer": "{{tokens.accent}}",
+    "planMode": "{{tokens.link}}",
+    "autoAccept": "{{tokens.success}}",
+    "bashBorder": "{{tokens.warning}}",
+    "ide": "{{tokens.link}}",
+    "fastMode": "{{tokens.accent}}",
+    "fastModeShimmer": "{{tokens.accent_hover}}",
+    "userMessageBackground": "{{tokens.bg_secondary}}",
+    "userMessageBackgroundHover": "{{tokens.surface}}",
+    "bashMessageBackgroundColor": "{{tokens.bg_secondary}}",
+    "memoryBackgroundColor": "{{tokens.bg_secondary}}",
+    "selectionBg": "{{tokens.selection}}",
+    "rate_limit_fill": "{{tokens.accent}}",
+    "rate_limit_empty": "{{tokens.border}}",
+    "briefLabelYou": "{{tokens.link}}",
+    "briefLabelClaude": "{{tokens.accent}}"
+  }
+}
+'''
