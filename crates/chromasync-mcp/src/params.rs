@@ -23,7 +23,7 @@ pub struct GenerateParams {
     pub targets: Vec<String>,
     /// Output directory for generated artifact files.
     pub output_dir: String,
-    /// When true, overwrite existing files at the destination instead of refusing.
+    /// When true, overwrite existing files whose content differs instead of refusing. Files that already match are left untouched either way.
     #[serde(default)]
     pub force: bool,
 }
@@ -48,7 +48,7 @@ pub struct WallpaperParams {
     pub targets: Vec<String>,
     /// Output directory for generated artifact files.
     pub output_dir: String,
-    /// When true, overwrite existing files at the destination instead of refusing.
+    /// When true, overwrite existing files whose content differs instead of refusing. Files that already match are left untouched either way.
     #[serde(default)]
     pub force: bool,
 }

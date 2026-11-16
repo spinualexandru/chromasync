@@ -20,8 +20,9 @@ use thiserror::Error;
 
 pub use chromasync_renderers::{ListedTarget, OutputRegistry};
 pub use config::{
-    ChromasyncConfig, ConfigHook, ConfigTarget, HookEvents, InstallSummary, SyncMode, SyncProfile,
-    config_file_path, expand_tilde, install_target,
+    ChromasyncConfig, ConfigHook, ConfigTarget, HookConfigError, HookEvent, HookEvents, HookFilter,
+    InstallSummary, ParseHookEventError, ParseHookFilterError, SyncMode, SyncProfile,
+    ValidatedHook, config_file_path, expand_tilde, install_target,
 };
 pub use packs::{PackError, PackRegistry, pack_search_roots};
 
@@ -320,50 +321,27 @@ where
 
 /// Write generated artifacts into `output_dir`.
 ///
-/// Returns the full paths of every file written (in artifact order), suitable for
-/// echoing to the user. This is the single source of truth for write policy:
-/// both the CLI and the MCP server route through it.
-///
-/// By default the writer refuses to overwrite an existing file — it fails loudly
-/// before touching the disk. Pass `force = true` to replace existing files
-/// instead. The collision check (two artifacts mapping to one destination) is
-/// always enforced regardless of `force`, since that signals a target-design
-/// bug rather than stale output.
+/// Returns the full paths of every artifact (in artifact order), whether or not
+/// its file had to be rewritten, suitable for echoing to the user. Applies the
+/// same policy as [`write_routed_artifacts`], with one `force` flag for every
+/// artifact; the MCP server writes through this function.
 pub fn write_artifacts(
     output_dir: &Path,
     artifacts: &[GeneratedArtifact],
     force: bool,
 ) -> Result<Vec<PathBuf>, CoreError> {
-    if artifacts.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let resolved: Vec<ResolvedArtifact> = artifacts
+    let writes = artifacts
         .iter()
-        .map(|artifact| ResolvedArtifact {
-            output_dir: output_dir.to_path_buf(),
-            file_name: artifact.file_name.clone(),
-            content: artifact.content.clone(),
+        .map(|artifact| ArtifactWrite {
+            output_dir,
+            file_name: &artifact.file_name,
+            content: &artifact.content,
             force,
         })
-        .collect();
+        .collect::<Vec<_>>();
 
-    write_resolved_artifacts(&resolved)
-}
-
-/// A single artifact paired with the directory it should be written to and
-/// whether existing files may be overwritten.
-///
-/// Used by [`write_resolved_artifacts`], which lets the CLI route each
-/// generated artifact to its own output directory (e.g. one per installed
-/// target) while still sharing collision and overwrite enforcement with
-/// [`write_artifacts`].
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ResolvedArtifact {
-    pub output_dir: PathBuf,
-    pub file_name: String,
-    pub content: String,
-    pub force: bool,
+    let written = write_entries(&writes)?;
+    Ok(written.into_iter().map(|artifact| artifact.path).collect())
 }
 
 /// A generated artifact paired with its target-specific write policy.
@@ -374,49 +352,124 @@ pub struct RoutedArtifact {
     pub force: bool,
 }
 
-/// Write artifacts to their individually resolved destinations.
-///
-/// Each entry carries its own `output_dir` and `force` flag, so installed
-/// targets can land in different directories and opt into per-target
-/// overwrite. Collision detection runs across all destinations regardless of
-/// `force`; missing output directories are created on demand.
-pub fn write_resolved_artifacts(entries: &[ResolvedArtifact]) -> Result<Vec<PathBuf>, CoreError> {
-    if entries.is_empty() {
-        return Ok(Vec::new());
-    }
+/// Outcome of writing one artifact.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WrittenArtifact {
+    /// Destination path.
+    pub path: PathBuf,
+    /// `false` when the destination already held identical content, in which
+    /// case the file was not rewritten (its modification time is preserved).
+    pub changed: bool,
+}
 
+/// Write artifacts to their individually routed destinations and report, per
+/// destination, whether its content changed.
+///
+/// This is the single source of truth for write policy; [`write_artifacts`]
+/// applies it too. Each entry carries its own `output_dir` and `force` flag, so
+/// installed targets can land in different directories and opt into
+/// per-target overwrite. Missing output directories are created on demand.
+///
+/// - A destination that already holds byte-identical content is left
+///   untouched and reported with `changed: false`, with or without `force`.
+/// - A destination that exists with different content (or is not a regular
+///   file) is refused with [`CoreError::ArtifactExists`] unless `force` is set.
+/// - Two artifacts mapping to one destination are always refused with
+///   [`CoreError::ArtifactCollision`], since that signals a target-design bug
+///   rather than stale output.
+///
+/// All checks run before anything is written. If a write then fails midway,
+/// earlier files stay updated.
+pub fn write_routed_artifacts(
+    artifacts: &[RoutedArtifact],
+) -> Result<Vec<WrittenArtifact>, CoreError> {
+    let writes = artifacts
+        .iter()
+        .map(|routed| ArtifactWrite {
+            output_dir: &routed.output_dir,
+            file_name: &routed.artifact.file_name,
+            content: &routed.artifact.content,
+            force: routed.force,
+        })
+        .collect::<Vec<_>>();
+
+    write_entries(&writes)
+}
+
+struct ArtifactWrite<'a> {
+    output_dir: &'a Path,
+    file_name: &'a str,
+    content: &'a str,
+    force: bool,
+}
+
+fn write_entries(entries: &[ArtifactWrite<'_>]) -> Result<Vec<WrittenArtifact>, CoreError> {
     let mut seen_paths = BTreeSet::new();
-    let mut destinations = Vec::with_capacity(entries.len());
+    let mut written = Vec::with_capacity(entries.len());
 
     for entry in entries {
-        let path = entry.output_dir.join(&entry.file_name);
+        let path = entry.output_dir.join(entry.file_name);
 
         if !seen_paths.insert(path.clone()) {
             return Err(CoreError::ArtifactCollision { path });
         }
 
-        if !entry.force && path.exists() {
-            return Err(CoreError::ArtifactExists { path });
-        }
+        let changed = match destination_state(&path, entry.content.as_bytes()) {
+            Destination::Missing => true,
+            Destination::Identical => false,
+            Destination::Different if entry.force => true,
+            Destination::Different => return Err(CoreError::ArtifactExists { path }),
+        };
 
-        destinations.push(path);
+        written.push(WrittenArtifact { path, changed });
     }
 
     for entry in entries {
-        fs::create_dir_all(&entry.output_dir).map_err(|source| CoreError::CreateOutputDir {
-            path: entry.output_dir.clone(),
+        fs::create_dir_all(entry.output_dir).map_err(|source| CoreError::CreateOutputDir {
+            path: entry.output_dir.to_path_buf(),
             source,
         })?;
     }
 
-    for (entry, path) in entries.iter().zip(&destinations) {
-        fs::write(path, &entry.content).map_err(|source| CoreError::WriteArtifact {
-            path: path.clone(),
-            source,
-        })?;
+    for (entry, artifact) in entries.iter().zip(&written) {
+        if artifact.changed {
+            fs::write(&artifact.path, entry.content).map_err(|source| {
+                CoreError::WriteArtifact {
+                    path: artifact.path.clone(),
+                    source,
+                }
+            })?;
+        }
     }
 
-    Ok(destinations)
+    Ok(written)
+}
+
+/// What currently sits at an artifact's destination.
+enum Destination {
+    /// Nothing, or nothing we can inspect; writing will surface any error.
+    Missing,
+    /// A regular file whose bytes equal the new content.
+    Identical,
+    /// Something else: a file with other content, a directory, and so on.
+    Different,
+}
+
+fn destination_state(path: &Path, content: &[u8]) -> Destination {
+    let Ok(metadata) = fs::metadata(path) else {
+        return Destination::Missing;
+    };
+
+    // Compare sizes first so a changed file of a different length is never
+    // read.
+    if !metadata.is_file() || metadata.len() != content.len() as u64 {
+        return Destination::Different;
+    }
+
+    match fs::read(path) {
+        Ok(existing) if existing == content => Destination::Identical,
+        _ => Destination::Different,
+    }
 }
 
 fn palette_from_request(
@@ -724,7 +777,11 @@ mod tests {
         ChromaStrategy, ContrastStrategy, GenerationRequest, PaletteFamilyName, ThemeMode,
     };
 
-    use super::{export_tokens, generate_palette, palette_from_extracted_seeds, preview};
+    use super::{
+        CoreError, GeneratedArtifact, RoutedArtifact, WrittenArtifact, export_tokens,
+        generate_palette, palette_from_extracted_seeds, preview, write_artifacts,
+        write_routed_artifacts,
+    };
 
     #[test]
     fn palette_generation_is_available_without_renderer_code() {
@@ -946,6 +1003,166 @@ mod tests {
                 > 0.30
         );
         assert!(tertiary.dominance.expect("tertiary dominance should exist") > 0.15);
+    }
+
+    fn routed(output_dir: &std::path::Path, file_name: &str, content: &str) -> RoutedArtifact {
+        RoutedArtifact {
+            artifact: GeneratedArtifact {
+                target: "probe".to_owned(),
+                file_name: file_name.to_owned(),
+                content: content.to_owned(),
+            },
+            output_dir: output_dir.to_path_buf(),
+            force: true,
+        }
+    }
+
+    fn unforced(output_dir: &std::path::Path, file_name: &str, content: &str) -> RoutedArtifact {
+        RoutedArtifact {
+            force: false,
+            ..routed(output_dir, file_name, content)
+        }
+    }
+
+    fn set_old_mtime(path: &std::path::Path) -> std::time::SystemTime {
+        let old = std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_000_000);
+        std::fs::File::options()
+            .write(true)
+            .open(path)
+            .and_then(|file| file.set_modified(old))
+            .expect("mtime should be set");
+        old
+    }
+
+    fn mtime(path: &std::path::Path) -> std::time::SystemTime {
+        std::fs::metadata(path)
+            .and_then(|metadata| metadata.modified())
+            .expect("mtime should be readable")
+    }
+
+    #[test]
+    fn routed_writes_report_changes_and_skip_identical_files() {
+        let temp = tempfile::tempdir().expect("temp dir should be created");
+        let dir = temp.path().join("out");
+
+        let first =
+            write_routed_artifacts(&[routed(&dir, "a.txt", "a"), routed(&dir, "b.txt", "b")])
+                .expect("first write should succeed");
+        assert!(first.iter().all(|written| written.changed));
+
+        let old = set_old_mtime(&dir.join("a.txt"));
+
+        // `B` has the same length as `b`, so the content comparison decides.
+        let second =
+            write_routed_artifacts(&[routed(&dir, "a.txt", "a"), routed(&dir, "b.txt", "B")])
+                .expect("second write should succeed");
+        assert_eq!(
+            second,
+            [
+                WrittenArtifact {
+                    path: dir.join("a.txt"),
+                    changed: false
+                },
+                WrittenArtifact {
+                    path: dir.join("b.txt"),
+                    changed: true
+                },
+            ]
+        );
+        assert_eq!(
+            mtime(&dir.join("a.txt")),
+            old,
+            "identical content should not be rewritten"
+        );
+        assert_eq!(std::fs::read_to_string(dir.join("b.txt")).unwrap(), "B");
+    }
+
+    #[test]
+    fn identical_existing_files_are_accepted_without_force() {
+        let temp = tempfile::tempdir().expect("temp dir should be created");
+        let dir = temp.path();
+
+        write_routed_artifacts(&[unforced(dir, "a.txt", "a")]).expect("first write should succeed");
+        let old = set_old_mtime(&dir.join("a.txt"));
+
+        let rerun = write_routed_artifacts(&[unforced(dir, "a.txt", "a")])
+            .expect("an identical rerun should succeed without force");
+        assert_eq!(
+            rerun,
+            [WrittenArtifact {
+                path: dir.join("a.txt"),
+                changed: false
+            }]
+        );
+        assert_eq!(mtime(&dir.join("a.txt")), old);
+
+        let paths = write_artifacts(
+            dir,
+            &[GeneratedArtifact {
+                target: "probe".to_owned(),
+                file_name: "a.txt".to_owned(),
+                content: "a".to_owned(),
+            }],
+            false,
+        )
+        .expect("write_artifacts should accept identical files without force");
+        assert_eq!(paths, [dir.join("a.txt")]);
+    }
+
+    #[test]
+    fn differing_existing_files_are_refused_without_force_before_any_write() {
+        let temp = tempfile::tempdir().expect("temp dir should be created");
+        let dir = temp.path();
+
+        // Same length as the new content and different length: both refused.
+        for existing in ["xyz", "longer content"] {
+            std::fs::write(dir.join("b.txt"), existing).expect("existing file should be written");
+
+            let result = write_routed_artifacts(&[
+                unforced(dir, "a.txt", "a"),
+                unforced(dir, "b.txt", "new"),
+            ]);
+            assert!(
+                matches!(&result, Err(CoreError::ArtifactExists { path }) if path == &dir.join("b.txt")),
+                "{result:?}"
+            );
+            assert!(
+                !dir.join("a.txt").exists(),
+                "nothing should be written when a later check fails"
+            );
+            assert_eq!(
+                std::fs::read_to_string(dir.join("b.txt")).unwrap(),
+                existing
+            );
+        }
+    }
+
+    #[test]
+    fn non_file_destinations_are_never_treated_as_identical() {
+        let temp = tempfile::tempdir().expect("temp dir should be created");
+        let dir = temp.path();
+        std::fs::create_dir(dir.join("a.txt")).expect("directory should be created");
+
+        assert!(matches!(
+            write_routed_artifacts(&[unforced(dir, "a.txt", "")]),
+            Err(CoreError::ArtifactExists { .. })
+        ));
+        assert!(matches!(
+            write_routed_artifacts(&[routed(dir, "a.txt", "")]),
+            Err(CoreError::WriteArtifact { .. })
+        ));
+    }
+
+    #[test]
+    fn colliding_destinations_are_refused_even_when_identical() {
+        let temp = tempfile::tempdir().expect("temp dir should be created");
+        let dir = temp.path();
+
+        assert!(matches!(
+            write_routed_artifacts(&[routed(dir, "a.txt", "a"), routed(dir, "a.txt", "a")]),
+            Err(CoreError::ArtifactCollision { .. })
+        ));
+        assert!(!dir.join("a.txt").exists());
     }
 
     fn wallpaper_fixture(name: &str) -> PathBuf {

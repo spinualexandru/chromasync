@@ -76,7 +76,7 @@ overwrite = true
 
 [[hooks]]
 name = "reload-kitty"
-on = "target:kitty:done"
+on = "target:kitty:changed"
 filters = ["config:default"]
 command = "kitty @ load-config"
 ```
@@ -87,15 +87,22 @@ Run it with:
 chromasync sync          # uses the profile named "default"
 chromasync sync work     # uses the profile named "work"
 chromasync sync --mode light # overrides the profile mode for this run
+chromasync sync --no-hooks   # skips [[hooks]] for this run
 ```
 
 `mode = "auto"` follows the desktop color-scheme when it can be detected, and
 falls back to dark mode.
 
-Hooks run after a successful `chromasync sync` write. Use `targets:done` to run
-after every target is generated, or `target:<name>:done` for a specific target.
-Hook commands run from the directory containing `config.toml`; a failing hook
-makes `sync` exit with an error after artifacts have been written.
+Hooks run under `sh -c` after `chromasync sync` has written every artifact, in
+config order. `targets:done` and `target:<name>:done` fire on every successful
+sync; `targets:changed` and `target:<name>:changed` fire only when an artifact's
+content differed and was written (identical files are left untouched), which
+makes them the better fit for reload hooks. Hook commands run from the
+directory containing `config.toml` and receive `CHROMASYNC_PROFILE`,
+`CHROMASYNC_MODE`, `CHROMASYNC_ARTIFACTS` and related variables. Hooks are
+checked before anything is written. If any hook fails, the others still run and
+`sync` exits with status 3. See the [sync guide](https://github.com/spinualexandru/chromasync/blob/main/book/src/guides/sync.md#hooks)
+for details.
 
 ## Installing Targets
 
@@ -110,7 +117,8 @@ chromasync target install \
 ```
 
 This copies the target TOML into `~/.config/chromasync/targets/` and records a
-matching `[[targets]]` entry in `~/.config/chromasync/config.toml`. Add
+matching `[[targets]]` entry in `~/.config/chromasync/config.toml`, keeping the
+rest of the file, including comments, as it was. Add
 `--overwrite` to replace an existing installed target and mark its generated
 artifacts as overwrite-safe during generation.
 

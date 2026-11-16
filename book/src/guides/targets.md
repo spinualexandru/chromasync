@@ -143,7 +143,8 @@ Herdr's reload-config binding (default `prefix+Shift+R`) or restart it.
 Herdr accepts custom color overrides but has no theme-file include in the
 inspected loader. Merely placing the generated fragment next to `config.toml`
 will not load it. For repeated syncing, use a TOML-aware merge in your own
-post-generation hook. The fragment disables Herdr's automatic preset switching
+post-generation hook; see the [sync hook example](sync.md#example-merging-a-fragment-into-another-config),
+which finds the fragment through `CHROMASYNC_ARTIFACTS`. The fragment disables Herdr's automatic preset switching
 so the current Chromasync palette stays in control. See Herdr's
 [theme configuration](https://github.com/herdrdev/herdr/blob/main/src/config/theme.rs).
 
@@ -376,6 +377,8 @@ This:
 2. Records a `[[targets]]` entry in `~/.config/chromasync/config.toml` mapping the target to its output directory.
 
 The command prints the installed target file path and the config file path.
+
+The `[[targets]]` entry is edited in place: comments, formatting, and the rest of `config.toml` (profiles, hooks, other targets) are kept, and an existing entry with the same name is updated rather than duplicated. A short header comment is added only when the command creates `config.toml`.
 
 Re-running install for an already-installed target is refused unless you pass `--overwrite`. The same flag is recorded in the config as `overwrite = true`, which makes `generate`, `wallpaper`, and `batch` overwrite existing artifacts for that target (a per-target `--force`).
 

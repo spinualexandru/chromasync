@@ -1,7 +1,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use assert_cmd::Command;
@@ -748,6 +748,7 @@ command = "printf hook-failed >&2; exit 7"
     command
         .assert()
         .failure()
+        .code(3)
         .stderr(predicate::str::contains("hook 'reload' exited with"))
         .stderr(predicate::str::contains("hook-failed"));
 
@@ -755,6 +756,784 @@ command = "printf hook-failed >&2; exit 7"
         output_dir.join("kitty.conf").is_file(),
         "hook failure should not roll back written artifacts"
     );
+
+    fs::remove_dir_all(workspace).expect("workspace should be removed");
+}
+
+/// A `sync` workspace with a `default` profile writing kitty into `sync-out`
+/// and `extra` appended to its config.toml.
+struct SyncFixture {
+    workspace: PathBuf,
+    config_root: PathBuf,
+    output_dir: PathBuf,
+}
+
+impl SyncFixture {
+    fn new(label: &str, extra: &str) -> Self {
+        Self::with_force(label, true, extra)
+    }
+
+    fn with_force(label: &str, force: bool, extra: &str) -> Self {
+        let workspace = temp_dir_path(label);
+        let config_root = workspace.join("xdg-config").join("chromasync");
+        let output_dir = workspace.join("sync-out");
+
+        fs::create_dir_all(&config_root).expect("config root should be created");
+        fs::write(
+            config_root.join("config.toml"),
+            format!(
+                r##"
+[[configs]]
+name = "default"
+seed = "#4ecdc4"
+template = "terminal"
+mode = "dark"
+targets = ["kitty"]
+output_dir = "{}"
+force = {force}
+{extra}"##,
+                output_dir.display(),
+            ),
+        )
+        .expect("sync config should be written");
+
+        Self {
+            workspace,
+            config_root,
+            output_dir,
+        }
+    }
+
+    fn sync(&self) -> Command {
+        let mut command = isolated_command(&self.workspace);
+        command.arg("sync");
+        command
+    }
+
+    /// Read a file a hook wrote into the config directory.
+    fn hook_file(&self, name: &str) -> Option<String> {
+        fs::read_to_string(self.config_root.join(name)).ok()
+    }
+}
+
+impl Drop for SyncFixture {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.workspace);
+    }
+}
+
+#[test]
+fn sync_hook_with_several_matching_events_runs_once() {
+    let fixture = SyncFixture::new(
+        "sync-hook-once",
+        r#"
+[[hooks]]
+name = "once"
+on = ["targets:done", "targets:changed", "target:kitty:done"]
+command = "printf x >> count.txt"
+"#,
+    );
+
+    fixture.sync().assert().success();
+
+    assert_eq!(fixture.hook_file("count.txt").as_deref(), Some("x"));
+}
+
+#[test]
+fn sync_runs_hooks_in_config_order() {
+    let fixture = SyncFixture::new(
+        "sync-hook-order",
+        r#"
+[[hooks]]
+name = "first"
+on = "targets:done"
+command = "printf 1 >> order.txt"
+
+[[hooks]]
+name = "second"
+on = "target:kitty:done"
+command = "printf 2 >> order.txt"
+
+[[hooks]]
+name = "third"
+on = "targets:done"
+command = "printf 3 >> order.txt"
+"#,
+    );
+
+    fixture.sync().assert().success();
+
+    assert_eq!(fixture.hook_file("order.txt").as_deref(), Some("123"));
+}
+
+#[test]
+fn sync_runs_every_hook_after_a_failure_and_reports_all_failures() {
+    let fixture = SyncFixture::new(
+        "sync-hook-all-failures",
+        r#"
+[[hooks]]
+name = "a"
+on = "targets:done"
+command = "exit 1"
+
+[[hooks]]
+name = "b"
+on = "targets:done"
+command = "printf ran > b.txt"
+
+[[hooks]]
+name = "c"
+on = "targets:done"
+command = "exit 2"
+"#,
+    );
+
+    fixture
+        .sync()
+        .assert()
+        .failure()
+        .code(3)
+        .stderr(predicate::str::contains(
+            "2 of 3 hooks failed: 'a' exited with",
+        ))
+        .stderr(predicate::str::contains("'c' exited with"));
+
+    assert_eq!(
+        fixture.hook_file("b.txt").as_deref(),
+        Some("ran"),
+        "a hook after a failing hook should still run"
+    );
+    assert!(fixture.output_dir.join("kitty.conf").is_file());
+}
+
+#[test]
+fn sync_rejects_invalid_hooks_before_writing_anything() {
+    let cases = [
+        (
+            "on = \"target:done\"\ncommand = \"true\"",
+            "invalid hook event 'target:done'",
+        ),
+        (
+            "on = \"targets:finished\"\ncommand = \"true\"",
+            "invalid hook event 'targets:finished'",
+        ),
+        (
+            "on = \"target::done\"\ncommand = \"true\"",
+            "target name must not be empty",
+        ),
+        (
+            "on = \"targets:done\"\nfilters = [\"profile:default\"]\ncommand = \"true\"",
+            "invalid hook filter 'profile:default'",
+        ),
+        ("on = []\ncommand = \"true\"", "has no events"),
+        ("on = \"targets:done\"\ncommand = \"  \"", "empty 'command'"),
+    ];
+
+    for (index, (body, message)) in cases.iter().enumerate() {
+        let fixture = SyncFixture::new(
+            &format!("sync-hook-invalid-{index}"),
+            &format!(
+                "\n[[hooks]]\nname = \"bad\"\n{body}\n\n[[hooks]]\nname = \"good\"\non = \"targets:done\"\ncommand = \"printf ran > good.txt\"\n"
+            ),
+        );
+
+        fixture
+            .sync()
+            .assert()
+            .failure()
+            .code(1)
+            .stderr(predicate::str::contains("invalid [[hooks]]"))
+            .stderr(predicate::str::contains(*message));
+
+        assert!(
+            !fixture.output_dir.exists(),
+            "case {index}: nothing should be written when hooks are invalid"
+        );
+        assert!(fixture.hook_file("good.txt").is_none());
+    }
+
+    for (index, (extra, message)) in [
+        (
+            "\n[[hooks]]\nname = \" \"\non = \"targets:done\"\ncommand = \"true\"\n",
+            "empty 'name'",
+        ),
+        (
+            "\n[[hooks]]\nname = \"dup\"\non = \"targets:done\"\ncommand = \"true\"\n\n[[hooks]]\nname = \"dup\"\non = \"targets:changed\"\ncommand = \"true\"\n",
+            "hook name 'dup' is used by more than one",
+        ),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let fixture = SyncFixture::new(&format!("sync-hook-invalid-name-{index}"), extra);
+
+        fixture
+            .sync()
+            .assert()
+            .failure()
+            .code(1)
+            .stderr(predicate::str::contains(*message));
+        assert!(!fixture.output_dir.exists());
+    }
+}
+
+#[test]
+fn invalid_hooks_do_not_break_generate() {
+    let fixture = SyncFixture::new(
+        "generate-ignores-invalid-hooks",
+        r#"
+[[hooks]]
+name = "bad"
+on = "target:done"
+command = "printf ran > hook.txt"
+"#,
+    );
+    let output = fixture.workspace.join("generate-out");
+
+    let mut command = isolated_command(&fixture.workspace);
+    command.args([
+        "generate",
+        "--seed",
+        "#4ecdc4",
+        "--template",
+        "terminal",
+        "--targets",
+        "kitty",
+        "--output",
+        output.to_str().expect("output should be utf-8"),
+    ]);
+    command.assert().success();
+
+    assert!(output.join("kitty.conf").is_file());
+}
+
+#[test]
+fn sync_warns_about_hooks_that_reference_unknown_profiles_or_targets() {
+    let fixture = SyncFixture::new(
+        "sync-hook-warnings",
+        r#"
+[[hooks]]
+name = "typo-profile"
+on = "targets:done"
+filters = ["config:defualt"]
+command = "printf ran > profile.txt"
+
+[[hooks]]
+name = "typo-target"
+on = "target:kity:done"
+command = "printf ran > target.txt"
+
+[[hooks]]
+name = "known"
+on = ["target:ghostty:done", "target:kitty:done"]
+command = "printf ran > known.txt"
+"#,
+    );
+
+    let assert = fixture.sync().assert().success();
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr);
+
+    assert!(
+        stderr.contains("warning: hook 'typo-profile' filter 'config:defualt'"),
+        "{stderr}"
+    );
+    assert!(
+        stderr.contains("warning: hook 'typo-target' event 'target:kity:done'"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains("'known'"), "{stderr}");
+    assert!(fixture.hook_file("profile.txt").is_none());
+    assert!(fixture.hook_file("target.txt").is_none());
+    assert_eq!(fixture.hook_file("known.txt").as_deref(), Some("ran"));
+}
+
+#[test]
+fn sync_hook_config_filters_are_ored() {
+    let fixture = SyncFixture::new(
+        "sync-hook-or-filters",
+        r##"
+[[configs]]
+name = "work"
+seed = "#00ff00"
+targets = ["kitty"]
+
+[[hooks]]
+name = "either"
+on = "targets:done"
+filters = ["config:work", "config:default"]
+command = "printf ran > either.txt"
+
+[[hooks]]
+name = "work-only"
+on = "targets:done"
+filters = ["config:work"]
+command = "printf ran > work.txt"
+"##,
+    );
+
+    fixture.sync().assert().success();
+
+    assert_eq!(fixture.hook_file("either.txt").as_deref(), Some("ran"));
+    assert!(fixture.hook_file("work.txt").is_none());
+}
+
+#[test]
+fn sync_hooks_receive_context_environment() {
+    let fixture = SyncFixture::new(
+        "sync-hook-env",
+        r#"
+[[hooks]]
+name = "env"
+on = "targets:done"
+command = """
+printf '%s' "$CHROMASYNC_PROFILE" > profile.txt
+printf '%s' "$CHROMASYNC_MODE" > mode.txt
+printf '%s' "$CHROMASYNC_CONFIG_DIR" > config-dir.txt
+printf '%s' "$CHROMASYNC_TARGETS" > targets.txt
+printf '%s' "$CHROMASYNC_ARTIFACTS" > artifacts.txt
+printf '%s' "$CHROMASYNC_CHANGED_ARTIFACTS" > changed.txt
+"""
+"#,
+    );
+    let kitty = fixture.output_dir.join("kitty.conf");
+
+    fixture.sync().args(["--mode", "light"]).assert().success();
+
+    assert_eq!(fixture.hook_file("profile.txt").as_deref(), Some("default"));
+    assert_eq!(fixture.hook_file("mode.txt").as_deref(), Some("light"));
+    assert_eq!(
+        fixture.hook_file("config-dir.txt").map(PathBuf::from),
+        Some(fixture.config_root.clone())
+    );
+    assert_eq!(fixture.hook_file("targets.txt").as_deref(), Some("kitty"));
+    assert_eq!(
+        fixture.hook_file("artifacts.txt").map(PathBuf::from),
+        Some(kitty.clone())
+    );
+    assert_eq!(
+        fixture.hook_file("changed.txt").map(PathBuf::from),
+        Some(kitty)
+    );
+
+    fixture.sync().args(["--mode", "light"]).assert().success();
+
+    assert_eq!(
+        fixture.hook_file("changed.txt").as_deref(),
+        Some(""),
+        "an identical rerun should report no changed artifacts"
+    );
+}
+
+#[test]
+fn sync_changed_events_fire_only_when_content_changes() {
+    let fixture = SyncFixture::new(
+        "sync-hook-changed",
+        r#"
+[[hooks]]
+name = "done"
+on = "targets:done"
+command = "printf x >> done.txt"
+
+[[hooks]]
+name = "changed"
+on = ["targets:changed"]
+command = "printf x >> changed.txt"
+
+[[hooks]]
+name = "kitty-changed"
+on = "target:kitty:changed"
+command = "printf x >> kitty-changed.txt"
+"#,
+    );
+    let kitty = fixture.output_dir.join("kitty.conf");
+
+    fixture.sync().assert().success();
+    assert_eq!(fixture.hook_file("done.txt").as_deref(), Some("x"));
+    assert_eq!(fixture.hook_file("changed.txt").as_deref(), Some("x"));
+    assert_eq!(fixture.hook_file("kitty-changed.txt").as_deref(), Some("x"));
+
+    let old = UNIX_EPOCH + Duration::from_secs(1_000_000);
+    fs::File::options()
+        .write(true)
+        .open(&kitty)
+        .and_then(|file| file.set_modified(old))
+        .expect("artifact mtime should be set");
+
+    let assert = fixture.sync().assert().success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
+    assert!(
+        stdout.contains(kitty.to_str().expect("artifact path should be utf-8")),
+        "unchanged artifacts should still be listed:\n{stdout}"
+    );
+    assert_eq!(fixture.hook_file("done.txt").as_deref(), Some("xx"));
+    assert_eq!(fixture.hook_file("changed.txt").as_deref(), Some("x"));
+    assert_eq!(fixture.hook_file("kitty-changed.txt").as_deref(), Some("x"));
+    assert_eq!(
+        fs::metadata(&kitty)
+            .and_then(|metadata| metadata.modified())
+            .expect("artifact mtime should be readable"),
+        old,
+        "an unchanged artifact should not be rewritten"
+    );
+
+    fixture.sync().args(["--mode", "light"]).assert().success();
+    assert_eq!(fixture.hook_file("changed.txt").as_deref(), Some("xx"));
+}
+
+#[test]
+fn sync_hook_output_goes_to_stderr() {
+    let fixture = SyncFixture::new(
+        "sync-hook-output",
+        r#"
+[[hooks]]
+name = "chatty"
+on = "targets:done"
+command = "echo from-hook-stdout; echo from-hook-stderr >&2"
+"#,
+    );
+
+    let assert = fixture.sync().assert().success();
+    let output = assert.get_output();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(
+        stdout.trim(),
+        fixture.output_dir.join("kitty.conf").display().to_string(),
+        "stdout should list only written paths"
+    );
+    assert!(stderr.contains("from-hook-stdout"), "{stderr}");
+    assert!(stderr.contains("from-hook-stderr"), "{stderr}");
+}
+
+#[test]
+fn sync_no_hooks_skips_validation_and_execution() {
+    let fixture = SyncFixture::new(
+        "sync-no-hooks",
+        r#"
+[[hooks]]
+name = "runs"
+on = "targets:done"
+command = "printf ran > ran.txt"
+
+[[hooks]]
+name = "broken"
+on = "target:done"
+command = "true"
+"#,
+    );
+
+    fixture.sync().assert().failure().code(1);
+    assert!(!fixture.output_dir.exists());
+
+    fixture.sync().arg("--no-hooks").assert().success();
+    assert!(fixture.output_dir.join("kitty.conf").is_file());
+    assert!(fixture.hook_file("ran.txt").is_none());
+}
+
+#[test]
+fn hooks_do_not_run_for_generate_or_batch() {
+    let fixture = SyncFixture::new(
+        "hooks-only-for-sync",
+        r#"
+[[hooks]]
+name = "sync-only"
+on = ["targets:done", "targets:changed"]
+command = "printf ran > ran.txt"
+"#,
+    );
+    let generate_output = fixture.workspace.join("generate-out");
+
+    let mut generate = isolated_command(&fixture.workspace);
+    generate.args([
+        "generate",
+        "--seed",
+        "#4ecdc4",
+        "--template",
+        "terminal",
+        "--targets",
+        "kitty",
+        "--output",
+        generate_output.to_str().expect("output should be utf-8"),
+    ]);
+    generate.assert().success();
+
+    let manifest = fixture.workspace.join("jobs.toml");
+    fs::write(
+        &manifest,
+        r##"
+[[jobs]]
+seed = "#4ecdc4"
+template = "terminal"
+targets = ["kitty"]
+output = "batch-out"
+"##,
+    )
+    .expect("batch manifest should be written");
+    let mut batch = isolated_command(&fixture.workspace);
+    batch.args([
+        "batch",
+        "--file",
+        manifest.to_str().expect("manifest path should be utf-8"),
+    ]);
+    batch.assert().success();
+
+    assert!(generate_output.join("kitty.conf").is_file());
+    assert!(
+        fixture
+            .workspace
+            .join("batch-out")
+            .join("kitty.conf")
+            .is_file()
+    );
+    assert!(fixture.hook_file("ran.txt").is_none());
+}
+
+/// Run the built binary directly, with stdout and stderr captured through
+/// pipes that are read to EOF, the way `$(chromasync sync 2>&1)` or a
+/// launcher using `Command::output` would.
+#[cfg(unix)]
+fn run_with_piped_output(fixture: &SyncFixture, args: &[&str]) -> (std::process::Output, Duration) {
+    use std::process::{Command as ProcessCommand, Stdio};
+
+    let started = Instant::now();
+    let output = ProcessCommand::new(env!("CARGO_BIN_EXE_chromasync"))
+        .args(args)
+        .current_dir(&fixture.workspace)
+        .env("XDG_CONFIG_HOME", fixture.workspace.join("xdg-config"))
+        .env("XDG_DATA_HOME", fixture.workspace.join("xdg-data"))
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .expect("chromasync should run");
+    (output, started.elapsed())
+}
+
+#[cfg(unix)]
+#[test]
+fn sync_does_not_wait_for_background_processes_started_by_hooks() {
+    let fixture = SyncFixture::new(
+        "sync-hook-background",
+        r#"
+[[hooks]]
+name = "daemon"
+on = "targets:done"
+command = "echo from-hook; sleep 20 & echo $! > sleeper.pid"
+"#,
+    );
+
+    // Both pipes are read to EOF, so a sleeper that inherited either of them
+    // would keep this call blocked for 20 seconds.
+    let (output, elapsed) = run_with_piped_output(&fixture, &["sync"]);
+
+    let pid = fixture.hook_file("sleeper.pid");
+    if let Some(pid) = &pid {
+        let _ = std::process::Command::new("kill").arg(pid.trim()).status();
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success(), "{stderr}");
+    assert!(pid.is_some(), "the hook should have started its sleeper");
+    assert!(
+        elapsed < Duration::from_secs(10),
+        "sync waited {elapsed:?} for a backgrounded hook process"
+    );
+    assert!(stderr.contains("from-hook"), "{stderr}");
+    assert_eq!(
+        stdout.trim(),
+        fixture.output_dir.join("kitty.conf").display().to_string(),
+        "hook output should not reach stdout"
+    );
+}
+
+/// Run the built binary with a stdout pipe whose read end is already closed,
+/// so the first write to stdout fails with `EPIPE`.
+#[cfg(unix)]
+fn run_with_closed_stdout(workspace: &Path, args: &[&str]) -> std::process::Output {
+    use std::process::{Command as ProcessCommand, Stdio};
+
+    let (reader, writer) = std::io::pipe().expect("pipe should be created");
+    drop(reader);
+
+    ProcessCommand::new(env!("CARGO_BIN_EXE_chromasync"))
+        .args(args)
+        .current_dir(workspace)
+        .env("XDG_CONFIG_HOME", workspace.join("xdg-config"))
+        .env("XDG_DATA_HOME", workspace.join("xdg-data"))
+        .stdin(Stdio::null())
+        .stdout(writer)
+        .stderr(Stdio::piped())
+        .output()
+        .expect("chromasync should run")
+}
+
+#[cfg(unix)]
+#[test]
+fn closed_stdout_does_not_stop_sync_or_its_hooks() {
+    let fixture = SyncFixture::new(
+        "sync-closed-stdout",
+        r#"
+[[hooks]]
+name = "done"
+on = "targets:done"
+command = "printf ran > ran.txt"
+"#,
+    );
+
+    let output = run_with_closed_stdout(&fixture.workspace, &["sync"]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(output.status.success(), "{stderr}");
+    assert!(!stderr.contains("Broken pipe"), "{stderr}");
+    assert!(fixture.output_dir.join("kitty.conf").is_file());
+    assert_eq!(fixture.hook_file("ran.txt").as_deref(), Some("ran"));
+
+    let generate_output = fixture.workspace.join("generate-out");
+    let output = run_with_closed_stdout(
+        &fixture.workspace,
+        &[
+            "generate",
+            "--seed",
+            "#4ecdc4",
+            "--template",
+            "terminal",
+            "--targets",
+            "kitty",
+            "--output",
+            generate_output.to_str().expect("output should be utf-8"),
+        ],
+    );
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(generate_output.join("kitty.conf").is_file());
+}
+
+#[test]
+fn unforced_sync_reruns_succeed_and_fire_changed_hooks_only_on_change() {
+    let fixture = SyncFixture::with_force(
+        "sync-unforced-rerun",
+        false,
+        r#"
+[[hooks]]
+name = "done"
+on = "targets:done"
+command = "printf x >> done.txt"
+
+[[hooks]]
+name = "changed"
+on = "targets:changed"
+command = "printf x >> changed.txt"
+"#,
+    );
+
+    fixture.sync().assert().success();
+    fixture.sync().assert().success();
+
+    assert_eq!(fixture.hook_file("done.txt").as_deref(), Some("xx"));
+    assert_eq!(fixture.hook_file("changed.txt").as_deref(), Some("x"));
+
+    // Different content still needs `force`, and no hooks run.
+    fixture
+        .sync()
+        .args(["--mode", "light"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "refusing to overwrite existing artifact",
+        ));
+    assert_eq!(fixture.hook_file("done.txt").as_deref(), Some("xx"));
+}
+
+#[test]
+fn sync_hook_names_events_and_filters_are_trimmed() {
+    let fixture = SyncFixture::new(
+        "sync-hook-trimmed",
+        r#"
+[[hooks]]
+name = " padded "
+on = "target:kitty :done"
+filters = ["config:default "]
+command = "printf ran > ran.txt"
+"#,
+    );
+
+    let assert = fixture.sync().assert().success();
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr);
+
+    assert!(!stderr.contains("warning"), "{stderr}");
+    assert_eq!(fixture.hook_file("ran.txt").as_deref(), Some("ran"));
+}
+
+#[test]
+fn target_install_preserves_existing_config_content() {
+    let workspace = temp_dir_path("target-install-preserve");
+    let config_root = workspace.join("xdg-config").join("chromasync");
+    let config_file = config_root.join("config.toml");
+    let original = r##"# My chromasync setup
+[[configs]]
+name = "default" # main profile
+seed = "#4ecdc4"
+targets = ["kitty", "gtk"]
+
+[[targets]]
+# where gtk goes
+name = "gtk"
+output_dir = "/old/gtk"
+overwrite = false
+
+[[hooks]]
+name = "reload"
+on = "targets:done"
+command = "true"
+"##;
+    fs::create_dir_all(&config_root).expect("config root should be created");
+    fs::write(&config_file, original).expect("config should be written");
+    let outdir = workspace.join("gtk-out");
+
+    let mut install = isolated_command(&workspace);
+    install.args([
+        "target",
+        "install",
+        "--target",
+        example_target_path("gtk.toml")
+            .to_str()
+            .expect("example target path should be utf-8"),
+        "--outdir",
+        outdir.to_str().expect("outdir should be utf-8"),
+        "--overwrite",
+    ]);
+    install.assert().success();
+
+    let content = fs::read_to_string(&config_file).expect("config should be readable");
+    assert!(content.starts_with("# My chromasync setup\n"), "{content}");
+    assert!(!content.contains("Managed by"), "{content}");
+    assert!(
+        content.contains(r#"name = "default" # main profile"#),
+        "{content}"
+    );
+    assert!(
+        content.contains("# where gtk goes\nname = \"gtk\""),
+        "{content}"
+    );
+    assert!(
+        content.contains("[[hooks]]\nname = \"reload\""),
+        "{content}"
+    );
+    assert!(
+        !content.contains("mode =") && !content.contains("force ="),
+        "profile defaults should not be expanded:\n{content}"
+    );
+    assert_eq!(content.matches("[[targets]]").count(), 1, "{content}");
+    assert!(!content.contains("/old/gtk"), "{content}");
+    assert!(content.contains(&format!("output_dir = \"{}\"", outdir.display())));
+    assert!(content.contains("source = \"targets/gtk.toml\""));
+    assert!(content.contains("overwrite = true"));
 
     fs::remove_dir_all(workspace).expect("workspace should be removed");
 }

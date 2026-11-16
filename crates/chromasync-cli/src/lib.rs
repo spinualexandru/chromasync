@@ -1,3 +1,5 @@
+mod hooks;
+
 use std::{
     collections::BTreeSet,
     fs,
@@ -7,12 +9,12 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use chromasync_types::{
-    ChromaStrategy, ContrastStrategy, GeneratedArtifact, GenerationRequest, ThemeMode,
-};
+use chromasync_types::{ChromaStrategy, ContrastStrategy, GenerationRequest, ThemeMode};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::{Shell, generate};
 use serde::Deserialize;
+
+pub use hooks::{HOOK_FAILURE_EXIT_CODE, HookFailure};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -34,6 +36,7 @@ enum Command {
     /// Execute a batch manifest with multiple generation jobs.
     Batch(BatchArgs),
     /// Run a named sync profile from the user config.
+    #[command(after_long_help = SYNC_AFTER_HELP)]
     Sync(SyncArgs),
     /// List the available templates and where they were loaded from.
     Templates,
@@ -117,7 +120,7 @@ struct GenerateArgs {
     /// Output directory for generated artifacts.
     #[arg(long, default_value = "chromasync")]
     output: PathBuf,
-    /// Overwrite existing artifacts instead of refusing when a file already exists at the destination.
+    /// Overwrite existing files whose content differs instead of refusing. Files that already match are left untouched either way.
     #[arg(long)]
     force: bool,
 }
@@ -145,7 +148,7 @@ struct WallpaperArgs {
     /// Output directory for generated artifacts.
     #[arg(long, default_value = "chromasync")]
     output: PathBuf,
-    /// Overwrite existing artifacts instead of refusing when a file already exists at the destination.
+    /// Overwrite existing files whose content differs instead of refusing. Files that already match are left untouched either way.
     #[arg(long)]
     force: bool,
 }
@@ -198,6 +201,19 @@ struct BatchArgs {
     file: PathBuf,
 }
 
+const SYNC_AFTER_HELP: &str = "\
+Matching [[hooks]] run after every artifact has been written. `done` events fire on \
+every successful sync; `changed` events fire only when an artifact's content differed \
+and was written, which suits reload hooks.
+
+Stdout lists every artifact path, including unchanged ones. If stdout is closed early, \
+for example by `| head`, the sync still finishes and runs its hooks.
+
+Exit status is 0 on success, 1 when the config, hook validation, generation, or writing \
+fails (no hooks run) or when the artifact paths could not be printed for another reason \
+(hooks have run), and 3 when artifacts were written or already up to date but one or \
+more hooks failed.";
+
 #[derive(Debug, Clone, Args)]
 struct SyncArgs {
     /// Profile name under [[configs]]. Defaults to "default".
@@ -205,6 +221,9 @@ struct SyncArgs {
     /// Override the theme mode configured by the selected profile.
     #[arg(long, value_enum)]
     mode: Option<CliMode>,
+    /// Skip [[hooks]] for this run: hooks are neither validated nor run.
+    #[arg(long)]
+    no_hooks: bool,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -352,6 +371,16 @@ pub fn run() -> Result<()> {
     run_with(Cli::parse())
 }
 
+/// Process exit code for an error returned by [`run`]: [`HOOK_FAILURE_EXIT_CODE`]
+/// when sync hooks failed after writing artifacts, 1 otherwise.
+pub fn exit_code(error: &anyhow::Error) -> u8 {
+    if error.downcast_ref::<HookFailure>().is_some() {
+        HOOK_FAILURE_EXIT_CODE
+    } else {
+        1
+    }
+}
+
 pub fn run_with(cli: Cli) -> Result<()> {
     let output_registry = match &cli.command {
         Command::Generate(_)
@@ -397,7 +426,7 @@ pub fn run_with(cli: Cli) -> Result<()> {
                 force,
             )?;
 
-            write_and_print_routed(&artifacts).map(|_| ())
+            write_and_print_routed(&artifacts)
         }
         Command::Wallpaper(args) => {
             let force = args.force;
@@ -413,7 +442,7 @@ pub fn run_with(cli: Cli) -> Result<()> {
                 force,
             )?;
 
-            write_and_print_routed(&artifacts).map(|_| ())
+            write_and_print_routed(&artifacts)
         }
         Command::Batch(args) => run_batch(
             args,
@@ -567,6 +596,16 @@ fn run_sync(
         )
     })?;
 
+    // Validate hooks before generating anything, so a typo cannot leave the
+    // desktop half-updated with no hooks run.
+    let hooks = if args.no_hooks {
+        Vec::new()
+    } else {
+        config
+            .validate_hooks()
+            .with_context(|| format!("invalid [[hooks]] in '{}'", config_path.display()))?
+    };
+
     let force = profile.force;
     let request = sync_profile_into_request(profile, config_dir, args.mode.map(ThemeMode::from))?;
     let artifacts = generate_routed_artifacts(&request, output_registry, config, force)
@@ -578,8 +617,42 @@ fn run_sync(
             )
         })?;
 
-    let report = write_and_print_routed(&artifacts)?;
-    run_matching_hooks(config, &profile.name, config_dir, &report)
+    if !hooks.is_empty() {
+        let produced = artifacts
+            .iter()
+            .map(|routed| routed.artifact.target.as_str())
+            .collect::<BTreeSet<_>>();
+        let warnings = hooks::unknown_reference_warnings(&hooks, config, &profile.name, |name| {
+            produced.contains(name) || output_registry.resolve(name).is_some()
+        });
+        for warning in warnings {
+            eprintln!("warning: {warning}");
+        }
+    }
+
+    let written = chromasync_core::write_routed_artifacts(&artifacts)?;
+    // The artifacts are on disk now, so hooks run even if the listing fails.
+    let printed = print_artifact_paths(&written);
+    if hooks.is_empty() {
+        return printed;
+    }
+
+    let events = hooks::SyncEvents::new(&artifacts, &written);
+    let context = hooks::HookContext {
+        profile: &profile.name,
+        mode: request.mode,
+        config_dir,
+    };
+    let hooks_result = hooks::run_matching_hooks(&hooks, context, &events);
+
+    match (hooks_result, printed) {
+        (Ok(()), printed) => printed,
+        (Err(failure), Ok(())) => Err(failure.into()),
+        (Err(failure), Err(print_error)) => {
+            eprintln!("warning: {print_error:#}");
+            Err(failure.into())
+        }
+    }
 }
 
 fn sync_profile_into_request(
@@ -673,7 +746,7 @@ fn fetch_sync_profile_image(
     Ok(resolve_relative_path(config_dir, Path::new(path)))
 }
 
-fn shell_command(command_line: &str) -> ProcessCommand {
+pub(crate) fn shell_command(command_line: &str) -> ProcessCommand {
     #[cfg(windows)]
     {
         let mut command = ProcessCommand::new("cmd");
@@ -905,105 +978,32 @@ where
     Ok(normalized)
 }
 
-fn write_and_print_routed(artifacts: &[chromasync_core::RoutedArtifact]) -> Result<WriteReport> {
-    let entries: Vec<chromasync_core::ResolvedArtifact> = artifacts
-        .iter()
-        .map(|artifact| chromasync_core::ResolvedArtifact {
-            output_dir: artifact.output_dir.clone(),
-            file_name: artifact.artifact.file_name.clone(),
-            content: artifact.artifact.content.clone(),
-            force: artifact.force,
-        })
-        .collect();
-
-    let written = chromasync_core::write_resolved_artifacts(&entries)?;
-    let generated_artifacts = artifacts
-        .iter()
-        .map(|artifact| artifact.artifact.clone())
-        .collect::<Vec<_>>();
-    let report = WriteReport::new(&generated_artifacts);
-
-    let mut stdout = io::BufWriter::new(io::stdout().lock());
-    for path in &written {
-        writeln!(stdout, "{}", path.display())?;
-    }
-
-    Ok(report)
+/// Write routed artifacts and print every destination path on stdout.
+fn write_and_print_routed(artifacts: &[chromasync_core::RoutedArtifact]) -> Result<()> {
+    let written = chromasync_core::write_routed_artifacts(artifacts)?;
+    print_artifact_paths(&written)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct WriteReport {
-    events: BTreeSet<String>,
-}
-
-impl WriteReport {
-    fn new(artifacts: &[GeneratedArtifact]) -> Self {
-        let mut events = artifacts
-            .iter()
-            .map(|artifact| format!("target:{}:done", artifact.target))
-            .collect::<BTreeSet<_>>();
-
-        if !artifacts.is_empty() {
-            events.insert("targets:done".to_owned());
+/// Print every artifact path on stdout, changed or not, and flush so the
+/// listing precedes any hook output.
+///
+/// A closed stdout (`BrokenPipe`, when the reader exits before reading) is not an
+/// error: the files are already written, so printing just stops.
+fn print_artifact_paths(written: &[chromasync_core::WrittenArtifact]) -> Result<()> {
+    let print = || -> io::Result<()> {
+        let mut stdout = io::BufWriter::new(io::stdout().lock());
+        for artifact in written {
+            writeln!(stdout, "{}", artifact.path.display())?;
         }
+        stdout.flush()
+    };
 
-        Self { events }
-    }
-
-    fn has_event(&self, event: &str) -> bool {
-        self.events.contains(event)
-    }
-}
-
-fn run_matching_hooks(
-    config: &chromasync_core::ChromasyncConfig,
-    profile_name: &str,
-    config_dir: &Path,
-    report: &WriteReport,
-) -> Result<()> {
-    for hook in &config.hooks {
-        if hook_matches(hook, profile_name, report) {
-            run_hook(hook, config_dir)?;
+    match print() {
+        Err(error) if error.kind() != io::ErrorKind::BrokenPipe => {
+            Err(error).context("artifacts were written, but listing their paths on stdout failed")
         }
+        _ => Ok(()),
     }
-
-    Ok(())
-}
-
-fn hook_matches(
-    hook: &chromasync_core::ConfigHook,
-    profile_name: &str,
-    report: &WriteReport,
-) -> bool {
-    hook.on.iter().any(|event| report.has_event(event))
-        && hook
-            .filters
-            .iter()
-            .all(|filter| filter == &format!("config:{profile_name}"))
-}
-
-fn run_hook(hook: &chromasync_core::ConfigHook, config_dir: &Path) -> Result<()> {
-    let output = shell_command(&hook.command)
-        .current_dir(config_dir)
-        .output()
-        .with_context(|| format!("hook '{}' failed to start", hook.name))?;
-
-    if output.status.success() {
-        return Ok(());
-    }
-
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let detail = stderr.trim();
-    if detail.is_empty() {
-        bail!("hook '{}' exited with {}", hook.name, output.status);
-    }
-
-    bail!(
-        "hook '{}' exited with {}: {}",
-        hook.name,
-        output.status,
-        detail
-    )
 }
 
 fn run_target_install(args: TargetInstallArgs) -> Result<()> {

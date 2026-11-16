@@ -75,7 +75,7 @@ Options:
           [default: chromasync]
 
       --force
-          Overwrite existing artifacts instead of refusing when a file already exists at the destination
+          Overwrite existing files whose content differs instead of refusing. Files that already match are left untouched either way
 
   -h, --help
           Print help
@@ -122,7 +122,7 @@ Options:
           [default: chromasync]
 
       --force
-          Overwrite existing artifacts instead of refusing when a file already exists at the destination
+          Overwrite existing files whose content differs instead of refusing. Files that already match are left untouched either way
 
   -h, --help
           Print help
@@ -160,8 +160,17 @@ Options:
 
           [possible values: dark, light]
 
+      --no-hooks
+          Skip [[hooks]] for this run: hooks are neither validated nor run
+
   -h, --help
-          Print help
+          Print help (see a summary with '-h')
+
+Matching [[hooks]] run after every artifact has been written. `done` events fire on every successful sync; `changed` events fire only when an artifact's content differed and was written, which suits reload hooks.
+
+Stdout lists every artifact path, including unchanged ones. If stdout is closed early, for example by `| head`, the sync still finishes and runs its hooks.
+
+Exit status is 0 on success, 1 when the config, hook validation, generation, or writing fails (no hooks run) or when the artifact paths could not be printed for another reason (hooks have run), and 3 when artifacts were written or already up to date but one or more hooks failed.
 ```
 
 ### `chromasync templates`
